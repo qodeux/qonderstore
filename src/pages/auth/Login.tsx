@@ -4,7 +4,6 @@ import { useForm } from 'react-hook-form'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router'
 import { loginSchema } from '../../schemas/auth'
-import { loginSuccess } from '../../store/slices/authSlice'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -22,30 +21,32 @@ const Login = () => {
     async (data) => {
       console.log(data)
 
-      // Aquí puedes agregar la lógica para manejar el inicio de sesión simulado
-      const loginData = data
-      console.log('Login data:', loginData)
+      navigate('/admin') // Redirige al usuario a la página de administración después del inicio de sesión exitoso
 
-      if (loginData.identifier === 'kevin' && loginData.password === '1234') {
-        alert('Inicio de sesión exitoso')
+      // // Aquí puedes agregar la lógica para manejar el inicio de sesión simulado
+      // const loginData = data
+      // console.log('Login data:', loginData)
 
-        dispatch(
-          loginSuccess({
-            user: {
-              id: '1',
-              name: 'Kevin',
-              email: 'kevin@example.com'
-            },
-            token: 'fake-jwt-token'
-          })
-        )
+      // if (loginData.identifier === 'kevin' && loginData.password === '1234') {
+      //   alert('Inicio de sesión exitoso')
 
-        navigate('/admin') // Redirige al usuario a la página de administración después del inicio de sesión exitoso
+      //   dispatch(
+      //     loginSuccess({
+      //       user: {
+      //         id: '1',
+      //         name: 'Kevin',
+      //         email: 'kevin@example.com'
+      //       },
+      //       token: 'fake-jwt-token'
+      //     })
+      //   )
 
-        return
-      } else {
-        alert('Usuario o contraseña incorrectos')
-      }
+      //   navigate('/admin') // Redirige al usuario a la página de administración después del inicio de sesión exitoso
+
+      //   return
+      // } else {
+      //   alert('Usuario o contraseña incorrectos')
+      // }
     },
     (onerrors) => {
       console.log('Error en el formulario:')
