@@ -1,10 +1,11 @@
-import type { Selection } from '@heroui/react'
+import type { Selection, SortDescriptor } from '@heroui/react'
 import {
   Button,
   getKeyValue,
   Input,
   Select,
   SelectItem,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -13,7 +14,7 @@ import {
   TableRow
 } from '@heroui/react'
 import { CopyPlus, EllipsisVertical, SquareMousePointer, Star } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 const Products = () => {
   type Row = {
     key: string
@@ -21,7 +22,7 @@ const Products = () => {
     public_price: string
     category: string
     stock: number
-    status: string
+    is_active: boolean
     featured: boolean
   }
 
@@ -46,7 +47,7 @@ const Products = () => {
       public_price: '$799.00',
       category: 'Electronics',
       stock: 25,
-      status: 'Active',
+      is_active: true,
       featured: true
     },
     {
@@ -55,7 +56,7 @@ const Products = () => {
       public_price: '$35.50',
       category: 'Dog',
       stock: 120,
-      status: 'Active',
+      is_active: true,
       featured: false
     },
     {
@@ -64,7 +65,7 @@ const Products = () => {
       public_price: '$49.99',
       category: 'Cat',
       stock: 40,
-      status: 'Inactive',
+      is_active: true,
       featured: false
     },
     {
@@ -73,7 +74,7 @@ const Products = () => {
       public_price: '$199.00',
       category: 'Electronics',
       stock: 15,
-      status: 'Active',
+      is_active: true,
       featured: true
     },
     {
@@ -82,7 +83,7 @@ const Products = () => {
       public_price: '$22.00',
       category: 'Lion',
       stock: 60,
-      status: 'Active',
+      is_active: false,
       featured: false
     },
     {
@@ -91,7 +92,7 @@ const Products = () => {
       public_price: '$30.00',
       category: 'Giraffe',
       stock: 35,
-      status: 'Inactive',
+      is_active: true,
       featured: false
     },
     {
@@ -100,7 +101,7 @@ const Products = () => {
       public_price: '$12.99',
       category: 'Penguin',
       stock: 80,
-      status: 'Active',
+      is_active: false,
       featured: true
     },
     {
@@ -109,7 +110,7 @@ const Products = () => {
       public_price: '$45.00',
       category: 'Shark',
       stock: 10,
-      status: 'Active',
+      is_active: true,
       featured: false
     },
     {
@@ -118,7 +119,7 @@ const Products = () => {
       public_price: '$7.50',
       category: 'Zebra',
       stock: 100,
-      status: 'Inactive',
+      is_active: true,
       featured: false
     },
     {
@@ -127,7 +128,7 @@ const Products = () => {
       public_price: '$18.00',
       category: 'Whale',
       stock: 55,
-      status: 'Active',
+      is_active: false,
       featured: true
     }
   ]
@@ -154,7 +155,7 @@ const Products = () => {
       allowsSorting: true
     },
     {
-      key: 'status',
+      key: 'is_active',
       label: 'Estado',
       allowsSorting: true
     },
@@ -169,43 +170,93 @@ const Products = () => {
       allowsSorting: false
     }
   ]
-
+  const [filterValue, setFilterValue] = useState('')
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set(['2']))
   const [selectionBehavior, setSelectionBehavior] = useState<'replace' | 'toggle'>('replace')
+
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
+    column: 'public_price',
+    direction: 'ascending'
+  })
+
+  const [categoryFilter, setCategoryFilter] = useState<Selection>('all')
 
   const toggleSelectionBehavior = () => {
     setSelectionBehavior((prevMode) => (prevMode === 'replace' ? 'toggle' : 'replace'))
     setSelectedKeys(new Set()) // Clear selection when mode changes
   }
 
-  const renderCell = (item: Row, columnKey: React.Key) => {
-    const key = String(columnKey) as keyof Row | 'actions'
+  const onSearchChange = useCallback((value?: string) => {
+    if (value) {
+      setFilterValue(value)
+    } else {
+      setFilterValue('')
+    }
+  }, [])
 
-    if (key === 'actions') {
-      return (
-        <div className='flex justify-end gap-2'>
-          <Button
-            size='sm'
-            variant='flat'
-            onPress={(e) => {
-              // evita que la fila se seleccione al presionar el botón
-              e?.stopPropagation?.()
-              console.log('Editar', item.key)
-            }}
-            isIconOnly
-          >
-            <EllipsisVertical />
-            {/* o icon-only:
-            <Button isIconOnly size="sm" variant="light"><Pencil className="w-4 h-4" /></Button>
-            <Button isIconOnly size="sm" variant="light" color="danger"><Trash2 className="w-4 h-4" /></Button>
-            */}
-          </Button>
-        </div>
+  const onClear = useCallback(() => {
+    setFilterValue('')
+  }, [])
+
+  const hasSearchFilter = Boolean(filterValue)
+
+  const filteredItems = useMemo(() => {
+    let filteredRows = [...rows]
+
+    if (hasSearchFilter) {
+      filteredRows = filteredRows.filter(
+        (row) => row.name.toLowerCase().includes(filterValue.toLowerCase()) || row.stock.toString() === filterValue.toLocaleLowerCase()
       )
     }
 
-    if (key === 'featured') {
-      return item.featured ? <Star fill='#111' /> : <Star />
+    if (categoryFilter !== 'all' && Array.from(categoryFilter).length !== categories.length) {
+      filteredRows = filteredRows.filter((row) => Array.from(categoryFilter).includes(row.category))
+    }
+
+    return filteredRows
+  }, [rows, filterValue, categoryFilter])
+
+  const sortedItems = useMemo(() => {
+    return [...filteredItems].sort((a: Row, b: Row) => {
+      const first = a[sortDescriptor.column as keyof Row] as number
+      const second = b[sortDescriptor.column as keyof Row] as number
+      const cmp = first < second ? -1 : first > second ? 1 : 0
+
+      return sortDescriptor.direction === 'descending' ? -cmp : cmp
+    })
+  }, [sortDescriptor, filteredItems])
+
+  const renderCell = (item: Row, columnKey: React.Key) => {
+    const key = String(columnKey) as keyof Row | 'actions'
+
+    switch (key) {
+      case 'is_active':
+        return <Switch defaultSelected={item.is_active} size='sm' />
+      case 'actions':
+        return (
+          <div className='flex justify-end gap-2'>
+            <Button
+              size='sm'
+              variant='flat'
+              onPress={(e) => {
+                // evita que la fila se seleccione al presionar el botón
+                e?.stopPropagation?.()
+                console.log('Editar', item.key)
+              }}
+              isIconOnly
+            >
+              <EllipsisVertical />
+              {/* o icon-only:
+            <Button isIconOnly size="sm" variant="light"><Pencil className="w-4 h-4" /></Button>
+            <Button isIconOnly size="sm" variant="light" color="danger"><Trash2 className="w-4 h-4" /></Button>
+            */}
+            </Button>
+          </div>
+        )
+      case 'featured':
+        return item.featured ? <Star fill='#111' /> : <Star />
+      default:
+        break
     }
 
     // fallback: muestra el valor de la celda normalmente
@@ -219,7 +270,7 @@ const Products = () => {
       <section className='space-y-6'>
         <div className='flex justify-between items-center gap-4'>
           <section className='flex-grow flex items-center gap-4 md:max-w-xl '>
-            <Input label='Buscar...' type='text' size='md' />
+            <Input label='Buscar...' type='text' size='md' value={filterValue} onClear={() => onClear()} onValueChange={onSearchChange} />
             <Select className='max-w-xs' label='Categoria' selectionMode='multiple' isClearable size='sm'>
               {categories.map((animal) => (
                 <SelectItem key={animal.id}>{animal.name}</SelectItem>
@@ -240,15 +291,23 @@ const Products = () => {
           selectionMode='multiple'
           selectionBehavior={selectionBehavior}
           onSelectionChange={setSelectedKeys}
+          sortDescriptor={sortDescriptor}
+          onSortChange={setSortDescriptor}
         >
-          <TableHeader columns={columns}>{(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}</TableHeader>
-          <TableBody items={rows}>
+          <TableHeader columns={columns}>
+            {(column) => (
+              <TableColumn key={column.key} allowsSorting={column.allowsSorting}>
+                {column.label}
+              </TableColumn>
+            )}
+          </TableHeader>
+          <TableBody items={sortedItems}>
             {(item) => <TableRow key={item.key}>{(columnKey) => <TableCell>{renderCell(item as Row, columnKey)}</TableCell>}</TableRow>}
           </TableBody>
         </Table>
         <section className='flex justify-between items-center mt-4'>
           <div>
-            {rows.length} {rows.length === 1 ? 'resultado' : 'resultados'}
+            {sortedItems.length} {sortedItems.length === 1 ? 'resultado' : 'resultados'}
             {selectionCount > 0 && (
               <>
                 {' '}
