@@ -1,12 +1,16 @@
 import { useDisclosure, type Selection, type SortDescriptor } from '@heroui/react'
 import { useEffect, useMemo, useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { DataTable, type PresetKey } from '../../components/common/DataTable'
 import { applyToolbarFilters, ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import CategoryModal from '../../components/modals/admin/CategoryModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
 import { categoryService } from '../../services/categoryService'
+import { setEditMode } from '../../store/slices/categoriesSlice'
 
 const Categories = () => {
+  const dispatch = useDispatch()
+
   type Row = {
     key: string
     name: string
@@ -66,7 +70,6 @@ const Categories = () => {
     column: 'price',
     direction: 'ascending'
   })
-  const [editMode, setEditMode] = useState(false)
 
   // const { isOpen: isOpenProduct, onOpen: onOpenProduct, onOpenChange: onOpenChangeProduct } = useDisclosure()
   const { isOpen: isOpenDelete, onOpen: onOpenDelete, onOpenChange: onOpenChangeDelete } = useDisclosure()
@@ -99,6 +102,15 @@ const Categories = () => {
       )
     }
   }
+  const handleAddCategory = () => {
+    dispatch(setEditMode(false))
+    onOpenCategory()
+  }
+
+  const handleEditCategory = () => {
+    dispatch(setEditMode(true))
+    onOpenCategory()
+  }
 
   // carga inicial
   useEffect(() => {
@@ -118,10 +130,7 @@ const Categories = () => {
           buttons={[
             {
               label: 'Agregar categoría',
-              onPress: () => {
-                setEditMode(false)
-                onOpenCategory()
-              },
+              onPress: handleAddCategory,
               color: 'primary'
             }
           ]}
@@ -131,10 +140,7 @@ const Categories = () => {
         <DataTable<Row>
           entity='categories'
           adapterOverrides={{
-            edit: () => {
-              setEditMode(true)
-              onOpenCategory()
-            },
+            edit: handleEditCategory,
             onRequestDelete: (id) => {
               setDeleteCategoryId(String(id))
               onOpenDelete()
@@ -152,7 +158,7 @@ const Categories = () => {
           onSortChange={setSortDescriptor}
         />
       </section>
-      <CategoryModal isOpen={isOpenCategory} onOpenChange={onOpenChangeCategory} fetchData={fetchData} editMode={editMode} />
+      <CategoryModal isOpen={isOpenCategory} onOpenChange={onOpenChangeCategory} fetchData={fetchData} />
 
       <OnDeleteModal
         isOpenDelete={isOpenDelete}

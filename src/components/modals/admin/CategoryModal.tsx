@@ -2,18 +2,20 @@ import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
+import { useSelector } from 'react-redux'
 import { categorySchema } from '../../../schemas/category.schema'
 import { categoryService } from '../../../services/categoryService'
+import type { RootState } from '../../../store/store'
 import CategoryForm from '../../forms/admin/CategoryForm'
 
 type Props = {
   isOpen: boolean
   onOpenChange: () => void
   fetchData: () => void
-  editMode?: boolean
 }
 
-const CategoryModal = ({ isOpen, onOpenChange, fetchData, editMode = false }: Props) => {
+const CategoryModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
+  const editMode = useSelector((state: RootState) => state.categories.editMode)
   const categoryForm = useForm({
     resolver: zodResolver(categorySchema),
     shouldUnregister: false,
