@@ -167,6 +167,7 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
               <Button
                 variant='bordered'
                 isIconOnly
+                size='sm'
                 //onClick={(e) => e.stopPropagation()} // evita seleccionar la fila
               >
                 <EllipsisVertical />

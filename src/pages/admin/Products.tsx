@@ -1,13 +1,15 @@
 import type { Selection, SortDescriptor } from '@heroui/react'
-import { Button, Input, Select, SelectItem, useDisclosure } from '@heroui/react'
-import { CopyPlus, SquareMousePointer } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useDisclosure } from '@heroui/react'
+import { useEffect, useMemo, useState } from 'react'
+import type { PresetKey } from '../../components/common/DataTable'
 import { DataTable } from '../../components/common/DataTable'
+import { applyToolbarFilters, ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import ProductModal from '../../components/modals/admin/ProductModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
 import supabase from '../../lib/supabase'
 import { productService } from '../../services/productService'
 import { categories } from '../../types/products'
+
 const Products = () => {
   type Row = {
     key: string
@@ -47,72 +49,52 @@ const Products = () => {
     {
       key: 'is_active',
       label: 'Estado',
-      allowsSorting: true
+      allowsSorting: true,
+      preset: 'is_active' as PresetKey
     },
     {
       key: 'featured',
       label: '',
-      allowsSorting: false
+      allowsSorting: false,
+      preset: 'featured' as PresetKey
     },
     {
       key: 'actions',
       label: 'Acciones',
-      allowsSorting: false
+      allowsSorting: false,
+      preset: 'actions' as PresetKey
     }
   ]
 
   const [rowsDB, setRowsDB] = useState<Row[]>([])
 
-  const { isOpen: isOpenProduct, onOpen: onOpenProduct, onOpenChange: onOpenChangeProduct } = useDisclosure()
-  const { isOpen: isOpenDeleteProduct, onOpen: onOpenDeleteProduct, onOpenChange: onOpenChangeDeleteProduct } = useDisclosure()
+  const [criteria, setCriteria] = useState<ToolbarCriteria<Row>>({
+    searchText: '',
+    selected: {}
+  })
 
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null)
 
-  const [filterValue, setFilterValue] = useState('')
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set(['2']))
   const [selectionBehavior, setSelectionBehavior] = useState<'replace' | 'toggle'>('replace')
-
-  const [categoryFilter, setCategoryFilter] = useState<Set<number> | 'all'>('all')
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'price',
     direction: 'ascending'
   })
 
+  const { isOpen: isOpenProduct, onOpen: onOpenProduct, onOpenChange: onOpenChangeProduct } = useDisclosure()
+  const { isOpen: isOpenDeleteProduct, onOpen: onOpenDeleteProduct, onOpenChange: onOpenChangeDeleteProduct } = useDisclosure()
+
+  // Filtra las filas según criterios del toolbar
+  const filteredRows = useMemo(() => {
+    return applyToolbarFilters(rowsDB, ['name'], criteria)
+  }, [rowsDB, criteria])
+
   const toggleSelectionBehavior = () => {
     setSelectionBehavior((prevMode) => (prevMode === 'replace' ? 'toggle' : 'replace'))
     setSelectedKeys(new Set()) // Clear selection when mode changes
   }
-
-  const onSearchChange = useCallback((value?: string) => {
-    if (value) {
-      setFilterValue(value)
-    } else {
-      setFilterValue('')
-    }
-  }, [])
-
-  const onClear = useCallback(() => {
-    setFilterValue('')
-  }, [])
-
-  const hasSearchFilter = Boolean(filterValue)
-
-  // const filteredItems = useMemo(() => {
-  //   let filteredRows = [...rowsDB]
-
-  //   if (hasSearchFilter) {
-  //     filteredRows = filteredRows.filter(
-  //       (row) => row.name.toLowerCase().includes(filterValue.toLowerCase()) || row.stock.toString() === filterValue.toLocaleLowerCase()
-  //     )
-  //   }
-
-  //   if (categoryFilter !== 'all' && Array.from(categoryFilter).length !== categories.length) {
-  //     filteredRows = filteredRows.filter((row) => Array.from(categoryFilter).includes(row.category))
-  //   }
-
-  //   return filteredRows
-  // }, [rowsDB, filterValue, categoryFilter])
 
   // callbacks comunes
 
@@ -143,7 +125,7 @@ const Products = () => {
           key: product.id.toString(),
           name: product.name,
           price: product.price,
-          category: categories.find((cat) => cat.id.toString() === product.category)?.name || 'N/A',
+          category: categories.find((cat) => cat.id == product.category)?.name || 'N/A',
           stock: product.stock,
           is_active: product.is_active,
           featured: product.featured,
@@ -155,48 +137,27 @@ const Products = () => {
     }
   }
 
-  async function deleteProduct(productId: string | null) {
-    if (!productId) return
-
-    const { error } = await supabase.from('products').delete().eq('id', productId)
-
-    if (error) {
-      console.error('Error deleting product:', error)
-    } else {
-      console.log('Product deleted successfully')
-      onOpenChangeDeleteProduct()
-      fetchData()
-    }
-  }
-
+  // carga inicial
   useEffect(() => {
     fetchData()
   }, [])
 
   return (
-    <div>
+    <>
       <section className='space-y-6'>
-        <div className='flex justify-between items-center gap-4'>
-          <section className='flex-grow flex items-center gap-4 md:max-w-xl '>
-            <Input label='Buscar...' type='text' size='md' value={filterValue} onClear={() => onClear()} onValueChange={onSearchChange} />
-            <Select className='max-w-xs' label='Categoria' selectionMode='multiple' isClearable size='sm'>
-              {categories.map((cat) => (
-                <SelectItem key={cat.id}>{cat.name}</SelectItem>
-              ))}
-            </Select>
-          </section>
-          <div className='flex items-center gap-2'>
-            <Button isIconOnly onPress={toggleSelectionBehavior} aria-label='Toggle Selection Mode'>
-              {selectionBehavior === 'replace' ? <CopyPlus className='w-5 h-5' /> : <SquareMousePointer className='w-5 h-5' />}
-            </Button>
-            <Button color='primary' onPress={onOpenProduct}>
-              Agregar Producto
-            </Button>
-          </div>
-        </div>
+        <ToolbarTable<Row>
+          rows={rowsDB}
+          searchFilter={['name']}
+          filters={[{ label: 'Categoría', column: 'category', multiple: true }]}
+          enableToggleBehavior
+          selectionBehavior={selectionBehavior}
+          onToggleBehavior={toggleSelectionBehavior}
+          buttons={[{ label: 'Agregar Producto', onPress: onOpenProduct, color: 'primary' }]}
+          onCriteriaChange={setCriteria}
+        />
 
         <DataTable<Row>
-          rows={rowsDB}
+          rows={filteredRows}
           columns={columns}
           selectedKeys={selectedKeys}
           onSelectionChange={setSelectedKeys}
@@ -211,13 +172,12 @@ const Products = () => {
       <ProductModal isOpen={isOpenProduct} onOpenChange={onOpenChangeProduct} fetchData={fetchData} />
 
       <OnDeleteModal
-        deleteType='product'
         isOpenDeleteProduct={isOpenDeleteProduct}
         onOpenChangeDeleteProduct={onOpenChangeDeleteProduct}
-        deleteProduct={deleteProduct}
-        deleteProductId={deleteProductId}
+        deleteType='product'
+        itemId={deleteProductId}
       />
-    </div>
+    </>
   )
 }
 

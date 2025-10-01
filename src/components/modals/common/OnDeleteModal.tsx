@@ -1,11 +1,13 @@
 import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
+import { productService } from '../../../services/productService'
+
+export type ItemType = 'product' | 'category' | 'brand'
 
 type Props = {
   isOpenDeleteProduct: boolean
   onOpenChangeDeleteProduct: () => void
-  deleteProduct: (id: string | null) => void
-  deleteProductId: string | null
-  deleteType: 'product' | 'category' | 'brand'
+  deleteType: ItemType
+  itemId: string | null
 }
 
 const deleteTypeMap = {
@@ -14,7 +16,25 @@ const deleteTypeMap = {
   brand: { name: 'marca', article: 'la' }
 }
 
-const OnDeleteModal = ({ isOpenDeleteProduct, onOpenChangeDeleteProduct, deleteProduct, deleteProductId, deleteType }: Props) => {
+const OnDeleteModal = ({ isOpenDeleteProduct, onOpenChangeDeleteProduct, deleteType, itemId }: Props) => {
+  async function deleteItem() {
+    if (!itemId) return
+    switch (deleteType) {
+      case 'product':
+        await productService.deleteProduct(itemId)
+        break
+      case 'category':
+        //await supabase.from('categories').delete().eq('id', itemId)
+        break
+      case 'brand':
+        //await supabase.from('brands').delete().eq('id', itemId)
+        break
+    }
+
+    console.log('Product deleted successfully')
+    onOpenChangeDeleteProduct()
+  }
+
   return (
     <Modal isOpen={isOpenDeleteProduct} onOpenChange={onOpenChangeDeleteProduct}>
       <ModalContent>
@@ -31,7 +51,7 @@ const OnDeleteModal = ({ isOpenDeleteProduct, onOpenChangeDeleteProduct, deleteP
               <Button color='danger' variant='light' onPress={onClose}>
                 Cerrar
               </Button>
-              <Button color='primary' onPress={() => deleteProduct(deleteProductId)}>
+              <Button color='primary' onPress={() => deleteItem()}>
                 Aceptar
               </Button>
             </ModalFooter>
