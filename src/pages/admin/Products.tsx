@@ -1,136 +1,29 @@
-import type { Selection } from '@heroui/react'
-import {
-  Button,
-  getKeyValue,
-  Input,
-  Select,
-  SelectItem,
-  Table,
-  TableBody,
-  TableCell,
-  TableColumn,
-  TableHeader,
-  TableRow
-} from '@heroui/react'
-import { CopyPlus, EllipsisVertical, SquareMousePointer, Star } from 'lucide-react'
-import { useState } from 'react'
+import type { Selection, SortDescriptor } from '@heroui/react'
+import { useDisclosure } from '@heroui/react'
+import { useEffect, useMemo, useState } from 'react'
+import type { PresetKey } from '../../components/common/DataTable'
+import { DataTable } from '../../components/common/DataTable'
+import { applyToolbarFilters, ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
+import ProductModal from '../../components/modals/admin/ProductModal'
+import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
+import supabase from '../../lib/supabase'
+import { productService } from '../../services/productService'
+import { categories } from '../../types/products'
+
 const Products = () => {
   type Row = {
     key: string
+    sku: string
     name: string
-    public_price: string
+    slug: string
+    price: string
     category: string
+    brand?: string
     stock: number
-    status: string
+    is_active: boolean
     featured: boolean
+    created_at: string
   }
-
-  const categories = [
-    { id: '1', name: 'Cat' },
-    { id: '2', name: 'Dog' },
-    { id: '3', name: 'Elephant' },
-    { id: '4', name: 'Lion' },
-    { id: '5', name: 'Tiger' },
-    { id: '6', name: 'Giraffe' },
-    { id: '7', name: 'Dolphin' },
-    { id: '8', name: 'Penguin' },
-    { id: '9', name: 'Zebra' },
-    { id: '10', name: 'Shark' },
-    { id: '11', name: 'Whale' }
-  ]
-
-  const rows = [
-    {
-      key: '1',
-      name: 'Smartphone X1',
-      public_price: '$799.00',
-      category: 'Electronics',
-      stock: 25,
-      status: 'Active',
-      featured: true
-    },
-    {
-      key: '2',
-      name: 'Dog Food Premium',
-      public_price: '$35.50',
-      category: 'Dog',
-      stock: 120,
-      status: 'Active',
-      featured: false
-    },
-    {
-      key: '3',
-      name: 'Cat Scratching Post',
-      public_price: '$49.99',
-      category: 'Cat',
-      stock: 40,
-      status: 'Inactive',
-      featured: false
-    },
-    {
-      key: '4',
-      name: 'Wireless Headphones',
-      public_price: '$199.00',
-      category: 'Electronics',
-      stock: 15,
-      status: 'Active',
-      featured: true
-    },
-    {
-      key: '5',
-      name: 'Lion Plush Toy',
-      public_price: '$22.00',
-      category: 'Lion',
-      stock: 60,
-      status: 'Active',
-      featured: false
-    },
-    {
-      key: '6',
-      name: 'Giraffe Print Blanket',
-      public_price: '$30.00',
-      category: 'Giraffe',
-      stock: 35,
-      status: 'Inactive',
-      featured: false
-    },
-    {
-      key: '7',
-      name: 'Penguin Mug',
-      public_price: '$12.99',
-      category: 'Penguin',
-      stock: 80,
-      status: 'Active',
-      featured: true
-    },
-    {
-      key: '8',
-      name: 'Shark Fin Pool Float',
-      public_price: '$45.00',
-      category: 'Shark',
-      stock: 10,
-      status: 'Active',
-      featured: false
-    },
-    {
-      key: '9',
-      name: 'Zebra Pattern Notebook',
-      public_price: '$7.50',
-      category: 'Zebra',
-      stock: 100,
-      status: 'Inactive',
-      featured: false
-    },
-    {
-      key: '10',
-      name: 'Whale Water Bottle',
-      public_price: '$18.00',
-      category: 'Whale',
-      stock: 55,
-      status: 'Active',
-      featured: true
-    }
-  ]
 
   const columns = [
     {
@@ -139,7 +32,7 @@ const Products = () => {
       allowsSorting: true
     },
     {
-      key: 'public_price',
+      key: 'price',
       label: 'Precio',
       allowsSorting: true
     },
@@ -154,112 +47,137 @@ const Products = () => {
       allowsSorting: true
     },
     {
-      key: 'status',
+      key: 'is_active',
       label: 'Estado',
-      allowsSorting: true
+      allowsSorting: true,
+      preset: 'is_active' as PresetKey
     },
     {
       key: 'featured',
       label: '',
-      allowsSorting: false
+      allowsSorting: false,
+      preset: 'featured' as PresetKey
     },
     {
       key: 'actions',
       label: 'Acciones',
-      allowsSorting: false
+      allowsSorting: false,
+      preset: 'actions' as PresetKey
     }
   ]
 
+  const [rowsDB, setRowsDB] = useState<Row[]>([])
+
+  const [criteria, setCriteria] = useState<ToolbarCriteria<Row>>({
+    searchText: '',
+    selected: {}
+  })
+
+  const [deleteProductId, setDeleteProductId] = useState<string | null>(null)
+
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set(['2']))
   const [selectionBehavior, setSelectionBehavior] = useState<'replace' | 'toggle'>('replace')
+
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
+    column: 'price',
+    direction: 'ascending'
+  })
+
+  const { isOpen: isOpenProduct, onOpen: onOpenProduct, onOpenChange: onOpenChangeProduct } = useDisclosure()
+  const { isOpen: isOpenDeleteProduct, onOpen: onOpenDeleteProduct, onOpenChange: onOpenChangeDeleteProduct } = useDisclosure()
+
+  // Filtra las filas según criterios del toolbar
+  const filteredRows = useMemo(() => {
+    return applyToolbarFilters(rowsDB, ['name'], criteria)
+  }, [rowsDB, criteria])
 
   const toggleSelectionBehavior = () => {
     setSelectionBehavior((prevMode) => (prevMode === 'replace' ? 'toggle' : 'replace'))
     setSelectedKeys(new Set()) // Clear selection when mode changes
   }
 
-  const renderCell = (item: Row, columnKey: React.Key) => {
-    const key = String(columnKey) as keyof Row | 'actions'
+  // callbacks comunes
 
-    if (key === 'actions') {
-      return (
-        <div className='flex justify-end gap-2'>
-          <Button
-            size='sm'
-            variant='flat'
-            onPress={(e) => {
-              // evita que la fila se seleccione al presionar el botón
-              e?.stopPropagation?.()
-              console.log('Editar', item.key)
-            }}
-            isIconOnly
-          >
-            <EllipsisVertical />
-            {/* o icon-only:
-            <Button isIconOnly size="sm" variant="light"><Pencil className="w-4 h-4" /></Button>
-            <Button isIconOnly size="sm" variant="light" color="danger"><Trash2 className="w-4 h-4" /></Button>
-            */}
-          </Button>
-        </div>
-      )
-    }
-
-    if (key === 'featured') {
-      return item.featured ? <Star fill='#111' /> : <Star />
-    }
-
-    // fallback: muestra el valor de la celda normalmente
-    return getKeyValue(item, key as keyof Row)
+  async function onToggleActive(row: Row, next: boolean) {
+    await supabase.from('products').update({ is_active: next }).eq('id', row.key)
+    fetchData()
+  }
+  async function onToggleFeatured(row: Row, next: boolean) {
+    await supabase.from('products').update({ featured: next }).eq('id', row.key)
+    fetchData()
+  }
+  function onEdit(row: Row) {
+    // abre tu modal de edición
+    // setEditRow(row); onOpenProduct();
+  }
+  function onDelete(row: Row) {
+    setDeleteProductId(row.key)
+    onOpenDeleteProduct()
   }
 
-  const selectionCount = selectedKeys === 'all' ? rows.length : (selectedKeys as Set<React.Key>).size
+  async function fetchData() {
+    const productsDB = await productService.fetchProducts()
+    console.log(productsDB)
+
+    if (productsDB) {
+      setRowsDB(
+        productsDB.map((product) => ({
+          key: product.id.toString(),
+          name: product.name,
+          price: product.price,
+          category: categories.find((cat) => cat.id == product.category)?.name || 'N/A',
+          stock: product.stock,
+          is_active: product.is_active,
+          featured: product.featured,
+          sku: product.sku,
+          slug: product.slug,
+          created_at: product.created_at
+        }))
+      )
+    }
+  }
+
+  // carga inicial
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   return (
-    <div>
+    <>
       <section className='space-y-6'>
-        <div className='flex justify-between items-center gap-4'>
-          <section className='flex-grow flex items-center gap-4 md:max-w-xl '>
-            <Input label='Buscar...' type='text' size='md' />
-            <Select className='max-w-xs' label='Categoria' selectionMode='multiple' isClearable size='sm'>
-              {categories.map((animal) => (
-                <SelectItem key={animal.id}>{animal.name}</SelectItem>
-              ))}
-            </Select>
-          </section>
-          <div className='flex items-center gap-2'>
-            <Button isIconOnly onPress={toggleSelectionBehavior} aria-label='Toggle Selection Mode'>
-              {selectionBehavior === 'replace' ? <CopyPlus className='w-5 h-5' /> : <SquareMousePointer className='w-5 h-5' />}
-            </Button>
-            <Button color='primary'>Agregar Producto</Button>
-          </div>
-        </div>
-
-        <Table
-          aria-label='Controlled table example with dynamic content'
-          selectedKeys={selectedKeys}
-          selectionMode='multiple'
+        <ToolbarTable<Row>
+          rows={rowsDB}
+          searchFilter={['name']}
+          filters={[{ label: 'Categoría', column: 'category', multiple: true }]}
+          enableToggleBehavior
           selectionBehavior={selectionBehavior}
+          onToggleBehavior={toggleSelectionBehavior}
+          buttons={[{ label: 'Agregar Producto', onPress: onOpenProduct, color: 'primary' }]}
+          onCriteriaChange={setCriteria}
+        />
+
+        <DataTable<Row>
+          rows={filteredRows}
+          columns={columns}
+          selectedKeys={selectedKeys}
           onSelectionChange={setSelectedKeys}
-        >
-          <TableHeader columns={columns}>{(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}</TableHeader>
-          <TableBody items={rows}>
-            {(item) => <TableRow key={item.key}>{(columnKey) => <TableCell>{renderCell(item as Row, columnKey)}</TableCell>}</TableRow>}
-          </TableBody>
-        </Table>
-        <section className='flex justify-between items-center mt-4'>
-          <div>
-            {rows.length} {rows.length === 1 ? 'resultado' : 'resultados'}
-            {selectionCount > 0 && (
-              <>
-                {' '}
-                | {selectionCount} {selectionCount === 1 ? 'seleccionado' : 'seleccionados'}
-              </>
-            )}
-          </div>
-          <div>Filtros</div>
-        </section>
+          selectionBehavior={selectionBehavior}
+          sortDescriptor={sortDescriptor}
+          onSortChange={setSortDescriptor}
+          toggles={{ onToggleActive, onToggleFeatured }}
+          actions={{ onEdit, onDelete }}
+        />
       </section>
-    </div>
+
+      <ProductModal isOpen={isOpenProduct} onOpenChange={onOpenChangeProduct} fetchData={fetchData} />
+
+      <OnDeleteModal
+        isOpenDeleteProduct={isOpenDeleteProduct}
+        onOpenChangeDeleteProduct={onOpenChangeDeleteProduct}
+        deleteType='product'
+        itemId={deleteProductId}
+      />
+    </>
   )
 }
 
