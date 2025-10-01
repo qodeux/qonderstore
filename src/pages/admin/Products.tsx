@@ -6,7 +6,6 @@ import { DataTable } from '../../components/common/DataTable'
 import { applyToolbarFilters, ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import ProductModal from '../../components/modals/admin/ProductModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
-import supabase from '../../lib/supabase'
 import { productService } from '../../services/productService'
 import { categories } from '../../types/products'
 
@@ -75,7 +74,7 @@ const Products = () => {
 
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null)
 
-  const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set(['2']))
+  const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]))
   const [selectionBehavior, setSelectionBehavior] = useState<'replace' | 'toggle'>('replace')
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
@@ -96,23 +95,8 @@ const Products = () => {
     setSelectedKeys(new Set()) // Clear selection when mode changes
   }
 
-  // callbacks comunes
-
-  async function onToggleActive(row: Row, next: boolean) {
-    await supabase.from('products').update({ is_active: next }).eq('id', row.key)
-    fetchData()
-  }
-  async function onToggleFeatured(row: Row, next: boolean) {
-    await supabase.from('products').update({ featured: next }).eq('id', row.key)
-    fetchData()
-  }
-  function onEdit(row: Row) {
-    // abre tu modal de edición
-    // setEditRow(row); onOpenProduct();
-  }
-  function onDelete(row: Row) {
-    setDeleteProductId(row.key)
-    onOpenDeleteProduct()
+  function exportOne(row: Row) {
+    console.log('Exportar', row)
   }
 
   async function fetchData() {
@@ -157,23 +141,37 @@ const Products = () => {
         />
 
         <DataTable<Row>
+          entity='products'
+          adapterOverrides={{
+            edit: () => onOpenProduct(),
+            onRequestDelete: (id) => {
+              setDeleteProductId(String(id))
+              onOpenDeleteProduct()
+            },
+            afterChange: fetchData,
+            actions: [
+              { key: 'export', label: 'Exportar', onPress: (row) => exportOne(row) },
+              { key: 'despachar', label: 'Despachar', onPress: (row) => exportOne(row) },
+              { key: 'importar', label: 'Importar', onPress: (row) => exportOne(row) }
+            ]
+            // rowActions: (row) => [{ key:"share", label:"Compartir", onPress: ... }]
+          }}
           rows={filteredRows}
           columns={columns}
           selectedKeys={selectedKeys}
           onSelectionChange={setSelectedKeys}
+          selectionMode='multiple'
           selectionBehavior={selectionBehavior}
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
-          toggles={{ onToggleActive, onToggleFeatured }}
-          actions={{ onEdit, onDelete }}
         />
       </section>
 
       <ProductModal isOpen={isOpenProduct} onOpenChange={onOpenChangeProduct} fetchData={fetchData} />
 
       <OnDeleteModal
-        isOpenDeleteProduct={isOpenDeleteProduct}
-        onOpenChangeDeleteProduct={onOpenChangeDeleteProduct}
+        isOpenDelete={isOpenDeleteProduct}
+        onOpenChangeDelete={onOpenChangeDeleteProduct}
         deleteType='product'
         itemId={deleteProductId}
       />
