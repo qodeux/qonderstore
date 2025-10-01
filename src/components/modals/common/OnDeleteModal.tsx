@@ -1,4 +1,5 @@
 import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
+import { categoryService } from '../../../services/categoryService'
 import { productService } from '../../../services/productService'
 
 export type ItemType = 'product' | 'category' | 'brand' | 'provider'
@@ -8,6 +9,7 @@ type Props = {
   onOpenChangeDelete: () => void
   deleteType: ItemType
   itemId: string | null
+  fetchData?: () => void
 }
 
 const deleteTypeMap = {
@@ -17,14 +19,17 @@ const deleteTypeMap = {
   provider: { name: 'proveedor', article: 'el' }
 }
 
-const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType, itemId }: Props) => {
+const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType, itemId, fetchData }: Props) => {
   async function deleteItem() {
     if (!itemId) return
     switch (deleteType) {
       case 'product':
         await productService.deleteProduct(itemId)
+        console.log('Product deleted successfully')
         break
       case 'category':
+        await categoryService.deleteCategory(itemId)
+        console.log('Category deleted successfully')
         //await supabase.from('categories').delete().eq('id', itemId)
         break
       case 'brand':
@@ -34,8 +39,8 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType, itemId }:
         //await supabase.from('providers').delete().eq('id', itemId)
         break
     }
+    if (fetchData) fetchData()
 
-    console.log('Product deleted successfully')
     onOpenChangeDelete()
   }
 
