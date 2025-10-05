@@ -1,0 +1,78 @@
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect } from 'react'
+import { FormProvider, useForm } from 'react-hook-form'
+import { useSelector } from 'react-redux'
+import { promotionsSchema } from '../../../schemas/promotions.schema'
+import { promotionsService } from '../../../services/promotionService'
+import type { RootState } from '../../../store/store'
+import PromotionForm from '../../forms/admin/promotionForm'
+
+type Props = {
+  isOpen: boolean
+  onOpenChange: () => void
+  fetchData: () => void
+}
+
+const PromotionModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
+  const editMode = useSelector((state: RootState) => state.promotions.editMode)
+  const promotionForm = useForm({
+    resolver: zodResolver(promotionsSchema),
+    shouldUnregister: false,
+    mode: 'all',
+    reValidateMode: 'onChange',
+    defaultValues: {
+      promo_type: '',
+      discount_type: '',
+      value: undefined,
+      color: undefined
+    }
+  })
+  const handleAddPromotion = async () => {
+    const isValid = await promotionForm.trigger()
+    if (!isValid) return
+    const formData = promotionForm.getValues()
+    console.log(formData)
+    // Lógica para enviar los datos al servidor
+    const promotionCreated = await promotionsService.createPromotion(formData)
+    console.log('Promoción creada:', promotionCreated)
+    if (promotionCreated) {
+      onOpenChange() // Cierra el modal
+      fetchData() // Refresca los datos en la tabla principal
+      promotionForm.reset() // Resetea el formulario
+    }
+  }
+  useEffect(() => {
+    if (!isOpen) {
+      promotionForm.reset() // Resetea el formulario cuando se cierra el modal
+      // fetchData() // Refresca los datos en la tabla principal
+    }
+  }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='md' backdrop='blur'>
+      <ModalContent>
+        {(onClose) => (
+          <>
+            <ModalHeader className='flex flex-col gap-1'>{editMode ? 'Editar' : 'Agregar'} promoción</ModalHeader>
+            <ModalBody>
+              <FormProvider {...promotionForm}>
+                <PromotionForm />
+              </FormProvider>
+            </ModalBody>
+            <ModalFooter>
+              <Button color='danger' variant='light' onPress={onClose}>
+                Cancelar
+              </Button>
+              <Button color='primary' onPress={handleAddPromotion}>
+                Aceptar
+              </Button>
+            </ModalFooter>
+          </>
+        )}
+      </ModalContent>
+    </Modal>
+  )
+}
+
+export default PromotionModal
