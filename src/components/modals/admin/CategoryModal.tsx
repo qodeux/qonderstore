@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useSelector } from 'react-redux'
-import { categorySchema } from '../../../schemas/category.schema'
+import { categoryInputSchema } from '../../../schemas/category.schema'
 import { categoryService } from '../../../services/categoryService'
 import type { RootState } from '../../../store/store'
 import CategoryForm from '../../forms/admin/CategoryForm'
@@ -16,8 +16,11 @@ type Props = {
 
 const CategoryModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
   const editMode = useSelector((state: RootState) => state.categories.editMode)
+  const selectedCategory = useSelector((state: RootState) => state.categories.selectedCategory)
+  const categories = useSelector((state: RootState) => state.categories.categories) ?? []
+
   const categoryForm = useForm({
-    resolver: zodResolver(categorySchema),
+    resolver: zodResolver(categoryInputSchema),
     shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange',
@@ -28,26 +31,50 @@ const CategoryModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
       color: undefined
     }
   })
-  const handleAddCategory = async () => {
+
+  const buildFormValues = () => ({
+    name: selectedCategory?.name ?? '',
+    slug_id: selectedCategory?.slug_id ?? '',
+    parent: categories.find((cat) => cat.name === selectedCategory?.parent)?.key ?? undefined,
+    color: selectedCategory?.color ?? undefined
+  })
+
+  const handleSubmitCategory = async () => {
     const isValid = await categoryForm.trigger()
     if (!isValid) return
-    const formData = categoryForm.getValues()
-    console.log(formData)
-    // Lógica para enviar los datos al servidor
-    const categoryCreated = await categoryService.createCategory(formData)
-    console.log('Categoría creada:', categoryCreated)
-    if (categoryCreated) {
+    let formData = categoryForm.getValues()
+    let categorySuccess
+
+    if (editMode && selectedCategory?.key) {
+      formData = { ...formData, id: selectedCategory.key }
+      categorySuccess = await categoryService.updateCategory(formData)
+    } else {
+      categorySuccess = await categoryService.createCategory(formData)
+    }
+
+    if (categorySuccess) {
+      console.log('Categoría OK:', categorySuccess)
+
       onOpenChange() // Cierra el modal
       fetchData() // Refresca los datos en la tabla principal
-      categoryForm.reset() // Resetea el formulario}
+      categoryForm.reset() // Resetea el formulario
     }
   }
+
   useEffect(() => {
-    if (!isOpen) {
-      categoryForm.reset() // Resetea el formulario cuando se cierra el modal
-      // fetchData() // Refresca los datos en la tabla principal
+    if (isOpen) {
+      // Al abrir, setea valores actuales
+      categoryForm.reset(buildFormValues())
+    } else {
+      // Al cerrar, limpia
+      categoryForm.reset({
+        name: '',
+        slug_id: '',
+        parent: undefined,
+        color: undefined
+      })
     }
-  }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, selectedCategory, categoryForm]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='sm' backdrop='blur'>
@@ -64,7 +91,7 @@ const CategoryModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
               <Button color='danger' variant='light' onPress={onClose}>
                 Cerrar
               </Button>
-              <Button color='primary' onPress={handleAddCategory}>
+              <Button color='primary' onPress={handleSubmitCategory}>
                 Aceptar
               </Button>
             </ModalFooter>

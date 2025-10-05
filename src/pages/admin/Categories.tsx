@@ -6,7 +6,7 @@ import { applyToolbarFilters, ToolbarTable, type ToolbarCriteria } from '../../c
 import CategoryModal from '../../components/modals/admin/CategoryModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
 import { categoryService } from '../../services/categoryService'
-import { setEditMode } from '../../store/slices/categoriesSlice'
+import { setCategories, setEditMode, setSelectedCategory } from '../../store/slices/categoriesSlice'
 
 const Categories = () => {
   const dispatch = useDispatch()
@@ -14,7 +14,7 @@ const Categories = () => {
   type Row = {
     key: string
     name: string
-    prefix: string
+    slug_id: string
     total_products: number
     parent: string
     is_active: boolean
@@ -32,7 +32,7 @@ const Categories = () => {
       allowsSorting: true
     },
     {
-      key: 'prefix',
+      key: 'slug_id',
       label: 'Clave',
       allowsSorting: true
     },
@@ -93,12 +93,26 @@ const Categories = () => {
         categoriesDB.map((category) => ({
           key: category.id.toString(),
           name: category.name,
-          prefix: category.slug_id,
+          slug_id: category.slug_id,
           total_products: category.total_products,
           parent: category.parent_name,
           is_active: category.is_active,
           color: category.color
         }))
+      )
+
+      dispatch(
+        setCategories(
+          categoriesDB.map((category) => ({
+            key: category.id.toString(),
+            name: category.name,
+            slug_id: category.slug_id,
+            total_products: category.total_products,
+            parent: category.parent_name,
+            is_active: category.is_active,
+            color: category.color
+          }))
+        )
       )
     }
   }
@@ -107,8 +121,9 @@ const Categories = () => {
     onOpenCategory()
   }
 
-  const handleEditCategory = () => {
+  const handleEditCategory = (row: Row) => {
     dispatch(setEditMode(true))
+    dispatch(setSelectedCategory(row))
     onOpenCategory()
   }
 
@@ -140,7 +155,9 @@ const Categories = () => {
         <DataTable<Row>
           entity='categories'
           adapterOverrides={{
-            edit: handleEditCategory,
+            edit: (row) => {
+              handleEditCategory(row)
+            },
             onRequestDelete: (id) => {
               setDeleteCategoryId(String(id))
               onOpenDelete()

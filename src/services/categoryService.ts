@@ -1,5 +1,5 @@
 import supabase from '../lib/supabase'
-import type { Category } from '../schemas/category.schema'
+import type { CategoryInput } from '../schemas/category.schema'
 
 export const categoryService = {
   fetchCategories: async () => {
@@ -9,7 +9,7 @@ export const categoryService = {
     }
     return products
   },
-  createCategory: async (categoryData: Category) => {
+  createCategory: async (categoryData: CategoryInput) => {
     const { data: categoryInserted, error: categoryError } = await supabase
       .from('categories')
       .insert([
@@ -30,6 +30,31 @@ export const categoryService = {
       return
     }
     return categoryInserted
+  },
+  updateCategory: async (categoryData: CategoryInput) => {
+    if (!categoryData.id) {
+      console.error('El id de la categoría es obligatorio para actualizar')
+      return
+    }
+    const { data: categoryUpdated, error: categoryError } = await supabase
+      .from('categories')
+      .update({
+        name: categoryData.name,
+        parent: categoryData.parent,
+        color: categoryData.color,
+        slug_id: categoryData.slug_id,
+        is_active: categoryData.is_active,
+        featured: categoryData.featured
+      })
+      .eq('id', categoryData.id)
+      .select()
+      .single()
+
+    if (categoryError) {
+      console.error('Error updating category:', categoryError)
+      return
+    }
+    return categoryUpdated
   },
   deleteCategory: async (productId: string) => {
     console.log('Deleting category with ID:', productId)

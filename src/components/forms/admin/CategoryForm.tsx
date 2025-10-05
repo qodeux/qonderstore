@@ -1,6 +1,7 @@
 import { Input, Select, SelectItem } from '@heroui/react'
 import { Controller, useFormContext } from 'react-hook-form'
-import { categories } from '../../../types/products'
+import { useSelector } from 'react-redux'
+import type { RootState } from '../../../store/store'
 
 const colorsOptions = [
   { label: 'Rojo', key: 'red' },
@@ -11,6 +12,8 @@ const colorsOptions = [
 ]
 
 const CategoryForm = () => {
+  const categories = useSelector((state: RootState) => state.categories.categories) ?? []
+
   const {
     register,
     control,
@@ -19,14 +22,14 @@ const CategoryForm = () => {
 
   return (
     <form className='space-y-2'>
-      <Input
-        label='Nombre'
-        type='text'
-        size='sm'
-        isInvalid={!!errors.name}
-        errorMessage={errors.name?.message as string}
-        {...register('name')}
+      <Controller
+        name='name'
+        control={control}
+        render={({ field }) => (
+          <Input label='Nombre' type='text' size='sm' isInvalid={!!errors.name} errorMessage={errors.name?.message as string} {...field} />
+        )}
       />
+
       <Input
         label='Clave'
         type='text'
@@ -53,9 +56,11 @@ const CategoryForm = () => {
             errorMessage={errors.parent?.message as string}
             disallowEmptySelection
           >
-            {categories.map((cat) => (
-              <SelectItem key={cat.id}>{cat.name}</SelectItem>
-            ))}
+            {categories
+              .filter((cat) => cat.parent === null)
+              .map((category) => (
+                <SelectItem key={category.key}>{category.name}</SelectItem>
+              ))}
           </Select>
         )}
       />
