@@ -1,16 +1,64 @@
 import { Button, Input, NumberInput, Select, SelectItem, Switch } from '@heroui/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
+import { NumericFormat } from 'react-number-format'
+
+export type WholeSalePrice = {
+  min: number | undefined
+  price: number | undefined
+}
 
 const ProductUnitForm = () => {
-  const [lowStockSwitch, setLowStockSwitch] = useState<boolean>(false)
-  const [minSaleSwitch, setMinSaleSwitch] = useState<boolean>(false)
-  const [maxSaleSwitch, setMaxSaleSwitch] = useState<boolean>(false)
+  const [wholeSaleSwitch, setWholeSaleSwitch] = useState<boolean>(false)
+  const [wholeSalePrices, setWholeSalePrices] = useState<Array<WholeSalePrice>>([])
+
   const {
-    register,
     control,
+    trigger,
+    clearErrors,
+    setFocus,
+    setValue,
+    watch,
     formState: { errors }
   } = useFormContext()
+
+  const lowStockSwitch = watch('lowStockSwitch')
+  const minSaleSwitch = watch('minSaleSwitch')
+  const maxSaleSwitch = watch('maxSaleSwitch')
+
+  useEffect(() => {
+    if (lowStockSwitch) {
+      // pequeño defer para asegurar que el input esté montado/habilitado
+      const id = setTimeout(() => setFocus('low_stock'), 0)
+      return () => clearTimeout(id)
+    } else {
+      // si se desactiva, limpia errores del campo
+      //clearErrors('low_stock')
+    }
+  }, [lowStockSwitch, setFocus, clearErrors])
+
+  useEffect(() => {
+    if (minSaleSwitch) {
+      // pequeño defer para asegurar que el input esté montado/habilitado
+      const id = setTimeout(() => setFocus('min_sale'), 0)
+      return () => clearTimeout(id)
+    } else {
+      // si se desactiva, limpia errores del campo
+      //clearErrors('min_sale')
+    }
+  }, [minSaleSwitch, setFocus, clearErrors])
+
+  useEffect(() => {
+    if (maxSaleSwitch) {
+      // pequeño defer para asegurar que el input esté montado/habilitado
+      const id = setTimeout(() => setFocus('max_sale'), 0)
+      return () => clearTimeout(id)
+    } else {
+      // si se desactiva, limpia errores del campo
+      //clearErrors('max_sale')
+    }
+  }, [maxSaleSwitch, setFocus, clearErrors])
+
   return (
     <form className='space-y-2' name='product-unit-form'>
       <Controller
@@ -35,71 +83,282 @@ const ProductUnitForm = () => {
           </Select>
         )}
       />
-      <div className='flex flex-row justify-between'>
-        <Switch
-          aria-label='Alerta de stock bajo'
-          size='sm'
-          isSelected={lowStockSwitch}
-          onChange={(e) => setLowStockSwitch(e.target.checked)}
-        >
-          Alerta de stock bajo
-        </Switch>
+      <div className='flex flex-row items-center justify-between gap-3'>
+        <Controller
+          name='lowStockSwitch'
+          control={control}
+          defaultValue={false}
+          render={({ field }) => (
+            <Switch
+              aria-label='Habilitar alerta de stock bajo'
+              size='sm'
+              isSelected={field.value}
+              onChange={(e) => {
+                const checked = e.target.checked
+                field.onChange(checked)
+                if (checked) {
+                  // feedback inmediato opcional
+                  trigger('low_stock')
+                  // focus
+                  setTimeout(() => setFocus('low_stock'), 0)
+                } else {
+                  // limpiar valor/errores al apagar
+                  setValue('low_stock', undefined, { shouldValidate: false })
+                  clearErrors('low_stock')
+                }
+              }}
+            >
+              Alerta de stock bajo
+            </Switch>
+          )}
+        />
 
-        <NumberInput
-          isDisabled={!lowStockSwitch}
-          size='sm'
-          className='max-w-20 text-center'
-          maxValue={999}
-          minValue={1}
-          // {...register('lowStockAlert')}
+        <Controller
+          name='low_stock'
+          control={control}
+          render={({ field }) => (
+            <NumberInput
+              aria-label='Alerta de stock bajo'
+              {...field}
+              value={field.value ?? undefined}
+              isDisabled={!lowStockSwitch}
+              size='sm'
+              className='max-w-20 text-center'
+              minValue={1}
+              isWheelDisabled
+              onChange={(v) => {
+                const val = v === undefined ? undefined : Number(v)
+                setValue('low_stock', val, {
+                  shouldValidate: true, // 🔑 valida inmediatamente
+                  shouldDirty: true,
+                  shouldTouch: true
+                })
+              }}
+              onBlur={field.onBlur} // ya no necesitas trigger aquí
+              isInvalid={!!errors.low_stock}
+            />
+          )}
         />
       </div>
       <div className='flex flex-row justify-between'>
-        <Switch aria-label='Compra mínima' size='sm' isSelected={minSaleSwitch} onChange={(e) => setMinSaleSwitch(e.target.checked)}>
-          Mínimo de compra
-        </Switch>
+        <Controller
+          name='minSaleSwitch'
+          control={control}
+          defaultValue={false}
+          render={({ field }) => (
+            <Switch
+              aria-label='Habilitar compra mínima'
+              size='sm'
+              isSelected={field.value}
+              onChange={(e) => {
+                const checked = e.target.checked
+                field.onChange(checked)
+                if (checked) {
+                  // feedback inmediato opcional
+                  trigger('min_sale')
+                  // focus
+                  setTimeout(() => setFocus('min_sale'), 0)
+                } else {
+                  // limpiar valor/errores al apagar
+                  setValue('min_sale', undefined, { shouldValidate: false })
+                  clearErrors('min_sale')
+                }
+              }}
+            >
+              Compra mínima
+            </Switch>
+          )}
+        />
 
-        <NumberInput size='sm' className='max-w-20 text-center' isDisabled={!minSaleSwitch} maxValue={999} minValue={1} />
+        <Controller
+          name='min_sale'
+          control={control}
+          render={({ field }) => (
+            <NumberInput
+              aria-label='Compra mínima'
+              {...field}
+              isDisabled={!minSaleSwitch}
+              size='sm'
+              className='max-w-20 text-center'
+              maxValue={999}
+              minValue={1}
+              onChange={(v) => {
+                field.onChange(v === undefined ? undefined : Number(v))
+                if (minSaleSwitch) trigger('min_sale')
+              }}
+              onBlur={async () => {
+                field.onBlur()
+                if (minSaleSwitch) await trigger('min_sale')
+              }}
+              isInvalid={!!errors.min_sale}
+            />
+          )}
+        />
       </div>
       <div className='flex flex-row justify-between'>
-        <Switch aria-label='Compra máxima' size='sm' isSelected={maxSaleSwitch} onChange={(e) => setMaxSaleSwitch(e.target.checked)}>
-          Máximo por transacción
-        </Switch>
-        <NumberInput size='sm' className='max-  w-20 text-center' isDisabled={!maxSaleSwitch} maxValue={999} minValue={1} />
+        <Controller
+          name='maxSaleSwitch'
+          control={control}
+          defaultValue={false}
+          render={({ field }) => (
+            <Switch
+              aria-label='Habilitar compra máxima'
+              size='sm'
+              isSelected={field.value}
+              onChange={(e) => {
+                const checked = e.target.checked
+                field.onChange(checked)
+                if (checked) {
+                  // feedback inmediato opcional
+                  trigger('max_sale')
+                  // focus
+                  setTimeout(() => setFocus('max_sale'), 0)
+                } else {
+                  // limpiar valor/errores al apagar
+                  setValue('max_sale', undefined, { shouldValidate: false })
+                  clearErrors('max_sale')
+                }
+              }}
+            >
+              Compra máxima
+            </Switch>
+          )}
+        />
+
+        <Controller
+          name='max_sale'
+          control={control}
+          render={({ field }) => (
+            <NumberInput
+              aria-label='Compra máxima'
+              {...field}
+              isDisabled={!maxSaleSwitch}
+              size='sm'
+              className='max-w-20 text-center'
+              maxValue={999}
+              minValue={1}
+              onChange={(v) => {
+                field.onChange(v === undefined ? undefined : Number(v))
+                if (maxSaleSwitch) trigger('max_sale')
+              }}
+              onBlur={async () => {
+                field.onBlur()
+                if (maxSaleSwitch) await trigger('max_sale')
+              }}
+              isInvalid={!!errors.max_sale}
+            />
+          )}
+        />
       </div>
 
       <div className='flex flex-row gap-2'>
-        <Input
-          label='Costo base'
-          type='number'
-          size='sm'
-          {...register('base_cost')}
-          errorMessage={errors.base_cost?.message as string}
-          isInvalid={!!errors.base_cost}
+        <Controller
+          name='base_cost'
+          control={control}
+          render={({ field, fieldState }) => (
+            <NumericFormat
+              // 1) Controlado por RHF: si no hay valor, muestra vacío
+              value={field.value ?? ''}
+              // 2) Siempre manda undefined cuando está vacío
+              onValueChange={(v) => {
+                const num = v.floatValue === undefined ? undefined : v.floatValue
+                setValue('base_cost', num, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                  shouldTouch: true
+                })
+              }}
+              thousandSeparator
+              decimalScale={2}
+              fixedDecimalScale
+              allowNegative={false}
+              prefix='$ '
+              inputMode='decimal'
+              customInput={Input}
+              label='Costo base'
+              size='sm'
+              isInvalid={!!fieldState.error}
+              errorMessage={fieldState.error?.message}
+              isClearable
+              onClear={() => {
+                setValue('base_cost', undefined, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                  shouldTouch: true
+                })
+                // opcional: clearErrors('base_cost')
+              }}
+            />
+          )}
         />
-        <Input
-          label='Precio'
-          type='number'
-          size='sm'
-          {...register('public_price')}
-          errorMessage={errors.public_price?.message as string}
-          isInvalid={!!errors.public_price}
+
+        <Controller
+          name='public_price'
+          control={control}
+          render={({ field, fieldState }) => (
+            <NumericFormat
+              // 1) Controlado por RHF: si no hay valor, muestra vacío
+              value={field.value ?? ''}
+              // 2) Siempre manda undefined cuando está vacío
+              onValueChange={(v) => {
+                const num = v.floatValue === undefined ? undefined : v.floatValue
+                setValue('public_price', num, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                  shouldTouch: true
+                })
+              }}
+              thousandSeparator
+              decimalScale={2}
+              fixedDecimalScale
+              allowNegative={false}
+              prefix='$ '
+              inputMode='decimal'
+              customInput={Input}
+              label='Precio público'
+              size='sm'
+              isInvalid={!!fieldState.error}
+              errorMessage={fieldState.error?.message}
+              isClearable
+              onClear={() => {
+                setValue('public_price', undefined, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                  shouldTouch: true
+                })
+                // opcional: clearErrors('public_price')
+              }}
+            />
+          )}
         />
       </div>
 
       <section>
         <div className='flex flex-row justify-between'>
-          <Switch aria-label='Compra máxima' size='sm'>
+          <Switch
+            aria-label='Compra máxima'
+            size='sm'
+            defaultSelected={wholeSaleSwitch}
+            onChange={(e) => {
+              setWholeSaleSwitch(e.target.checked)
+              if (!e.target.checked) setWholeSalePrices([{ min: undefined, price: undefined }]) // reset
+            }}
+          >
             Mayoreo
           </Switch>
-          <Button>Agregar precio</Button>
+          {wholeSaleSwitch && <Button>Agregar precio</Button>}
         </div>
-        <div>
-          <div className='flex flex-row gap-2'>
-            <Input label='Mínimo' type='text' size='sm' />
-            <Input label='Precio' type='text' size='sm' />
+        {wholeSaleSwitch && (
+          <div className='mt-2 p-2 border border-gray-200 rounded bg-gray-50'>
+            {wholeSalePrices.length > 1 &&
+              wholeSalePrices.map((wp, index) => (
+                <div className='flex flex-row gap-2' key={index}>
+                  <Input label='Mínimo' type='text' size='sm' value={String(wp.min)} />
+                  <Input label='Precio' type='text' size='sm' value={String(wp.price)} />
+                </div>
+              ))}
           </div>
-        </div>
+        )}
       </section>
     </form>
   )

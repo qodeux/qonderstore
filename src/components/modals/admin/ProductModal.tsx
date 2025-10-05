@@ -1,6 +1,6 @@
 import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Tab, Tabs } from '@heroui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { productSchema, productUnitSchema } from '../../../schemas/products.schema'
 import { productService } from '../../../services/productService'
@@ -22,21 +22,33 @@ const ProductModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
   const productForm = useForm({
     resolver: zodResolver(productSchema),
     shouldUnregister: false,
-    mode: 'onSubmit',
+    mode: 'all',
     reValidateMode: 'onChange'
   })
 
   const unitForm = useForm({
     resolver: zodResolver(productUnitSchema),
-    shouldUnregister: false,
-    mode: 'onSubmit',
-    reValidateMode: 'onChange'
+    shouldUnregister: true,
+    mode: 'all',
+    reValidateMode: 'onChange',
+
+    defaultValues: {
+      lowStockSwitch: false,
+      minSaleSwitch: false,
+      maxSaleSwitch: false,
+      low_stock: undefined,
+      min_sale: undefined,
+      max_sale: undefined,
+      sale_unit: 'pz',
+      public_price: undefined,
+      base_cost: undefined
+    }
   })
 
   const bulkForm = useForm({
     resolver: zodResolver(productUnitSchema),
     shouldUnregister: false,
-    mode: 'onSubmit',
+    mode: 'all',
     reValidateMode: 'onChange'
   })
 
@@ -82,6 +94,17 @@ const ProductModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
       console.error('Error adding product and unit data:', error)
     }
   }
+
+  useEffect(() => {
+    if (!isOpen) {
+      setActiveTab('data')
+      productForm.reset()
+      unitForm.reset()
+      bulkForm.reset()
+      setSelectedTypeUnit('')
+    }
+  }, [isOpen, productForm, unitForm, bulkForm])
+
   return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='2xl'>
       <ModalContent>
@@ -97,6 +120,9 @@ const ProductModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
                 selectedKey={activeTab}
                 onSelectionChange={(key) => {
                   setActiveTab(key as 'data' | 'unit' | 'bulk')
+                }}
+                classNames={{
+                  base: 'justify-end'
                 }}
               >
                 <Tab key='data' title='Datos'>

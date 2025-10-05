@@ -99,6 +99,11 @@ const Products = () => {
     console.log('Exportar', row)
   }
 
+  const handleEditProduct = (row: Row) => {
+    console.log('Editar producto', row)
+    onOpenProduct()
+  }
+
   async function fetchData() {
     const productsDB = await productService.fetchProducts()
     console.log(productsDB)
@@ -143,7 +148,7 @@ const Products = () => {
         <DataTable<Row>
           entity='products'
           adapterOverrides={{
-            edit: () => onOpenProduct(),
+            edit: (row) => handleEditProduct(row),
             onRequestDelete: (id) => {
               setDeleteProductId(String(id))
               onOpenDeleteProduct()
