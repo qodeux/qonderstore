@@ -22,6 +22,7 @@ const CategoryModal = ({ isOpen, onOpenChange }: Props) => {
     shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange',
+
     defaultValues: {
       name: '',
       slug_id: '',
@@ -29,6 +30,10 @@ const CategoryModal = ({ isOpen, onOpenChange }: Props) => {
       color: undefined
     }
   })
+
+  const {
+    formState: { isDirty }
+  } = categoryForm
 
   const buildFormValues = () => ({
     name: selectedCategory?.name ?? '',
@@ -55,6 +60,8 @@ const CategoryModal = ({ isOpen, onOpenChange }: Props) => {
 
       onOpenChange() // Cierra el modal
       categoryForm.reset() // Resetea el formulario
+    } else {
+      console.error('Error al guardar categoría')
     }
   }
 
@@ -88,9 +95,11 @@ const CategoryModal = ({ isOpen, onOpenChange }: Props) => {
               <Button color='danger' variant='light' onPress={onClose}>
                 Cerrar
               </Button>
-              <Button color='primary' onPress={handleSubmitCategory}>
-                Aceptar
-              </Button>
+              {(!editMode || isDirty) && (
+                <Button color='primary' onPress={handleSubmitCategory}>
+                  Aceptar
+                </Button>
+              )}
             </ModalFooter>
           </>
         )}
