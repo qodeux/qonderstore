@@ -1,8 +1,23 @@
-import { Checkbox, Input, Select, SelectItem, Switch, Textarea } from '@heroui/react'
+import { Autocomplete, AutocompleteItem, Checkbox, Input, Select, SelectItem, Switch, Textarea } from '@heroui/react'
 import { Star } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
-import { categories } from '../../../types/products'
+import { useSelector } from 'react-redux'
+import '../../../components/common/react-tags/style.css'
+import type { RootState } from '../../../store/store'
+
+const suggestions = [
+  { id: 1, name: 'United States', label: 'United States', value: 'United States' },
+  { id: 2, name: 'United Kingdom', label: 'United Kingdom', value: 'United Kingdom' },
+  { id: 3, name: 'Afghanistan', label: 'Afghanistan', value: 'Afghanistan' },
+  { id: 4, name: 'Aland Islands', label: 'Aland Islands', value: 'Aland Islands' },
+  { id: 5, name: 'Albania', label: 'Albania', value: 'Albania' },
+  { id: 6, name: 'Algeria', label: 'Algeria', value: 'Algeria' },
+  { id: 7, name: 'American Samoa', label: 'American Samoa', value: 'American Samoa' },
+  { id: 8, name: 'Andorra', label: 'Andorra', value: 'Andorra' },
+  { id: 9, name: 'Angola', label: 'Angola', value: 'Angola' },
+  { id: 10, name: 'Anguilla', label: 'Anguilla', value: 'Anguilla' }
+]
 
 type Props = {
   selectedTypeUnit: string
@@ -19,28 +34,63 @@ function slugify(text: string) {
 }
 
 const ProductDataForm = ({ selectedTypeUnit, onchangeTypeUnit }: Props) => {
+  const categories = useSelector((state: RootState) => state.categories.categories)
+  const productBrands = useSelector((state: RootState) => state.products.brands)
+
   const {
     register,
     control,
     setValue,
     getValues,
-    formState: { errors }
+    formState: { errors, isSubmitted, touchedFields }
   } = useFormContext()
 
-  const name = useWatch({ control, name: 'name' })
   const userTouchedSlug = useRef(false)
+  const didInitSlug = useRef(false)
+
+  // const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
+
+  const categoryWatch = useWatch({
+    control,
+    name: 'category'
+  })
+
+  const hasChildren = categories.some((cat) => cat.parent === categoryWatch)
+
+  // const [selected, setSelected] = useState([])
+
+  // const onAdd = useCallback(
+  //   (newTag) => {
+  //     setSelected([...selected, newTag])
+  //   },
+  //   [selected]
+  // )
+
+  // const onDelete = useCallback(
+  //   (tagIndex) => {
+  //     setSelected(selected.filter((_, i) => i !== tagIndex))
+  //   },
+  //   [selected]
+  // )
 
   useEffect(() => {
-    const current = getValues('slug')
-    if (!userTouchedSlug.current || !current) {
-      setValue('slug', slugify(name || ''), { shouldValidate: true, shouldDirty: true })
+    if (didInitSlug.current) return
+    didInitSlug.current = true
+
+    const currentName = getValues('name') || ''
+    const currentSlug = getValues('slug') || ''
+    if (!currentSlug) {
+      // No valides en el primer fill para evitar error visual inicial
+      setValue('slug', slugify(currentName), { shouldValidate: false, shouldDirty: false })
     }
-  }, [name, setValue, getValues])
+  }, [getValues, setValue])
 
   return (
     <section className='flex flex-row gap-4'>
       <div className='w-1/3'>
-        Imagenes
+        <figure className='w-full aspect-square border border-dashed border-gray-400 bg-gray-50 flex items-center justify-center'>
+          <span className='text-sm text-gray-400'>Click para agregar imagen</span>
+        </figure>
         <br />
         {selectedTypeUnit}
         <div className='flex flex-col gap-4'>
@@ -54,26 +104,48 @@ const ProductDataForm = ({ selectedTypeUnit, onchangeTypeUnit }: Props) => {
       </div>
       <div className='w-2/3'>
         <form className='space-y-2' name='product-data-form'>
-          <Input
-            label='Nombre'
-            type='text'
-            size='sm'
-            isInvalid={!!errors.name}
-            errorMessage={errors.name?.message as string}
-            {...register('name')}
+          <Controller
+            name='name'
+            control={control}
+            render={({ field }) => (
+              <Input
+                label='Nombre'
+                type='text'
+                size='sm'
+                value={field.value ?? ''}
+                onValueChange={(v) => {
+                  field.onChange(v)
+                  if (!userTouchedSlug.current) {
+                    setValue('slug', slugify(v), {
+                      shouldValidate: true || !!touchedFields.slug, // valida solo si ya interactuaron
+                      shouldDirty: true
+                    })
+                  }
+                }}
+                isInvalid={!!errors.name}
+                errorMessage={errors.name?.message as string}
+              />
+            )}
           />
-          <Input
-            label='Slug'
-            type='text'
-            size='sm'
-            isInvalid={!!errors.slug}
-            errorMessage={errors.slug?.message as string}
-            {...register('slug', {
-              onChange: () => {
-                userTouchedSlug.current = true
-              }
-            })}
+          <Controller
+            name='slug'
+            control={control}
+            render={({ field }) => (
+              <Input
+                label='Slug'
+                type='text'
+                size='sm'
+                value={field.value ?? ''}
+                onValueChange={(v) => {
+                  userTouchedSlug.current = true
+                  field.onChange(v)
+                }}
+                isInvalid={!!errors.slug}
+                errorMessage={errors.slug?.message as string}
+              />
+            )}
           />
+
           <Input
             label='SKU'
             type='text'
@@ -99,12 +171,41 @@ const ProductDataForm = ({ selectedTypeUnit, onchangeTypeUnit }: Props) => {
                 errorMessage={errors.category?.message as string}
                 disallowEmptySelection
               >
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id}>{cat.name}</SelectItem>
-                ))}
+                {categories
+                  .filter((cat) => cat.parent === null)
+                  .map((cat) => (
+                    <SelectItem key={cat.id}>{cat.name}</SelectItem>
+                  ))}
               </Select>
             )}
           />
+
+          {hasChildren && (
+            <Controller
+              name='subcategory'
+              control={control}
+              render={({ field }) => (
+                <Select
+                  label='Subcategoria'
+                  size='sm'
+                  selectedKeys={field.value ? [String(field.value)] : []}
+                  onSelectionChange={(keys) => {
+                    const value = Array.from(keys)[0]
+                    field.onChange(Number(value))
+                  }}
+                  isInvalid={!!errors.sub_category}
+                  errorMessage={errors.sub_category?.message as string}
+                  disallowEmptySelection
+                >
+                  {categories
+                    .filter((cat) => cat.parent === categoryWatch)
+                    .map((cat) => (
+                      <SelectItem key={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                </Select>
+              )}
+            />
+          )}
 
           <Controller
             name='type_unit'
@@ -122,6 +223,7 @@ const ProductDataForm = ({ selectedTypeUnit, onchangeTypeUnit }: Props) => {
                 selectionMode='single'
                 isInvalid={!!errors.type_unit}
                 errorMessage={errors.type_unit?.message as string}
+                disallowEmptySelection
               >
                 <SelectItem key='unit'>Unidad</SelectItem>
                 <SelectItem key='bulk'>Granel</SelectItem>
@@ -129,7 +231,20 @@ const ProductDataForm = ({ selectedTypeUnit, onchangeTypeUnit }: Props) => {
             )}
           />
 
-          <Input label='Marca' type='text' size='sm' className={selectedTypeUnit === 'unit' ? '' : 'hidden'} {...register('brand')} />
+          {selectedTypeUnit === 'unit' && (
+            <Controller
+              name='brand'
+              control={control}
+              render={() => (
+                <Autocomplete label='Selecciona una marca' size='sm'>
+                  {productBrands.map((brand) => (
+                    <AutocompleteItem key={brand.id}>{brand.name}</AutocompleteItem>
+                  ))}
+                </Autocomplete>
+              )}
+            />
+          )}
+
           <Textarea
             label='Descripcion'
             size='sm'
@@ -138,14 +253,19 @@ const ProductDataForm = ({ selectedTypeUnit, onchangeTypeUnit }: Props) => {
             {...register('description')}
           />
 
-          <Input
-            label='Etiquetas'
-            type='text'
-            size='sm'
-            {...register('tags')}
-            isInvalid={!!errors.tags}
-            errorMessage={errors.tags?.message as string}
-          />
+          {/* 
+          <ReactTags
+            selected={selected}
+            suggestions={suggestions}
+            onAdd={onAdd}
+            onDelete={onDelete}
+            noOptionsText='No matching countries'
+            placeholderText='Agrega una etiqueta'
+            collapseOnSelect
+            allowNew
+            newOptionText='Agregar: %value%'
+
+          /> */}
         </form>
       </div>
     </section>

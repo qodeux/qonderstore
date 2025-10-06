@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import authReducer from './slices/authSlice'
 import categoriesReducer from './slices/categoriesSlice'
+import productsReducer from './slices/productsSlice'
 import promotionReducer from './slices/promoSlice'
 
 import uiReducer from './slices/uiSlice'
@@ -10,6 +11,7 @@ const store = configureStore({
     ui: uiReducer,
     auth: authReducer,
     categories: categoriesReducer,
+    products: productsReducer,
     promotions: promotionReducer
   }
 })
