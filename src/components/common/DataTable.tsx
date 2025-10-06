@@ -18,7 +18,7 @@ import {
 } from '@heroui/react'
 import { EllipsisVertical, Star } from 'lucide-react'
 import type { Key, ReactElement } from 'react'
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { entityRegistry, type EntityAdapter, type EntityKind, type MenuAction } from '../../services/entityRegistry'
 import { formatDate, toDate } from '../../utils/date'
 
@@ -52,6 +52,7 @@ type Props<T> = {
   onSortChange: (descriptor: SortDescriptor) => void
   bottomContent?: React.ReactNode
   getRowKey?: (row: T) => Key
+  onRowActivate?: (row: T) => void | Promise<void>
 
   /** modo recomendado: la tabla resuelve todo via registry */
   entity: EntityKind
@@ -99,6 +100,8 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
   }, [entity, resource, adapterOverrides])
 
   const sortedItems = useMemo(() => {
+    const dir = sortDescriptor.direction === 'descending' ? -1 : 1
+
     return [...rows].sort((a, b) => {
       const colKey = sortDescriptor.column as string | undefined
       if (!colKey) return 0
@@ -107,22 +110,72 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
       const va = col?.sortAccessor ? col.sortAccessor(a) : (a as any)[colKey]
       const vb = col?.sortAccessor ? col.sortAccessor(b) : (b as any)[colKey]
 
-      // NUEVO: si es columna de fecha, ordenar por timestamp
+      // 1) Si es fecha, comparar por timestamp, con nulos al final (asc)
       if (col?.type === 'date') {
-        const ta = toDate(va)?.getTime() ?? 0
-        const tb = toDate(vb)?.getTime() ?? 0
-        const cmpNum = ta - tb
-        const cmp = cmpNum < 0 ? -1 : cmpNum > 0 ? 1 : 0
-        return sortDescriptor.direction === 'descending' ? -cmp : cmp
+        const ta = toDate(va)?.getTime()
+        const tb = toDate(vb)?.getTime()
+        const nilA = ta == null || Number.isNaN(ta)
+        const nilB = tb == null || Number.isNaN(tb)
+
+        if (nilA || nilB) {
+          if (nilA && nilB) {
+            // tie-breaker
+            const kA = String(getRowKey(a))
+            const kB = String(getRowKey(b))
+            return kA < kB ? -1 : kA > kB ? 1 : 0
+          }
+          const nullsLastAsc = nilA ? 1 : -1 // asc: nulos al final
+          return dir * nullsLastAsc
+        }
+
+        const cmpNum = (ta as number) - (tb as number)
+        let cmp = cmpNum < 0 ? -1 : cmpNum > 0 ? 1 : 0
+        if (cmp === 0) {
+          const kA = String(getRowKey(a))
+          const kB = String(getRowKey(b))
+          cmp = kA < kB ? -1 : kA > kB ? 1 : 0
+        }
+        return dir * cmp
       }
 
-      const A = typeof va === 'string' ? va.toLowerCase() : va
-      const B = typeof vb === 'string' ? vb.toLowerCase() : vb
-      const cmp = A < B ? -1 : A > B ? 1 : 0
+      // 2) General (strings/números) con manejo de nulos y tie-breaker
+      const nilA = va == null || va === ''
+      const nilB = vb == null || vb === ''
 
-      return sortDescriptor.direction === 'descending' ? -cmp : cmp
+      if (nilA || nilB) {
+        if (nilA && nilB) {
+          const kA = String(getRowKey(a))
+          const kB = String(getRowKey(b))
+          // tie-breaker independiente del dir para estabilidad
+          return kA < kB ? -1 : kA > kB ? 1 : 0
+        }
+        const nullsLastAsc = nilA ? 1 : -1 // asc: nulos al final
+        return dir * nullsLastAsc
+      }
+
+      const A = typeof va === 'string' ? (va as string).toLowerCase() : va
+      const B = typeof vb === 'string' ? (vb as string).toLowerCase() : vb
+
+      let cmp: number
+      if (typeof A === 'number' && typeof B === 'number') {
+        const aNum = Number.isNaN(A) ? -Infinity : (A as number)
+        const bNum = Number.isNaN(B) ? -Infinity : (B as number)
+        cmp = aNum < bNum ? -1 : aNum > bNum ? 1 : 0
+      } else if (typeof A === 'string' && typeof B === 'string') {
+        cmp = A.localeCompare(B)
+      } else {
+        cmp = String(A).localeCompare(String(B))
+      }
+
+      if (cmp === 0) {
+        const kA = String(getRowKey(a))
+        const kB = String(getRowKey(b))
+        cmp = kA < kB ? -1 : kA > kB ? 1 : 0
+      }
+
+      return dir * cmp
     })
-  }, [sortDescriptor, rows, columns])
+  }, [sortDescriptor, rows, columns, getRowKey])
 
   /** renderiza acciones extra (agrupadas opcionalmente por `section`) */
   const renderExtraActions = (row: T) => {
@@ -261,6 +314,36 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
     }
   }
 
+  const canRowAction = selectionMode === 'single' && selectionBehavior === 'replace' && (!!adapter.edit || !!p.onRowActivate)
+
+  const keyToStr = (k: Key) => (typeof k === 'string' ? k : String(k))
+
+  const rowMap = useMemo(() => {
+    const m = new Map<string, T>()
+    for (const r of rows) m.set(keyToStr(getRowKey(r)), r)
+    return m
+  }, [rows, getRowKey])
+
+  const { onRowActivate } = p
+
+  const handleRowActivate = useCallback(
+    async (row: T) => {
+      if (onRowActivate) return onRowActivate(row)
+      if (adapter.edit) return adapter.edit(row)
+    },
+    [onRowActivate, adapter]
+  )
+
+  const handleRowAction = useCallback(
+    async (key: Key) => {
+      if (!canRowAction) return
+      const row = rowMap.get(keyToStr(key))
+      if (!row) return
+      await handleRowActivate(row)
+    },
+    [canRowAction, rowMap, handleRowActivate]
+  )
+
   return (
     <Table
       aria-label='Data table'
@@ -271,6 +354,7 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
       sortDescriptor={sortDescriptor}
       onSortChange={onSortChange}
       bottomContent={bottomContent}
+      onRowAction={canRowAction ? handleRowAction : undefined}
     >
       <TableHeader columns={columns}>
         {(column) => (
