@@ -3,11 +3,13 @@ import { useDisclosure } from '@heroui/react'
 import { useEffect, useMemo, useState } from 'react'
 import type { PresetKey } from '../../components/common/DataTable'
 import { DataTable } from '../../components/common/DataTable'
-import { applyToolbarFilters, ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
+import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
+
 import ProductModal from '../../components/modals/admin/ProductModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
 import { productService } from '../../services/productService'
 import { categories } from '../../types/products'
+import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const Products = () => {
   type Row = {
