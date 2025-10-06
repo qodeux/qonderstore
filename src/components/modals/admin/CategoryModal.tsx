@@ -32,7 +32,7 @@ const CategoryModal = ({ isOpen, onOpenChange }: Props) => {
   })
 
   const {
-    formState: { isDirty }
+    formState: { isDirty, errors }
   } = categoryForm
 
   const buildFormValues = () => ({
@@ -114,7 +114,7 @@ const CategoryModal = ({ isOpen, onOpenChange }: Props) => {
                 Cerrar
               </Button>
               {(!editMode || isDirty) && (
-                <Button color='primary' onPress={handleSubmitCategory}>
+                <Button color='primary' onPress={handleSubmitCategory} isDisabled={Object.keys(errors).length > 0}>
                   Aceptar
                 </Button>
               )}
