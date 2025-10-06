@@ -1,5 +1,5 @@
 import { Input, Select, SelectItem } from '@heroui/react'
-import { Controller, useFormContext } from 'react-hook-form'
+import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../../store/store'
 
@@ -13,11 +13,16 @@ const colorsOptions = [
 
 const CategoryForm = () => {
   const categories = useSelector((state: RootState) => state.categories.categories) ?? []
+  const editMode = useSelector((state: RootState) => state.categories.editMode)
 
   const {
     control,
     formState: { errors }
   } = useFormContext()
+
+  const categoryName = useWatch({ control, name: 'name' })
+  const categorySelected = categories.find((cat) => cat.name === categoryName)
+  const hasChildren = categorySelected ? categories.some((cat) => cat.parent === categorySelected.id) : false
 
   return (
     <form className='space-y-2'>
@@ -46,31 +51,34 @@ const CategoryForm = () => {
         )}
       />
 
-      <Controller
-        name='parent'
-        control={control}
-        render={({ field }) => (
-          <Select
-            label='Categoría principal'
-            size='sm'
-            selectedKeys={field.value ? [String(field.value)] : []}
-            onSelectionChange={(keys) => {
-              const rawValue = Array.from(keys)[0]
-              const parsedValue = rawValue ? Number(rawValue) : undefined
-              field.onChange(parsedValue)
-            }}
-            isInvalid={!!errors.parent}
-            errorMessage={errors.parent?.message as string}
-            disallowEmptySelection
-          >
-            {categories
-              .filter((cat) => cat.parent === null)
-              .map((category) => (
-                <SelectItem key={category.id}>{category.name}</SelectItem>
-              ))}
-          </Select>
-        )}
-      />
+      {(!editMode || (editMode && !hasChildren)) && (
+        <Controller
+          name='parent'
+          control={control}
+          render={({ field }) => (
+            <Select
+              label='Categoría principal'
+              size='sm'
+              selectedKeys={field.value ? [String(field.value)] : []}
+              onSelectionChange={(keys) => {
+                const rawValue = Array.from(keys)[0]
+                const parsedValue = rawValue ? Number(rawValue) : undefined
+                field.onChange(parsedValue)
+              }}
+              isInvalid={!!errors.parent}
+              errorMessage={errors.parent?.message as string}
+              disallowEmptySelection
+            >
+              {categories
+                .filter((cat) => cat.parent === null)
+                .map((category) => (
+                  <SelectItem key={category.id}>{category.name}</SelectItem>
+                ))}
+            </Select>
+          )}
+        />
+      )}
+
       <Controller
         name='color'
         control={control}
