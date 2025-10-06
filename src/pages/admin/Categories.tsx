@@ -2,11 +2,12 @@ import { useDisclosure, type Selection, type SortDescriptor } from '@heroui/reac
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { DataTable, type ColumnDef, type PresetKey } from '../../components/common/DataTable'
-import { applyToolbarFilters, ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
+import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import CategoryModal from '../../components/modals/admin/CategoryModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
 import { setEditMode, setSelectedCategory } from '../../store/slices/categoriesSlice'
 import type { RootState } from '../../store/store'
+import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const Categories = () => {
   const dispatch = useDispatch()
