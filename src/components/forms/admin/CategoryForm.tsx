@@ -15,7 +15,6 @@ const CategoryForm = () => {
   const categories = useSelector((state: RootState) => state.categories.categories) ?? []
 
   const {
-    register,
     control,
     formState: { errors }
   } = useFormContext()
@@ -30,13 +29,21 @@ const CategoryForm = () => {
         )}
       />
 
-      <Input
-        label='Clave'
-        type='text'
-        size='sm'
-        isInvalid={!!errors.slug_id}
-        errorMessage={errors.slug_id?.message as string}
-        {...register('slug_id')}
+      <Controller
+        name='slug_id'
+        control={control}
+        render={({ field }) => (
+          <Input
+            label='Clave'
+            type='text'
+            size='sm'
+            maxLength={5}
+            isInvalid={!!errors.slug_id}
+            errorMessage={errors.slug_id?.message as string}
+            {...field}
+            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+          />
+        )}
       />
 
       <Controller
