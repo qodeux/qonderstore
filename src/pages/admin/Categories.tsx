@@ -64,8 +64,6 @@ const Categories = () => {
     selected: {}
   })
 
-  const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null)
-
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]))
   const [selectionBehavior, setSelectionBehavior] = useState<'replace' | 'toggle'>('replace')
 
@@ -122,8 +120,9 @@ const Categories = () => {
             edit: (row) => {
               handleEditCategory(row)
             },
-            onRequestDelete: (id) => {
-              setDeleteCategoryId(String(id))
+            onRequestDelete: (id, row) => {
+              console.log('Delete category id:', id)
+              dispatch(setSelectedCategory(row))
               onOpenDelete()
             }
             // rowActions: (row) => [{ key:"share", label:"Compartir", onPress: ... }]
@@ -141,7 +140,7 @@ const Categories = () => {
       </section>
       <CategoryModal isOpen={isOpenCategory} onOpenChange={onOpenChangeCategory} />
 
-      <OnDeleteModal isOpenDelete={isOpenDelete} onOpenChangeDelete={onOpenChangeDelete} deleteType='category' itemId={deleteCategoryId} />
+      <OnDeleteModal isOpenDelete={isOpenDelete} onOpenChangeDelete={onOpenChangeDelete} deleteType='category' />
     </>
   )
 }

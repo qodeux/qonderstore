@@ -56,9 +56,9 @@ export const categoryService = {
     }
     return categoryUpdated
   },
-  deleteCategory: async (productId: string) => {
-    console.log('Deleting category with ID:', productId)
-    const { error } = await supabase.from('categories').delete().eq('id', productId)
+  deleteCategory: async (id: number) => {
+    console.log('Deleting category with ID:', id)
+    const { error } = await supabase.from('categories').delete().eq('id', id)
     if (error) {
       console.error('Error deleting category:', error)
     }
