@@ -9,6 +9,7 @@ export const productSchema = z.object({
   slug: z.string('Obligatorio').min(3, 'El slug debe tener al menos 3 caracteres'),
   sku: z.string().optional(),
   category: z.coerce.number('La categoría es obligatoria').nonnegative().positive(),
+  subcategory: z.coerce.number('La subcategoría es obligatoria').nonnegative().positive().optional(),
   //price: z.number().min(0, 'El precio no puede ser negativo'),
   type_unit: z.enum(['unit', 'bulk'], {
     message: 'La unidad de venta es obligatoria'

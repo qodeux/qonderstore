@@ -1,9 +1,10 @@
-import { Checkbox, Input, Select, SelectItem, Switch, Textarea } from '@heroui/react'
+import { Autocomplete, AutocompleteItem, Checkbox, Input, Select, SelectItem, Switch, Textarea } from '@heroui/react'
 import { Star } from 'lucide-react'
 import { useEffect, useRef } from 'react'
-import { Controller, useFormContext } from 'react-hook-form'
+import { Controller, useFormContext, useWatch } from 'react-hook-form'
+import { useSelector } from 'react-redux'
 import '../../../components/common/react-tags/style.css'
-import { categories } from '../../../types/products'
+import type { RootState } from '../../../store/store'
 
 const suggestions = [
   { id: 1, name: 'United States', label: 'United States', value: 'United States' },
@@ -33,6 +34,9 @@ function slugify(text: string) {
 }
 
 const ProductDataForm = ({ selectedTypeUnit, onchangeTypeUnit }: Props) => {
+  const categories = useSelector((state: RootState) => state.categories.categories)
+  const productBrands = useSelector((state: RootState) => state.products.brands)
+
   const {
     register,
     control,
@@ -43,6 +47,15 @@ const ProductDataForm = ({ selectedTypeUnit, onchangeTypeUnit }: Props) => {
 
   const userTouchedSlug = useRef(false)
   const didInitSlug = useRef(false)
+
+  // const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
+
+  const categoryWatch = useWatch({
+    control,
+    name: 'category'
+  })
+
+  const hasChildren = categories.some((cat) => cat.parent === categoryWatch)
 
   // const [selected, setSelected] = useState([])
 
@@ -158,12 +171,41 @@ const ProductDataForm = ({ selectedTypeUnit, onchangeTypeUnit }: Props) => {
                 errorMessage={errors.category?.message as string}
                 disallowEmptySelection
               >
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id}>{cat.name}</SelectItem>
-                ))}
+                {categories
+                  .filter((cat) => cat.parent === null)
+                  .map((cat) => (
+                    <SelectItem key={cat.id}>{cat.name}</SelectItem>
+                  ))}
               </Select>
             )}
           />
+
+          {hasChildren && (
+            <Controller
+              name='subcategory'
+              control={control}
+              render={({ field }) => (
+                <Select
+                  label='Subcategoria'
+                  size='sm'
+                  selectedKeys={field.value ? [String(field.value)] : []}
+                  onSelectionChange={(keys) => {
+                    const value = Array.from(keys)[0]
+                    field.onChange(Number(value))
+                  }}
+                  isInvalid={!!errors.sub_category}
+                  errorMessage={errors.sub_category?.message as string}
+                  disallowEmptySelection
+                >
+                  {categories
+                    .filter((cat) => cat.parent === categoryWatch)
+                    .map((cat) => (
+                      <SelectItem key={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                </Select>
+              )}
+            />
+          )}
 
           <Controller
             name='type_unit'
@@ -181,6 +223,7 @@ const ProductDataForm = ({ selectedTypeUnit, onchangeTypeUnit }: Props) => {
                 selectionMode='single'
                 isInvalid={!!errors.type_unit}
                 errorMessage={errors.type_unit?.message as string}
+                disallowEmptySelection
               >
                 <SelectItem key='unit'>Unidad</SelectItem>
                 <SelectItem key='bulk'>Granel</SelectItem>
@@ -188,7 +231,20 @@ const ProductDataForm = ({ selectedTypeUnit, onchangeTypeUnit }: Props) => {
             )}
           />
 
-          <Input label='Marca' type='text' size='sm' className={selectedTypeUnit === 'unit' ? '' : 'hidden'} {...register('brand')} />
+          {selectedTypeUnit === 'unit' && (
+            <Controller
+              name='brand'
+              control={control}
+              render={() => (
+                <Autocomplete label='Selecciona una marca' size='sm'>
+                  {productBrands.map((brand) => (
+                    <AutocompleteItem key={brand.id}>{brand.name}</AutocompleteItem>
+                  ))}
+                </Autocomplete>
+              )}
+            />
+          )}
+
           <Textarea
             label='Descripcion'
             size='sm'
