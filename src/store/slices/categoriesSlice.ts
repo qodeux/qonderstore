@@ -4,13 +4,13 @@ import type { Category } from '../../schemas/category.schema'
 interface categoriesState {
   editMode: boolean
   selectedCategory?: Category | null
-  categories: Category[] | null
+  categories: Category[]
 }
 
 const initialState: categoriesState = {
   editMode: false,
   selectedCategory: null,
-  categories: null
+  categories: []
 }
 
 const categorySlice = createSlice({
@@ -26,6 +26,7 @@ const categorySlice = createSlice({
     setCategories(state, action) {
       state.categories = action.payload
     },
+
     setSelectedCategory(state, action) {
       state.selectedCategory = action.payload
     }

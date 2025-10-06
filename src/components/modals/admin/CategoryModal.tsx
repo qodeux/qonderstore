@@ -11,13 +11,11 @@ import CategoryForm from '../../forms/admin/CategoryForm'
 type Props = {
   isOpen: boolean
   onOpenChange: () => void
-  fetchData: () => void
 }
 
-const CategoryModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
+const CategoryModal = ({ isOpen, onOpenChange }: Props) => {
   const editMode = useSelector((state: RootState) => state.categories.editMode)
   const selectedCategory = useSelector((state: RootState) => state.categories.selectedCategory)
-  const categories = useSelector((state: RootState) => state.categories.categories) ?? []
 
   const categoryForm = useForm({
     resolver: zodResolver(categoryInputSchema),
@@ -35,7 +33,7 @@ const CategoryModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
   const buildFormValues = () => ({
     name: selectedCategory?.name ?? '',
     slug_id: selectedCategory?.slug_id ?? '',
-    parent: categories.find((cat) => cat.name === selectedCategory?.parent)?.key ?? undefined,
+    parent: selectedCategory?.parent ?? undefined,
     color: selectedCategory?.color ?? undefined
   })
 
@@ -45,8 +43,8 @@ const CategoryModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
     let formData = categoryForm.getValues()
     let categorySuccess
 
-    if (editMode && selectedCategory?.key) {
-      formData = { ...formData, id: selectedCategory.key }
+    if (editMode && selectedCategory?.id) {
+      formData = { ...formData, id: selectedCategory.id }
       categorySuccess = await categoryService.updateCategory(formData)
     } else {
       categorySuccess = await categoryService.createCategory(formData)
@@ -56,7 +54,6 @@ const CategoryModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
       console.log('Categoría OK:', categorySuccess)
 
       onOpenChange() // Cierra el modal
-      fetchData() // Refresca los datos en la tabla principal
       categoryForm.reset() // Resetea el formulario
     }
   }

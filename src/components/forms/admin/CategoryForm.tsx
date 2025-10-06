@@ -59,7 +59,7 @@ const CategoryForm = () => {
             {categories
               .filter((cat) => cat.parent === null)
               .map((category) => (
-                <SelectItem key={category.key}>{category.name}</SelectItem>
+                <SelectItem key={category.id}>{category.name}</SelectItem>
               ))}
           </Select>
         )}

@@ -45,7 +45,7 @@ export const entityRegistry: Record<EntityKind, EntityAdapter<any>> = {
   },
   categories: {
     table: 'categories',
-    getId: (r) => r.key,
+    getId: (r) => r.id,
     fields: { active: 'is_active' }, // sin featured
     update: async (id, patch) => {
       await supabase.from('categories').update(patch).eq('id', id)

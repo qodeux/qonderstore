@@ -1,26 +1,28 @@
 import { useDisclosure, type Selection, type SortDescriptor } from '@heroui/react'
-import { useEffect, useMemo, useState } from 'react'
-import { useDispatch } from 'react-redux'
-import { DataTable, type PresetKey } from '../../components/common/DataTable'
+import { useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { DataTable, type ColumnDef, type PresetKey } from '../../components/common/DataTable'
 import { applyToolbarFilters, ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import CategoryModal from '../../components/modals/admin/CategoryModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
-import { categoryService } from '../../services/categoryService'
-import { setCategories, setEditMode, setSelectedCategory } from '../../store/slices/categoriesSlice'
+import { setEditMode, setSelectedCategory } from '../../store/slices/categoriesSlice'
+import type { RootState } from '../../store/store'
 
 const Categories = () => {
   const dispatch = useDispatch()
+  const categories = useSelector((state: RootState) => state.categories.categories) ?? []
 
   type Row = {
-    key: string
+    id: number
     name: string
     slug_id: string
-    total_products: number
-    parent: string
+    total_products?: number
+    parent?: number
+    parent_name?: string | null
     is_active: boolean
-    color: string
+    color?: string
   }
-  const columns = [
+  const columns: ColumnDef<Row>[] = [
     {
       key: 'name',
       label: 'Nombre',
@@ -37,7 +39,7 @@ const Categories = () => {
       allowsSorting: true
     },
     {
-      key: 'parent',
+      key: 'parent_name',
       label: 'Categoria principal',
       allowsSorting: true
     },
@@ -51,10 +53,10 @@ const Categories = () => {
       key: 'actions',
       label: 'Acciones',
       allowsSorting: false,
-      preset: 'actions' as PresetKey
+      preset: 'actions' as PresetKey,
+      align: 'center' as const
     }
   ]
-  const [rowsDB, setRowsDB] = useState<Row[]>([])
 
   const [criteria, setCriteria] = useState<ToolbarCriteria<Row>>({
     searchText: '',
@@ -67,55 +69,21 @@ const Categories = () => {
   const [selectionBehavior, setSelectionBehavior] = useState<'replace' | 'toggle'>('replace')
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: 'price',
-    direction: 'ascending'
+    column: 'parent_name',
+    direction: 'descending'
   })
 
   // const { isOpen: isOpenProduct, onOpen: onOpenProduct, onOpenChange: onOpenChangeProduct } = useDisclosure()
   const { isOpen: isOpenDelete, onOpen: onOpenDelete, onOpenChange: onOpenChangeDelete } = useDisclosure()
   const { isOpen: isOpenCategory, onOpen: onOpenCategory, onOpenChange: onOpenChangeCategory } = useDisclosure()
 
-  const filteredRows = useMemo(() => {
-    return applyToolbarFilters(rowsDB, ['name'], criteria)
-  }, [rowsDB, criteria])
+  const filteredRows = applyToolbarFilters(categories, ['name'], criteria)
 
   const toggleSelectionBehavior = () => {
     setSelectionBehavior((prevMode) => (prevMode === 'replace' ? 'toggle' : 'replace'))
     setSelectedKeys(new Set()) // Clear selection when mode changes
   }
 
-  async function fetchData() {
-    const categoriesDB = await categoryService.fetchCategories()
-    console.log(categoriesDB)
-
-    if (categoriesDB) {
-      setRowsDB(
-        categoriesDB.map((category) => ({
-          key: category.id.toString(),
-          name: category.name,
-          slug_id: category.slug_id,
-          total_products: category.total_products,
-          parent: category.parent_name,
-          is_active: category.is_active,
-          color: category.color
-        }))
-      )
-
-      dispatch(
-        setCategories(
-          categoriesDB.map((category) => ({
-            key: category.id.toString(),
-            name: category.name,
-            slug_id: category.slug_id,
-            total_products: category.total_products,
-            parent: category.parent_name,
-            is_active: category.is_active,
-            color: category.color
-          }))
-        )
-      )
-    }
-  }
   const handleAddCategory = () => {
     dispatch(setEditMode(false))
     onOpenCategory()
@@ -127,16 +95,11 @@ const Categories = () => {
     onOpenCategory()
   }
 
-  // carga inicial
-  useEffect(() => {
-    fetchData()
-  }, [])
-
   return (
     <>
       <section className='space-y-6'>
         <ToolbarTable<Row>
-          rows={rowsDB}
+          rows={categories}
           searchFilter={['name']}
           // filters={[{ label: 'Categoría', column: 'category', multiple: true }]}
           enableToggleBehavior
@@ -161,8 +124,7 @@ const Categories = () => {
             onRequestDelete: (id) => {
               setDeleteCategoryId(String(id))
               onOpenDelete()
-            },
-            afterChange: fetchData
+            }
             // rowActions: (row) => [{ key:"share", label:"Compartir", onPress: ... }]
           }}
           rows={filteredRows}
@@ -173,17 +135,12 @@ const Categories = () => {
           selectionBehavior={selectionBehavior}
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
+          getRowKey={(row) => row.id as number}
         />
       </section>
-      <CategoryModal isOpen={isOpenCategory} onOpenChange={onOpenChangeCategory} fetchData={fetchData} />
+      <CategoryModal isOpen={isOpenCategory} onOpenChange={onOpenChangeCategory} />
 
-      <OnDeleteModal
-        isOpenDelete={isOpenDelete}
-        onOpenChangeDelete={onOpenChangeDelete}
-        deleteType='category'
-        itemId={deleteCategoryId}
-        fetchData={fetchData}
-      />
+      <OnDeleteModal isOpenDelete={isOpenDelete} onOpenChangeDelete={onOpenChangeDelete} deleteType='category' itemId={deleteCategoryId} />
     </>
   )
 }
