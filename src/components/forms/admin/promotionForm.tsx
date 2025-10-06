@@ -1,10 +1,12 @@
 import { Autocomplete, AutocompleteItem, DatePicker, Input, Radio, RadioGroup, Select, SelectItem, Switch } from '@heroui/react'
 import { useState } from 'react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
+import { NumericFormat } from 'react-number-format'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../../store/store'
 import { week_days } from '../../../types/dates'
 import { discount_types, isDiscountType, promo_frequencies, promo_mode, promo_types, type DiscountType } from '../../../types/promos'
+
 export const animals = [
   { label: 'Cat', key: 'cat', description: 'The second most popular pet in the world' },
   { label: 'Dog', key: 'dog', description: 'The most popular pet in the world' },
@@ -37,7 +39,8 @@ const PromotionForm = () => {
   const {
     register,
     control,
-    formState: { errors }
+    formState: { errors },
+    setValue
   } = useFormContext()
 
   const [discountType, setDiscountType] = useState<DiscountType | undefined>(undefined)
@@ -63,6 +66,13 @@ const PromotionForm = () => {
     name: 'mode'
   })
 
+  const selectedCategory = useWatch({
+    control,
+    name: 'category'
+  })
+
+  const subcategories = categories.filter((cat) => cat.parent === selectedCategory)
+
   return (
     <form className='space-y-2'>
       <Controller
@@ -77,8 +87,8 @@ const PromotionForm = () => {
               const rawValue = Array.from(keys)[0]
               field.onChange(rawValue)
             }}
-            isInvalid={!!errors.parent}
-            errorMessage={errors.parent?.message as string}
+            isInvalid={!!errors.promo_type}
+            errorMessage={errors.promo_type?.message as string}
             disallowEmptySelection
           >
             {promo_types.map((type) => (
@@ -96,43 +106,48 @@ const PromotionForm = () => {
               <Select
                 label='Categoría'
                 size='sm'
-                selectedKeys={field.value ? [String(field.value)] : []}
+                selectedKeys={field.value != null ? new Set([String(field.value)]) : new Set()}
                 onSelectionChange={(keys) => {
-                  const rawValue = Array.from(keys)[0]
-                  field.onChange(rawValue)
+                  const k = Array.from(keys).at(0)
+                  const n = k != null ? Number(k) : null
+                  field.onChange(Number.isNaN(n as number) ? null : n)
                 }}
-                isInvalid={!!errors.parent}
-                errorMessage={errors.parent?.message as string}
+                isInvalid={!!errors.category}
+                errorMessage={errors.category?.message as string}
                 disallowEmptySelection
               >
-                {categories.map((type) => (
-                  <SelectItem key={type.id}>{type.name}</SelectItem>
-                ))}
+                {categories
+                  .filter((cat) => cat.parent === null)
+                  .map((type) => (
+                    <SelectItem key={type.id}>{type.name}</SelectItem>
+                  ))}
               </Select>
             )}
           />
-          <Controller
-            name='subcategory'
-            control={control}
-            render={({ field }) => (
-              <Select
-                label='Subcategoría'
-                size='sm'
-                selectedKeys={field.value ? [String(field.value)] : []}
-                onSelectionChange={(keys) => {
-                  const rawValue = Array.from(keys)[0]
-                  field.onChange(rawValue)
-                }}
-                isInvalid={!!errors.parent}
-                errorMessage={errors.parent?.message as string}
-                disallowEmptySelection
-              >
-                {categories.map((type) => (
-                  <SelectItem key={type.id}>{type.name}</SelectItem>
-                ))}
-              </Select>
-            )}
-          />
+          {subcategories.length > 0 && (
+            <Controller
+              name='subcategory'
+              control={control}
+              render={({ field }) => (
+                <Select
+                  label='Subcategoría'
+                  size='sm'
+                  selectedKeys={field.value ? [String(field.value)] : []}
+                  onSelectionChange={(keys) => {
+                    const rawValue = Array.from(keys)[0]
+                    field.onChange(rawValue)
+                  }}
+                  isInvalid={!!errors.subcategory}
+                  errorMessage={errors.subcategory?.message as string}
+                  disallowEmptySelection
+                >
+                  {subcategories.map((type) => (
+                    <SelectItem key={type.id}>{type.name}</SelectItem>
+                  ))}
+                </Select>
+              )}
+            />
+          )}
         </>
       )}
       {promoType === 'product' && (
@@ -148,7 +163,6 @@ const PromotionForm = () => {
           )}
         />
       )}
-
       <Controller
         name='discount_type'
         control={control}
@@ -168,8 +182,8 @@ const PromotionForm = () => {
               }
             }}
             value={discountType}
-            isInvalid={!!errors.parent}
-            errorMessage={errors.parent?.message as string}
+            isInvalid={!!errors.discount_type}
+            errorMessage={errors.discount_type?.message as string}
             disallowEmptySelection
           >
             {discount_types.map((type) => (
@@ -192,8 +206,8 @@ const PromotionForm = () => {
                   const rawValue = Array.from(keys)[0]
                   field.onChange(rawValue)
                 }}
-                isInvalid={!!errors.parent}
-                errorMessage={errors.parent?.message as string}
+                isInvalid={!!errors.frequency}
+                errorMessage={errors.frequency?.message as string}
                 disallowEmptySelection
               >
                 {promo_frequencies.map((type) => (
@@ -234,8 +248,8 @@ const PromotionForm = () => {
                     const arr = Array.from(keys as Set<React.Key>).map((k) => String(k))
                     field.onChange(arr)
                   }}
-                  isInvalid={!!errors.parent}
-                  errorMessage={errors.parent?.message as string}
+                  isInvalid={!!errors.week_days}
+                  errorMessage={errors.week_days?.message as string}
                   disallowEmptySelection
                 >
                   {week_days.map((type) => (
@@ -265,18 +279,16 @@ const PromotionForm = () => {
           )}
         </>
       )}
-
       {discountType === 'code' && (
         <Input
           label='Código'
           type='text'
           size='sm'
-          isInvalid={!!errors.name}
-          errorMessage={errors.name?.message as string}
+          isInvalid={!!errors.code}
+          errorMessage={errors.code?.message as string}
           {...register('code')}
         />
       )}
-
       <Controller
         name='mode'
         control={control}
@@ -289,8 +301,8 @@ const PromotionForm = () => {
               const rawValue = Array.from(keys)[0]
               field.onChange(rawValue)
             }}
-            isInvalid={!!errors.parent}
-            errorMessage={errors.parent?.message as string}
+            isInvalid={!!errors.mode}
+            errorMessage={errors.mode?.message as string}
             disallowEmptySelection
           >
             {promo_mode.map((type) => (
@@ -299,7 +311,8 @@ const PromotionForm = () => {
           </Select>
         )}
       />
-      {/* <Controller
+      {promoMode === 'fixed' && (
+        <Controller
           name='mode_value'
           control={control}
           render={({ field, fieldState }) => (
@@ -309,10 +322,8 @@ const PromotionForm = () => {
               // 2) Siempre manda undefined cuando está vacío
               onValueChange={(v) => {
                 const num = v.floatValue === undefined ? undefined : v.floatValue
-                setValue('public_price', num, {
-                  shouldValidate: true,
-                  shouldDirty: true,
-                  shouldTouch: true
+                setValue('mode_value', num, {
+                  shouldValidate: true
                 })
               }}
               thousandSeparator
@@ -329,15 +340,46 @@ const PromotionForm = () => {
               isClearable
               onClear={() => {
                 setValue('mode_value', undefined, {
-                  shouldValidate: true,
-                  shouldDirty: true,
-                  shouldTouch: true
+                  shouldValidate: true
                 })
                 // opcional: clearErrors('public_price')
               }}
             />
           )}
-        /> */}
+        />
+      )}
+      {promoMode === 'percentage' && (
+        <Controller
+          name='mode_value'
+          control={control}
+          render={({ field, fieldState }) => (
+            <NumericFormat
+              value={field.value ?? ''}
+              onValueChange={(v) => {
+                const num = v.floatValue === undefined ? undefined : v.floatValue
+                setValue('mode_value', num, {
+                  shouldValidate: true
+                })
+              }}
+              decimalScale={0}
+              maxLength={4}
+              customInput={Input}
+              label='Valor'
+              size='sm'
+              suffix=' %'
+              isInvalid={!!fieldState.error}
+              errorMessage={fieldState.error?.message}
+              isClearable
+              onClear={() => {
+                setValue('mode_value', undefined, {
+                  shouldValidate: true
+                })
+                // opcional: clearErrors('public_price')
+              }}
+            />
+          )}
+        />
+      )}
       <Controller
         name='valid_until'
         control={control}
@@ -365,7 +407,7 @@ const PromotionForm = () => {
       </div>
       {isLimited && (
         <>
-          <RadioGroup orientation='horizontal' size='sm'>
+          <RadioGroup orientation='horizontal' size='sm' {...register('limit_type')}>
             <Radio value='user'>Por usuario</Radio>
             <Radio value='global'>Global</Radio>
           </RadioGroup>
@@ -373,9 +415,9 @@ const PromotionForm = () => {
             label='Total'
             type='text'
             size='sm'
-            isInvalid={!!errors.name}
-            errorMessage={errors.name?.message as string}
-            {...register('name')}
+            isInvalid={!!errors.limit}
+            errorMessage={errors.limit?.message as string}
+            {...register('limit')}
           />
         </>
       )}
@@ -387,7 +429,7 @@ const PromotionForm = () => {
       </div>
       {isConditioned && (
         <>
-          <RadioGroup orientation='horizontal' size='sm'>
+          <RadioGroup orientation='horizontal' size='sm' {...register('condition_type')}>
             <Radio value='min_sale'>Compra mínima</Radio>
             <Radio value='quantity'>Cantidad</Radio>
           </RadioGroup>
@@ -395,9 +437,9 @@ const PromotionForm = () => {
             label='Cantidad'
             type='text'
             size='sm'
-            isInvalid={!!errors.name}
-            errorMessage={errors.name?.message as string}
-            {...register('name')}
+            isInvalid={!!errors.condition}
+            errorMessage={errors.condition?.message as string}
+            {...register('condition')}
           />
         </>
       )}

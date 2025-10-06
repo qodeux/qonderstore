@@ -4,17 +4,15 @@ import { useEffect } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useSelector } from 'react-redux'
 import { promotionsSchema } from '../../../schemas/promotions.schema'
-import { promotionsService } from '../../../services/promotionService'
 import type { RootState } from '../../../store/store'
 import PromotionForm from '../../forms/admin/PromotionForm'
 
 type Props = {
   isOpen: boolean
   onOpenChange: () => void
-  fetchData: () => void
 }
 
-const PromotionModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
+const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
   const editMode = useSelector((state: RootState) => state.promotions.editMode)
   const promotionForm = useForm({
     resolver: zodResolver(promotionsSchema),
@@ -34,13 +32,13 @@ const PromotionModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
     const formData = promotionForm.getValues()
     console.log(formData)
     // Lógica para enviar los datos al servidor
-    const promotionCreated = await promotionsService.createPromotion(formData)
-    console.log('Promoción creada:', promotionCreated)
-    if (promotionCreated) {
-      onOpenChange() // Cierra el modal
-      fetchData() // Refresca los datos en la tabla principal
-      promotionForm.reset() // Resetea el formulario
-    }
+    // const promotionCreated = await promotionsService.createPromotion(formData)
+    // console.log('Promoción creada:', promotionCreated)
+    // if (promotionCreated) {
+    //   onOpenChange() // Cierra el modal
+    //   fetchData() // Refresca los datos en la tabla principal
+    //   promotionForm.reset() // Resetea el formulario
+    // }
   }
   useEffect(() => {
     if (!isOpen) {
