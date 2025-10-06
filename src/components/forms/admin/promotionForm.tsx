@@ -1,7 +1,37 @@
-import { Checkbox, CheckboxGroup, DatePicker, Input, Radio, RadioGroup, Select, SelectItem, Switch } from '@heroui/react'
+import { Autocomplete, AutocompleteItem, DatePicker, Input, Radio, RadioGroup, Select, SelectItem, Switch } from '@heroui/react'
 import { useState } from 'react'
-import { Controller, useFormContext } from 'react-hook-form'
-import { discount_types, isDiscountType, promo_frequencies, promo_mode, promo_types, type DiscountType } from '../../../types/products'
+import { Controller, useFormContext, useWatch } from 'react-hook-form'
+import { useSelector } from 'react-redux'
+import type { RootState } from '../../../store/store'
+import { week_days } from '../../../types/dates'
+import { discount_types, isDiscountType, promo_frequencies, promo_mode, promo_types, type DiscountType } from '../../../types/promos'
+export const animals = [
+  { label: 'Cat', key: 'cat', description: 'The second most popular pet in the world' },
+  { label: 'Dog', key: 'dog', description: 'The most popular pet in the world' },
+  { label: 'Elephant', key: 'elephant', description: 'The largest land animal' },
+  { label: 'Lion', key: 'lion', description: 'The king of the jungle' },
+  { label: 'Tiger', key: 'tiger', description: 'The largest cat species' },
+  { label: 'Giraffe', key: 'giraffe', description: 'The tallest land animal' },
+  {
+    label: 'Dolphin',
+    key: 'dolphin',
+    description: 'A widely distributed and diverse group of aquatic mammals'
+  },
+  { label: 'Penguin', key: 'penguin', description: 'A group of aquatic flightless birds' },
+  { label: 'Zebra', key: 'zebra', description: 'A several species of African equids' },
+  {
+    label: 'Shark',
+    key: 'shark',
+    description: 'A group of elasmobranch fish characterized by a cartilaginous skeleton'
+  },
+  {
+    label: 'Whale',
+    key: 'whale',
+    description: 'Diverse group of fully aquatic placental marine mammals'
+  },
+  { label: 'Otter', key: 'otter', description: 'A carnivorous mammal in the subfamily Lutrinae' },
+  { label: 'Crocodile', key: 'crocodile', description: 'A large semiaquatic reptile' }
+]
 
 const PromotionForm = () => {
   const {
@@ -15,6 +45,23 @@ const PromotionForm = () => {
   const [isLimited, setIsLimited] = useState(false)
 
   const [isConditioned, setIsConditioned] = useState(false)
+
+  const categories = useSelector((state: RootState) => state.categories.categories)
+
+  const promoType = useWatch({
+    control,
+    name: 'promo_type'
+  })
+
+  const frecuency = useWatch({
+    control,
+    name: 'frequency'
+  })
+
+  const promoMode = useWatch({
+    control,
+    name: 'mode'
+  })
 
   return (
     <form className='space-y-2'>
@@ -40,7 +87,68 @@ const PromotionForm = () => {
           </Select>
         )}
       />
-      {discountType}
+      {promoType === 'category' && (
+        <>
+          <Controller
+            name='category'
+            control={control}
+            render={({ field }) => (
+              <Select
+                label='Categoría'
+                size='sm'
+                selectedKeys={field.value ? [String(field.value)] : []}
+                onSelectionChange={(keys) => {
+                  const rawValue = Array.from(keys)[0]
+                  field.onChange(rawValue)
+                }}
+                isInvalid={!!errors.parent}
+                errorMessage={errors.parent?.message as string}
+                disallowEmptySelection
+              >
+                {categories.map((type) => (
+                  <SelectItem key={type.id}>{type.name}</SelectItem>
+                ))}
+              </Select>
+            )}
+          />
+          <Controller
+            name='subcategory'
+            control={control}
+            render={({ field }) => (
+              <Select
+                label='Subcategoría'
+                size='sm'
+                selectedKeys={field.value ? [String(field.value)] : []}
+                onSelectionChange={(keys) => {
+                  const rawValue = Array.from(keys)[0]
+                  field.onChange(rawValue)
+                }}
+                isInvalid={!!errors.parent}
+                errorMessage={errors.parent?.message as string}
+                disallowEmptySelection
+              >
+                {categories.map((type) => (
+                  <SelectItem key={type.id}>{type.name}</SelectItem>
+                ))}
+              </Select>
+            )}
+          />
+        </>
+      )}
+      {promoType === 'product' && (
+        <Controller
+          name='products'
+          control={control}
+          render={({ field }) => (
+            <Autocomplete size='sm' label='Selecciona un producto'>
+              {animals.map((animal) => (
+                <AutocompleteItem key={animal.key}>{animal.label}</AutocompleteItem>
+              ))}
+            </Autocomplete>
+          )}
+        />
+      )}
+
       <Controller
         name='discount_type'
         control={control}
@@ -71,76 +179,92 @@ const PromotionForm = () => {
         )}
       />
       {discountType === 'season' && (
-        <Controller
-          name='frequency'
-          control={control}
-          render={({ field }) => (
-            <Select
-              label='Frecuencia'
-              size='sm'
-              selectedKeys={field.value ? [String(field.value)] : []}
-              onSelectionChange={(keys) => {
-                const rawValue = Array.from(keys)[0]
-                field.onChange(rawValue)
-              }}
-              isInvalid={!!errors.parent}
-              errorMessage={errors.parent?.message as string}
-              disallowEmptySelection
-            >
-              {promo_frequencies.map((type) => (
-                <SelectItem key={type.key}>{type.name}</SelectItem>
-              ))}
-            </Select>
+        <>
+          <Controller
+            name='frequency'
+            control={control}
+            render={({ field }) => (
+              <Select
+                label='Frecuencia'
+                size='sm'
+                selectedKeys={field.value ? [String(field.value)] : []}
+                onSelectionChange={(keys) => {
+                  const rawValue = Array.from(keys)[0]
+                  field.onChange(rawValue)
+                }}
+                isInvalid={!!errors.parent}
+                errorMessage={errors.parent?.message as string}
+                disallowEmptySelection
+              >
+                {promo_frequencies.map((type) => (
+                  <SelectItem key={type.key}>{type.name}</SelectItem>
+                ))}
+              </Select>
+            )}
+          />
+          {frecuency === 'once' && (
+            <Controller
+              name='date'
+              control={control}
+              rules={{ required: 'La fecha es obligatoria' }}
+              render={({ field }) => (
+                <div className='flex flex-col items-start'>
+                  <DatePicker
+                    {...field}
+                    label='Fecha'
+                    size='sm'
+                    onChange={(date) => field.onChange(date)} // muy importante
+                    value={field.value}
+                  />
+                </div>
+              )}
+            />
           )}
-        />
+          {frecuency === 'weekly' && (
+            <Controller
+              name='week_days'
+              control={control}
+              render={({ field }) => (
+                <Select
+                  label='Selecciona los días'
+                  size='sm'
+                  selectionMode='multiple'
+                  selectedKeys={new Set((field.value ?? []) as (string | number)[])}
+                  onSelectionChange={(keys) => {
+                    const arr = Array.from(keys as Set<React.Key>).map((k) => String(k))
+                    field.onChange(arr)
+                  }}
+                  isInvalid={!!errors.parent}
+                  errorMessage={errors.parent?.message as string}
+                  disallowEmptySelection
+                >
+                  {week_days.map((type) => (
+                    <SelectItem key={type.key}>{type.name}</SelectItem>
+                  ))}
+                </Select>
+              )}
+            />
+          )}
+          {frecuency === 'monthly' && (
+            <Controller
+              name='day_month'
+              control={control}
+              rules={{ required: 'La fecha es obligatoria' }}
+              render={({ field }) => (
+                <div className='flex flex-col items-start'>
+                  <DatePicker
+                    {...field}
+                    label='Día del mes'
+                    size='sm'
+                    onChange={(date) => field.onChange(date)} // muy importante
+                    value={field.value}
+                  />
+                </div>
+              )}
+            />
+          )}
+        </>
       )}
-      <Controller
-        name='valid_until'
-        control={control}
-        rules={{ required: 'La fecha es obligatoria' }}
-        render={({ field }) => (
-          <div className='flex flex-col items-start'>
-            <DatePicker
-              {...field}
-              label='Fecha'
-              size='sm'
-              onChange={(date) => field.onChange(date)} // muy importante
-              value={field.value}
-            />
-          </div>
-        )}
-      />
-      <CheckboxGroup
-        color='secondary'
-        defaultValue={['buenos-aires', 'san-francisco']}
-        label='Selecciona los dias'
-        orientation='horizontal'
-      >
-        <Checkbox value='lun'>L</Checkbox>
-        <Checkbox value='mar'>M</Checkbox>
-        <Checkbox value='mie'>M</Checkbox>
-        <Checkbox value='jue'>J</Checkbox>
-        <Checkbox value='vie'>V</Checkbox>
-        <Checkbox value='sab'>S</Checkbox>
-        <Checkbox value='dom'>D</Checkbox>
-      </CheckboxGroup>
-
-      <Controller
-        name='valid_until'
-        control={control}
-        rules={{ required: 'La fecha es obligatoria' }}
-        render={({ field }) => (
-          <div className='flex flex-col items-start'>
-            <DatePicker
-              {...field}
-              label='Día del mes'
-              size='sm'
-              onChange={(date) => field.onChange(date)} // muy importante
-              value={field.value}
-            />
-          </div>
-        )}
-      />
 
       {discountType === 'code' && (
         <Input
@@ -175,14 +299,45 @@ const PromotionForm = () => {
           </Select>
         )}
       />
-      <Input
-        label='Valor'
-        type='text'
-        size='sm'
-        isInvalid={!!errors.name}
-        errorMessage={errors.name?.message as string}
-        {...register('name')}
-      />
+      {/* <Controller
+          name='mode_value'
+          control={control}
+          render={({ field, fieldState }) => (
+            <NumericFormat
+              // 1) Controlado por RHF: si no hay valor, muestra vacío
+              value={field.value ?? ''}
+              // 2) Siempre manda undefined cuando está vacío
+              onValueChange={(v) => {
+                const num = v.floatValue === undefined ? undefined : v.floatValue
+                setValue('public_price', num, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                  shouldTouch: true
+                })
+              }}
+              thousandSeparator
+              decimalScale={2}
+              fixedDecimalScale
+              allowNegative={false}
+              prefix='$ '
+              inputMode='decimal'
+              customInput={Input}
+              label='Valor'
+              size='sm'
+              isInvalid={!!fieldState.error}
+              errorMessage={fieldState.error?.message}
+              isClearable
+              onClear={() => {
+                setValue('mode_value', undefined, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                  shouldTouch: true
+                })
+                // opcional: clearErrors('public_price')
+              }}
+            />
+          )}
+        /> */}
       <Controller
         name='valid_until'
         control={control}

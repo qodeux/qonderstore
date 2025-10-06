@@ -6,7 +6,7 @@ import { useSelector } from 'react-redux'
 import { promotionsSchema } from '../../../schemas/promotions.schema'
 import { promotionsService } from '../../../services/promotionService'
 import type { RootState } from '../../../store/store'
-import PromotionForm from '../../forms/admin/promotionForm'
+import PromotionForm from '../../forms/admin/PromotionForm'
 
 type Props = {
   isOpen: boolean

@@ -1,10 +1,11 @@
 import { useDisclosure, type Selection, type SortDescriptor } from '@heroui/react'
 import { useEffect, useMemo, useState } from 'react'
 import { DataTable, type PresetKey } from '../../components/common/DataTable'
-import { applyToolbarFilters, ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
+import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import PromotionModal from '../../components/modals/admin/PromotionModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
 import { promotionsService } from '../../services/promotionService'
+import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const Promotions = () => {
   //const dispatch = useDispatch()
@@ -172,13 +173,7 @@ const Promotions = () => {
       </section>
       <PromotionModal isOpen={isOpenCategory} onOpenChange={onOpenChangeCategory} fetchData={fetchData} />
 
-      <OnDeleteModal
-        isOpenDelete={isOpenDelete}
-        onOpenChangeDelete={onOpenChangeDelete}
-        deleteType='category'
-        itemId={deleteCategoryId}
-        //fetchData={fetchData}
-      />
+      <OnDeleteModal isOpenDelete={isOpenDelete} onOpenChangeDelete={onOpenChangeDelete} deleteType='category' />
     </>
   )
 }
