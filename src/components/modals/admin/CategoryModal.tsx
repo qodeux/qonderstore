@@ -55,13 +55,31 @@ const CategoryModal = ({ isOpen, onOpenChange }: Props) => {
       categorySuccess = await categoryService.createCategory(formData)
     }
 
-    if (categorySuccess) {
+    if (!categorySuccess.error && categorySuccess) {
       console.log('Categoría OK:', categorySuccess)
 
       onOpenChange() // Cierra el modal
       categoryForm.reset() // Resetea el formulario
     } else {
       console.error('Error al guardar categoría')
+      console.error(categorySuccess.error)
+
+      if (categorySuccess.error.code === '23505') {
+        // Manejo de error: clave duplicada
+
+        const details = categorySuccess.error?.details ?? ''
+
+        if (details.includes('Key (name)')) {
+          categoryForm.setError('name', { message: 'El nombre ya existe' })
+        } else if (details.includes('Key (slug_id)')) {
+          categoryForm.setError('slug_id', { message: 'La clave ya existe' })
+        } else {
+          console.error('Error desconocido:', details)
+        }
+
+        console.error('Error: La categoría ya existe')
+        categoryForm.setError('slug_id', { message: 'La clave ya existe' })
+      }
     }
   }
 

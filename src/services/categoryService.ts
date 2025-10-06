@@ -27,7 +27,7 @@ export const categoryService = {
 
     if (categoryError) {
       console.error('Error inserting category:', categoryError)
-      return
+      return { error: categoryError }
     }
     return categoryInserted
   },
