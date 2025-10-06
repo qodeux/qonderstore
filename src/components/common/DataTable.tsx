@@ -18,7 +18,7 @@ import {
 } from '@heroui/react'
 import { EllipsisVertical, Star } from 'lucide-react'
 import type { Key, ReactElement } from 'react'
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { entityRegistry, type EntityAdapter, type EntityKind, type MenuAction } from '../../services/entityRegistry'
 import { formatDate, toDate } from '../../utils/date'
 
@@ -52,6 +52,7 @@ type Props<T> = {
   onSortChange: (descriptor: SortDescriptor) => void
   bottomContent?: React.ReactNode
   getRowKey?: (row: T) => Key
+  onRowActivate?: (row: T) => void | Promise<void>
 
   /** modo recomendado: la tabla resuelve todo via registry */
   entity: EntityKind
@@ -313,6 +314,36 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
     }
   }
 
+  const canRowAction = selectionMode === 'single' && selectionBehavior === 'replace' && (!!adapter.edit || !!p.onRowActivate)
+
+  const keyToStr = (k: Key) => (typeof k === 'string' ? k : String(k))
+
+  const rowMap = useMemo(() => {
+    const m = new Map<string, T>()
+    for (const r of rows) m.set(keyToStr(getRowKey(r)), r)
+    return m
+  }, [rows, getRowKey])
+
+  const { onRowActivate } = p
+
+  const handleRowActivate = useCallback(
+    async (row: T) => {
+      if (onRowActivate) return onRowActivate(row)
+      if (adapter.edit) return adapter.edit(row)
+    },
+    [onRowActivate, adapter]
+  )
+
+  const handleRowAction = useCallback(
+    async (key: Key) => {
+      if (!canRowAction) return
+      const row = rowMap.get(keyToStr(key))
+      if (!row) return
+      await handleRowActivate(row)
+    },
+    [canRowAction, rowMap, handleRowActivate]
+  )
+
   return (
     <Table
       aria-label='Data table'
@@ -323,6 +354,7 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
       sortDescriptor={sortDescriptor}
       onSortChange={onSortChange}
       bottomContent={bottomContent}
+      onRowAction={canRowAction ? handleRowAction : undefined}
     >
       <TableHeader columns={columns}>
         {(column) => (

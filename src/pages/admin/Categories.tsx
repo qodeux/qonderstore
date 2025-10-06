@@ -131,7 +131,7 @@ const Categories = () => {
           columns={columns}
           selectedKeys={selectedKeys}
           onSelectionChange={setSelectedKeys}
-          selectionMode='multiple'
+          selectionMode={selectionBehavior === 'replace' ? 'single' : 'multiple'}
           selectionBehavior={selectionBehavior}
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
