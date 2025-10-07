@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react'
 import supabase from '../lib/supabase'
 
-export type EntityKind = 'products' | 'categories' | 'providers'
+export type EntityKind = 'products' | 'categories' | 'providers' | 'users'
 
 export type MenuAction<T> = {
   key: string
@@ -63,6 +63,17 @@ export const entityRegistry: Record<EntityKind, EntityAdapter<any>> = {
     },
     delete: async (id) => {
       await supabase.from('providers').delete().eq('id', id)
+    }
+  },
+  users: {
+    table: 'user_profiles',
+    getId: (r) => r.key,
+    fields: { active: 'is_active' },
+    update: async (id, patch) => {
+      await supabase.from('user_profiles').update(patch).eq('id', id)
+    },
+    delete: async (id) => {
+      await supabase.from('user_profiles').delete().eq('id', id)
     }
   }
 }
