@@ -2,12 +2,14 @@ import { configureStore } from '@reduxjs/toolkit'
 import authReducer from './slices/authSlice'
 import categoriesReducer from './slices/categoriesSlice'
 import uiReducer from './slices/uiSlice'
+import usersReducer from './slices/usersSlice'
 
 const store = configureStore({
   reducer: {
     ui: uiReducer,
     auth: authReducer,
-    categories: categoriesReducer
+    categories: categoriesReducer,
+    users: usersReducer
   }
 })
 
