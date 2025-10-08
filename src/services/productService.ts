@@ -1,4 +1,5 @@
 import supabase from '../lib/supabase'
+import type { ProductDataInput, ProductUnitInput } from '../schemas/products.schema'
 
 export const productService = {
   fetchProducts: async () => {
@@ -8,7 +9,7 @@ export const productService = {
     }
     return products
   },
-  createProduct: async (productData) => {
+  createProduct: async (productData: ProductDataInput) => {
     const { data: productInserted, error: productError } = await supabase
       .from('products')
       .insert([
@@ -17,8 +18,6 @@ export const productService = {
           slug: productData.slug,
           sku: productData.sku,
           category: productData.category,
-          //price: productData.price,
-          //stock: productData.stock,
           sale_type: productData.type_unit,
           is_active: productData.is_active,
           featured: productData.featured || false,
@@ -37,7 +36,7 @@ export const productService = {
     }
     return productInserted
   },
-  InsertProductUnit: async (productId: string, dataProductUnit) => {
+  InsertProductUnit: async (productId: string, dataProductUnit: ProductUnitInput) => {
     const { data: productUnitInserted, error: productUnitError } = await supabase
       .from('products_unit')
       .insert([
@@ -45,8 +44,11 @@ export const productService = {
           product_id: productId,
           unit: dataProductUnit.sale_unit,
           base_cost: dataProductUnit.base_cost,
-          public_price: dataProductUnit.public_price
-          // Aquí van los datos específicos de la unidad
+          public_price: dataProductUnit.public_price,
+          min_sale: dataProductUnit.min_sale,
+          max_sale: dataProductUnit.max_sale,
+          low_stock: dataProductUnit.low_stock,
+          wholesale_prices: dataProductUnit.wholesale_prices
         }
       ])
       .select()
