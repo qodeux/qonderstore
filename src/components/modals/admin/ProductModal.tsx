@@ -2,7 +2,8 @@ import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Tab, 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
-import { productSchema, productUnitSchema } from '../../../schemas/products.schema'
+import type z from 'zod'
+import { productDataInputSchema, productUnitInputSchema } from '../../../schemas/products.schema'
 import { productService } from '../../../services/productService'
 import ProductBulkForm from '../../forms/admin/ProductBulkForm'
 import ProductDataForm from '../../forms/admin/ProductDataForm'
@@ -11,24 +12,26 @@ import ProductUnitForm from '../../forms/admin/ProductUnitForm'
 type Props = {
   isOpen: boolean
   onOpenChange: () => void
-  fetchData: () => void
 }
 
-const ProductModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
+type ProductDataFormValues = z.input<typeof productDataInputSchema>
+type ProductUnitFormValues = z.input<typeof productUnitInputSchema>
+
+const ProductModal = ({ isOpen, onOpenChange }: Props) => {
   const [activeTab, setActiveTab] = useState<'data' | 'unit' | 'bulk'>('data')
 
-  const [selectedTypeUnit, setSelectedTypeUnit] = useState<string>('')
-
-  const productForm = useForm({
-    resolver: zodResolver(productSchema),
+  const productForm = useForm<ProductDataFormValues>({
+    resolver: zodResolver(productDataInputSchema),
     shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange'
   })
 
-  const unitForm = useForm({
-    resolver: zodResolver(productUnitSchema),
-    shouldUnregister: true,
+  const selectedTypeUnit = productForm.watch('type_unit')
+
+  const unitForm = useForm<ProductUnitFormValues>({
+    resolver: zodResolver(productUnitInputSchema),
+    shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange',
 
@@ -46,7 +49,7 @@ const ProductModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
   })
 
   const bulkForm = useForm({
-    resolver: zodResolver(productUnitSchema),
+    resolver: zodResolver(productUnitInputSchema),
     shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange'
@@ -63,7 +66,7 @@ const ProductModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
         return
       }
 
-      const productData = productForm.getValues()
+      const productData = productDataInputSchema.parse(productForm.getValues())
       const saleType = productData.type_unit
 
       // 2) Si es unidad, validamos el formulario unidad
@@ -79,7 +82,7 @@ const ProductModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
 
       // 4) Insertar datos de unidad si es necesario
       if (saleType === 'unit') {
-        const productUnit = unitForm.getValues()
+        const productUnit = productUnitInputSchema.parse(unitForm.getValues())
         const productUnitInserted = await productService.InsertProductUnit(productInserted.id, productUnit)
 
         console.log('Product and unit data inserted:', productInserted, productUnitInserted)
@@ -88,7 +91,6 @@ const ProductModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
         unitForm.reset()
         productForm.reset()
         onOpenChange()
-        fetchData()
       }
     } catch (error) {
       console.error('Error adding product and unit data:', error)
@@ -101,16 +103,15 @@ const ProductModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
       productForm.reset()
       unitForm.reset()
       bulkForm.reset()
-      setSelectedTypeUnit('')
     }
   }, [isOpen, productForm, unitForm, bulkForm])
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='2xl'>
+    <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='xl' backdrop='blur'>
       <ModalContent>
         {(onClose) => (
           <>
-            <ModalHeader className='flex flex-col gap-1'>Agregar producto</ModalHeader>
+            <ModalHeader className='flex flex-col gap-1 pb-0'>Agregar producto</ModalHeader>
             <ModalBody>
               <Tabs
                 aria-label='Nuevo producto'
@@ -127,12 +128,7 @@ const ProductModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
               >
                 <Tab key='data' title='Datos'>
                   <FormProvider {...productForm}>
-                    <ProductDataForm
-                      selectedTypeUnit={selectedTypeUnit}
-                      onchangeTypeUnit={(value: string) => {
-                        setSelectedTypeUnit(value)
-                      }}
-                    />
+                    <ProductDataForm />
                   </FormProvider>
                 </Tab>
                 <Tab key='unit' title='Unidad' className={selectedTypeUnit === 'unit' ? '' : 'hidden'}>
@@ -147,12 +143,12 @@ const ProductModal = ({ isOpen, onOpenChange, fetchData }: Props) => {
                 </Tab>
               </Tabs>
             </ModalBody>
-            <ModalFooter>
+            <ModalFooter className='pt-0'>
               <Button color='danger' variant='light' onPress={onClose}>
                 Cerrar
               </Button>
-              <Button color='primary' onPress={handleAddProduct}>
-                Aceptar
+              <Button color='primary' className='ml-2' onPress={handleAddProduct}>
+                Agregar
               </Button>
             </ModalFooter>
           </>
