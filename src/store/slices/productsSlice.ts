@@ -34,8 +34,8 @@ const productsSlice = createSlice({
       state.loading = false
       state.error = null
     },
-    setSelectedProduct(state, action: PayloadAction<Product | null>) {
-      state.selectedProduct = action.payload
+    setSelectedProduct(state, action: PayloadAction<number | null>) {
+      state.selectedProduct = state.items.find((item) => item.id === action.payload) || null
       state.loading = false
       state.error = null
     },
