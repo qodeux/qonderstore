@@ -134,10 +134,123 @@ export const productUnitInputSchema = z
 
 export type ProductUnitInput = z.infer<typeof productUnitInputSchema>
 
-export const productBulkInputSchema = z.object({
-  base_unit: z.string('La unidad base es obligatoria'),
-  base_unit_price: z.number('El precio es obligatorio').min(0, 'El precio no puede ser negativo')
+const unitValueSchema = z.object({
+  margin: z.number('Margen requerido').refine((v) => !Number.isNaN(v), 'Margen inválido'),
+  price: z
+    .number('Precio requerido')
+    .min(0, 'El precio no puede ser negativo')
+    .refine((v) => !Number.isNaN(v), 'Precio inválido')
 })
+
+const unitsSchema = z.preprocess((v) => (v == null ? {} : v), z.record(z.string(), unitValueSchema))
+
+// NOTA: no restrinjas la llave del record con enum, usa string “libre”
+export const productBulkInputSchema = z
+  .object({
+    bulk_units_available: z.array(z.string(), 'Declara al menos una unidad disponible').min(1, 'Declara al menos una unidad disponible'),
+    base_unit: z.string('La unidad base es obligatoria'),
+    base_unit_price: z.number('El precio es obligatorio').min(0, 'El precio no puede ser negativo'),
+
+    minSaleSwitch: z.boolean().default(false),
+    min_sale: z.number().optional(),
+
+    maxSaleSwitch: z.boolean().default(false),
+    max_sale: z.number().optional(),
+
+    // <-- SOLO OBJETO
+    units: unitsSchema
+  })
+  .superRefine((val, ctx) => {
+    // 1) base_unit ∈ bulk_units_available
+    if (!val.bulk_units_available.includes(val.base_unit)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['base_unit'],
+        message: 'La unidad base debe estar en bulk_units_available'
+      })
+    }
+
+    // 2) Requeridos condicionales
+    if (val.minSaleSwitch && (val.min_sale == null || Number.isNaN(val.min_sale))) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['min_sale'],
+        message: 'Campo requerido al activar el mínimo de compra'
+      })
+    }
+    if (val.maxSaleSwitch && (val.max_sale == null || Number.isNaN(val.max_sale))) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['max_sale'],
+        message: 'Campo requerido al activar el máximo de compra'
+      })
+    }
+    if (val.minSaleSwitch && val.maxSaleSwitch && val.min_sale != null && val.max_sale != null && val.min_sale > val.max_sale) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['min_sale'],
+        message: 'El mínimo no puede ser mayor que el máximo'
+      })
+    }
+    if (val.minSaleSwitch && val.maxSaleSwitch && val.min_sale != null && val.max_sale != null && val.min_sale == val.max_sale) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['min_sale'],
+        message: 'Los valores no pueden ser iguales'
+      })
+    }
+
+    // 3) Validación CONDICIONAL de units
+    const selected = new Set(val.bulk_units_available)
+    const expectedKeys = [...selected].filter((u) => u !== val.base_unit)
+    const unitKeys = Object.keys(val.units)
+
+    if (expectedKeys.length === 0) {
+      // Solo base seleccionada -> units debe venir vacío
+      if (unitKeys.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['units'],
+          message: 'No se esperan ajustes por unidad cuando solo está la unidad base.'
+        })
+      }
+      return
+    }
+
+    // Hay ≥ 2 unidades seleccionadas -> exigir EXACTAMENTE las no base
+    for (const k of expectedKeys) {
+      if (!val.units[k]) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['units'],
+          message: `Falta configuración para la unidad "${k}".`
+        })
+      }
+    }
+    for (const k of unitKeys) {
+      if (!expectedKeys.includes(k)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['units', k],
+          message: `Unidad "${k}" no corresponde a las unidades seleccionadas (debe ser alguna de: ${expectedKeys.join(', ')}).`
+        })
+      }
+    }
+
+    // 4) Error genérico si algún item carece de margen/precio (defensa extra)
+    const hasGenericIssue = Object.values(val.units).some(
+      (u) => u == null || u.margin == null || u.price == null || Number.isNaN(u.margin) || Number.isNaN(u.price)
+    )
+    if (hasGenericIssue) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['units'],
+        message: 'Completa margen y precio en cada unidad.'
+      })
+    }
+  })
+
+export type ProductBulkInput = z.infer<typeof productBulkInputSchema>
 
 export const productSchema = z.object({
   id: z.number(),

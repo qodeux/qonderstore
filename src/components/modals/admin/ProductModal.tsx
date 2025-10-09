@@ -34,7 +34,6 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
     shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange',
-
     defaultValues: {
       lowStockSwitch: false,
       minSaleSwitch: false,
@@ -55,7 +54,7 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
     reValidateMode: 'onChange',
 
     defaultValues: {
-      base_unit: 'gr',
+      bulk_units_available: [],
       base_unit_price: undefined
     }
   })
@@ -88,8 +87,11 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
 
           console.log(formValid, bulkForm.getValues())
 
+          console.log(bulkForm.formState.errors)
+
           if (!formValid) {
             setActiveTab('bulk')
+            //bulkForm.trigger()
             return
           }
           break
@@ -101,12 +103,22 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
       // 4) Insertar datos de unidad si es necesario
       if (saleType === 'unit') {
         const productUnit = productUnitInputSchema.parse(unitForm.getValues())
-        const productUnitInserted = await productService.InsertProductUnit(productInserted.id, productUnit)
+        const productUnitInserted = await productService.insertProductUnit(productInserted.id, productUnit)
 
         console.log('Product and unit data inserted:', productInserted, productUnitInserted)
 
-        // 5) Cerrar el modal y resetear formularios
+        // Cerrar el modal y resetear formularios
         unitForm.reset()
+        productForm.reset()
+        onOpenChange()
+      } else if (saleType === 'bulk') {
+        const productBulk = productBulkInputSchema.parse(bulkForm.getValues())
+        const productBulkInserted = await productService.insertProductBulk(productInserted.id, productBulk)
+
+        console.log('Product and bulk data inserted:', productInserted, productBulkInserted)
+
+        // Cerrar el modal y resetear formularios
+        bulkForm.reset()
         productForm.reset()
         onOpenChange()
       }
@@ -118,9 +130,13 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
   useEffect(() => {
     if (!isOpen) {
       setActiveTab('data')
-      productForm.reset()
+
+      productForm.unregister()
+      productForm.reset({ type_unit: undefined })
       unitForm.reset()
-      bulkForm.reset()
+      bulkForm.reset({
+        base_unit_price: undefined
+      })
     }
   }, [isOpen, productForm, unitForm, bulkForm])
 
