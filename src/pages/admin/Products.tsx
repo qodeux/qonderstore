@@ -120,8 +120,9 @@ const Products = () => {
           entity='products'
           adapterOverrides={{
             edit: (row) => handleEditProduct(row.id),
-            onRequestDelete: (id) => {
-              dispatch(setSelectedProduct(Number(id)))
+            onRequestDelete: (id, item) => {
+              console.log(id)
+              dispatch(setSelectedProduct(item.id))
               onOpenDeleteProduct()
             }
             // actions: [
@@ -138,6 +139,7 @@ const Products = () => {
           selectionBehavior={selectionBehavior}
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
+          getRowKey={(row) => row.id as number}
         />
       </section>
 

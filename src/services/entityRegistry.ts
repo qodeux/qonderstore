@@ -31,7 +31,7 @@ export type EntityAdapter<T> = {
 export const entityRegistry: Record<EntityKind, EntityAdapter<any>> = {
   products: {
     table: 'products',
-    getId: (r) => r.key,
+    getId: (r) => r.id,
     fields: { active: 'is_active', featured: 'featured' },
     update: async (id, patch) => {
       await supabase.from('products').update(patch).eq('id', id)
