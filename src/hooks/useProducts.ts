@@ -23,6 +23,12 @@ export const useProducts = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, async () => {
         await fetchProducts()
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products_unit' }, async () => {
+        await fetchProducts()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products_bulk' }, async () => {
+        await fetchProducts()
+      })
       .subscribe()
 
     return () => {
