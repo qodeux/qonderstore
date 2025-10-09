@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import type z from 'zod'
-import { productDataInputSchema, productUnitInputSchema } from '../../../schemas/products.schema'
+import { productBulkInputSchema, productDataInputSchema, productUnitInputSchema } from '../../../schemas/products.schema'
 import { productService } from '../../../services/productService'
 import ProductBulkForm from '../../forms/admin/ProductBulkForm'
 import ProductDataForm from '../../forms/admin/ProductDataForm'
@@ -49,10 +49,15 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
   })
 
   const bulkForm = useForm({
-    resolver: zodResolver(productUnitInputSchema),
+    resolver: zodResolver(productBulkInputSchema),
     shouldUnregister: false,
     mode: 'all',
-    reValidateMode: 'onChange'
+    reValidateMode: 'onChange',
+
+    defaultValues: {
+      base_unit: 'gr',
+      base_unit_price: undefined
+    }
   })
 
   const handleAddProduct = async () => {
@@ -69,14 +74,27 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
       const productData = productDataInputSchema.parse(productForm.getValues())
       const saleType = productData.type_unit
 
-      // 2) Si es unidad, validamos el formulario unidad
-      if (saleType === 'unit') {
-        const isUnitValid = await unitForm.trigger()
-        if (!isUnitValid) {
-          setActiveTab('unit')
-          return
-        }
+      let formValid
+      switch (saleType) {
+        case 'unit':
+          formValid = await unitForm.trigger()
+          if (!formValid) {
+            setActiveTab('unit')
+            return
+          }
+          break
+        case 'bulk':
+          formValid = await bulkForm.trigger()
+
+          console.log(formValid, bulkForm.getValues())
+
+          if (!formValid) {
+            setActiveTab('bulk')
+            return
+          }
+          break
       }
+
       // 3) Insertar Producto
       const productInserted = await productService.createProduct(productData)
 
@@ -145,7 +163,7 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
             </ModalBody>
             <ModalFooter className='pt-0'>
               <Button color='danger' variant='light' onPress={onClose}>
-                Cerrar
+                Cancelar
               </Button>
               <Button color='primary' className='ml-2' onPress={handleAddProduct}>
                 Agregar

@@ -134,6 +134,11 @@ export const productUnitInputSchema = z
 
 export type ProductUnitInput = z.infer<typeof productUnitInputSchema>
 
+export const productBulkInputSchema = z.object({
+  base_unit: z.string('La unidad base es obligatoria'),
+  base_unit_price: z.number('El precio es obligatorio').min(0, 'El precio no puede ser negativo')
+})
+
 export const productSchema = z.object({
   id: z.number(),
   name: z.string(),
