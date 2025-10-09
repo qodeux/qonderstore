@@ -1,5 +1,5 @@
 import supabase from '../lib/supabase'
-import type { ProductDataInput, ProductUnitInput } from '../schemas/products.schema'
+import type { ProductBulkInput, ProductDataInput, ProductUnitInput } from '../schemas/products.schema'
 
 export const productService = {
   fetchProducts: async () => {
@@ -36,7 +36,7 @@ export const productService = {
     }
     return productInserted
   },
-  InsertProductUnit: async (productId: string, dataProductUnit: ProductUnitInput) => {
+  insertProductUnit: async (productId: string, dataProductUnit: ProductUnitInput) => {
     const { data: productUnitInserted, error: productUnitError } = await supabase
       .from('products_unit')
       .insert([
@@ -60,6 +60,30 @@ export const productService = {
     }
     return productUnitInserted
   },
+  insertProductBulk: async (productId: string, dataProductBulk: ProductBulkInput) => {
+    const { data: productBulkInserted, error: productBulkError } = await supabase
+      .from('products_bulk')
+      .insert([
+        {
+          product_id: productId,
+          bulk_units_available: dataProductBulk.bulk_units_available,
+          base_unit: dataProductBulk.base_unit,
+          base_unit_price: dataProductBulk.base_unit_price,
+          min_sale: dataProductBulk.min_sale,
+          max_sale: dataProductBulk.max_sale,
+          units: dataProductBulk.units
+        }
+      ])
+      .select()
+      .single()
+
+    if (productBulkError) {
+      console.error('Error inserting bulk data:', productBulkError)
+      return
+    }
+    return productBulkInserted
+  },
+
   deleteProduct: async (productId: string) => {
     const { error } = await supabase.from('products').delete().eq('id', productId)
     if (error) {
