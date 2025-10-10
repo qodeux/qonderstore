@@ -8,7 +8,7 @@ import { ToolbarTable, type ToolbarCriteria } from '../../components/common/Tool
 import { useDispatch, useSelector } from 'react-redux'
 import ProductModal from '../../components/modals/admin/ProductModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
-import { setSelectedProduct } from '../../store/slices/productsSlice'
+import { setEditMode, setSelectedProduct } from '../../store/slices/productsSlice'
 import type { RootState } from '../../store/store'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
@@ -97,7 +97,13 @@ const Products = () => {
   //   console.log('Exportar', row)
   // }
 
+  const handleAddProduct = () => {
+    dispatch(setEditMode(false))
+    onOpenProduct()
+  }
+
   const handleEditProduct = (id: number) => {
+    dispatch(setEditMode(true))
     dispatch(setSelectedProduct(id))
     onOpenProduct()
   }
@@ -112,7 +118,7 @@ const Products = () => {
           enableToggleBehavior
           selectionBehavior={selectionBehavior}
           onToggleBehavior={toggleSelectionBehavior}
-          buttons={[{ label: 'Agregar Producto', onPress: onOpenProduct, color: 'primary' }]}
+          buttons={[{ label: 'Agregar Producto', onPress: handleAddProduct, color: 'primary' }]}
           onCriteriaChange={setCriteria}
         />
 
