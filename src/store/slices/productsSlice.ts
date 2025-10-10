@@ -29,6 +29,9 @@ const productsSlice = createSlice({
   name: 'products',
   initialState,
   reducers: {
+    setEditMode(state, action: PayloadAction<boolean>) {
+      state.isEditing = action.payload
+    },
     setProducts(state, action: PayloadAction<Product[]>) {
       state.items = action.payload
       state.loading = false
@@ -47,6 +50,6 @@ const productsSlice = createSlice({
   }
 })
 
-export const { setProducts, setSelectedProduct, setProductBrands } = productsSlice.actions
+export const { setProducts, setSelectedProduct, setProductBrands, setEditMode } = productsSlice.actions
 
 export default productsSlice.reducer
