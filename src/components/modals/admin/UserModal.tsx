@@ -39,7 +39,7 @@ const UserModal = ({ isOpen, onOpenChange }: Props) => {
     id: selectedUser?.id ?? '',
     user_name: selectedUser?.user_name ?? '',
     role: selectedUser?.role ?? '',
-    last_activity: selectedUser?.last_activity ?? undefined
+    is_active: selectedUser?.is_active ?? true
   })
 
   const handleSubmitUser = async () => {

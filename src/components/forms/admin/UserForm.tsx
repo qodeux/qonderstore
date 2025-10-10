@@ -1,31 +1,15 @@
 import { Input, Select, SelectItem, Switch, Tooltip } from '@heroui/react'
 import { Eye, EyeOff, RotateCcwKey } from 'lucide-react'
 import { useState } from 'react'
-import { Controller, useFormContext, useWatch } from 'react-hook-form'
-import { useSelector } from 'react-redux'
-import type { RootState } from '../../../store/store'
+import { Controller, useFormContext } from 'react-hook-form'
+import { PatternFormat } from 'react-number-format'
 import { userProfiles } from '../../../types/users'
 
-const colorsOptions = [
-  { label: 'Rojo', key: 'red' },
-  { label: 'Azul', key: 'blue' },
-  { label: 'Verde', key: 'green' },
-  { label: 'Amarillo', key: 'yellow' },
-  { label: 'Negro', key: 'black' }
-]
-
 const UserForm = () => {
-  const usersProfiles = useSelector((state: RootState) => state.users.usersProfiles) ?? []
-  //const editMode = useSelector((state: RootState) => state.categories.editMode)
-
   const {
     control,
     formState: { errors }
   } = useFormContext()
-
-  const categoryName = useWatch({ control, name: 'name' })
-  //const categorySelected = categories.find((cat) => cat.name === categoryName)
-  //const hasChildren = categorySelected ? categories.some((cat) => cat.parent === categorySelected.id) : false
 
   const [showPass, setShowPass] = useState(false)
 
@@ -42,8 +26,7 @@ const UserForm = () => {
             selectedKeys={field.value ? [String(field.value)] : []}
             onSelectionChange={(keys) => {
               const rawValue = Array.from(keys)[0]
-              const parsedValue = rawValue ? Number(rawValue) : undefined
-              field.onChange(parsedValue)
+              field.onChange(rawValue)
             }}
             isInvalid={!!fieldState.error}
             errorMessage={fieldState.error?.message as string}
@@ -57,6 +40,7 @@ const UserForm = () => {
           </Select>
         )}
       />
+
       <Controller
         name='user_name'
         control={control}
@@ -161,13 +145,14 @@ const UserForm = () => {
           }
         }}
         render={({ field, fieldState }) => (
-          <Input
+          <PatternFormat
             {...field}
+            customInput={Input}
+            format='## #### ####'
+            allowEmptyFormatting
             type='tel'
             inputMode='tel'
             label='Teléfono'
-            maxLength={10}
-            //placeholder='+528121234567'
             autoComplete='tel'
             isInvalid={!!fieldState.error}
             errorMessage={fieldState.error?.message}
@@ -176,10 +161,15 @@ const UserForm = () => {
           />
         )}
       />
-
-      <Switch aria-label='Activo' size='sm' defaultChecked={true}>
-        Activo
-      </Switch>
+      <Controller
+        name='is_active'
+        control={control}
+        render={({ field }) => (
+          <Switch {...field} aria-label='Activo' size='sm' onChange={(isSelected) => field.onChange(isSelected)} isSelected={field.value}>
+            Activo
+          </Switch>
+        )}
+      />
     </form>
   )
 }
