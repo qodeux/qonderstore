@@ -24,7 +24,6 @@ const UserModal = ({ isOpen, onOpenChange }: Props) => {
     reValidateMode: 'onChange',
 
     defaultValues: {
-      id: '',
       user_name: '',
       role: '',
       last_activity: '',
@@ -45,8 +44,12 @@ const UserModal = ({ isOpen, onOpenChange }: Props) => {
 
   const handleSubmitUser = async () => {
     const isValid = await userForm.trigger()
+
+    console.log(userForm.formState.errors)
+
     if (!isValid) return
     let formData = userForm.getValues()
+    console.log(userForm.getFieldState, formData)
     let userSuccess
 
     if (editMode && selectedUser?.id) {
@@ -115,7 +118,11 @@ const UserModal = ({ isOpen, onOpenChange }: Props) => {
                 Cerrar
               </Button>
               {(!editMode || isDirty) && (
-                <Button color='primary' onPress={handleSubmitUser} isDisabled={Object.keys(errors).length > 0}>
+                <Button
+                  color='primary'
+                  onPress={handleSubmitUser}
+                  //isDisabled={Object.keys(errors).length > 0}
+                >
                   Aceptar
                 </Button>
               )}

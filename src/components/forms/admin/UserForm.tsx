@@ -32,9 +32,9 @@ const UserForm = () => {
   return (
     <form className='space-y-2'>
       <Controller
-        name='user_role'
+        name='role'
         control={control}
-        render={({ field }) => (
+        render={({ field, fieldState }) => (
           <Select
             label='Tipo de usuario'
             size='sm'
@@ -45,14 +45,14 @@ const UserForm = () => {
               const parsedValue = rawValue ? Number(rawValue) : undefined
               field.onChange(parsedValue)
             }}
-            isInvalid={!!errors.user_role}
-            errorMessage={errors.user_role?.message as string}
+            isInvalid={!!fieldState.error}
+            errorMessage={fieldState.error?.message as string}
             disallowEmptySelection
           >
             {userProfiles
-              .filter((cat) => cat.user_role === null)
-              .map((user_Profiles) => (
-                <SelectItem key={user_Profiles.user_role}>{user_Profiles.name}</SelectItem>
+              .filter((profile) => profile.key != 'customer')
+              .map((profile) => (
+                <SelectItem key={profile.key}>{profile.name}</SelectItem>
               ))}
           </Select>
         )}
