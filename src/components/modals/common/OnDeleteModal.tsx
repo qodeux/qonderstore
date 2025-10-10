@@ -146,9 +146,11 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
               <Button color='primary' variant='light' onPress={onClose}>
                 Cancelar
               </Button>
-              <Button color='danger' onPress={() => deleteItem()} isDisabled={!canBeDeleted()}>
-                Eliminar
-              </Button>
+              {canBeDeleted() && (
+                <Button color='danger' onPress={() => deleteItem()}>
+                  Eliminar
+                </Button>
+              )}
             </ModalFooter>
           </>
         )}
