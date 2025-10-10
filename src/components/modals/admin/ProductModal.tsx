@@ -1,10 +1,14 @@
 import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Tab, Tabs } from '@heroui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useState } from 'react'
+import { customAlphabet } from 'nanoid'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
+import { useDispatch, useSelector } from 'react-redux'
 import type z from 'zod'
 import { productBulkInputSchema, productDataInputSchema, productUnitInputSchema } from '../../../schemas/products.schema'
 import { productService } from '../../../services/productService'
+import { setSelectedProduct } from '../../../store/slices/productsSlice'
+import type { RootState } from '../../../store/store'
 import ProductBulkForm from '../../forms/admin/ProductBulkForm'
 import ProductDataForm from '../../forms/admin/ProductDataForm'
 import ProductUnitForm from '../../forms/admin/ProductUnitForm'
@@ -18,7 +22,52 @@ type ProductDataFormValues = z.input<typeof productDataInputSchema>
 type ProductUnitFormValues = z.input<typeof productUnitInputSchema>
 
 const ProductModal = ({ isOpen, onOpenChange }: Props) => {
+  const dispatch = useDispatch()
+  const selectedProduct = useSelector((state: RootState) => state.products.selectedProduct)
+  const categories = useSelector((state: RootState) => state.categories.categories)
+  const prevIsOpenRef = useRef(isOpen)
+
   const [activeTab, setActiveTab] = useState<'data' | 'unit' | 'bulk'>('data')
+
+  const gen6Ref = useRef(customAlphabet('0123456789', 6))
+
+  const buildFormValues = useCallback(() => {
+    const randomSku = gen6Ref.current()
+
+    const formData = {
+      name: selectedProduct?.name || '',
+      slug: selectedProduct?.slug || '',
+      sku: selectedProduct?.sku || randomSku,
+      category: categories.find((cat) => cat.name.toLowerCase() === selectedProduct?.category?.toLowerCase())?.id || undefined,
+      subcategory: selectedProduct?.subcategory || '',
+      sale_type: selectedProduct?.sale_type || undefined,
+      description: selectedProduct?.description || '',
+      is_active: selectedProduct?.is_active ?? true,
+      featured: selectedProduct?.featured ?? false
+    }
+
+    let formDetails = {}
+
+    switch (selectedProduct?.sale_type) {
+      case 'unit':
+        formDetails = {
+          lowStockSwitch: true,
+          minSaleSwitch: true,
+          maxSaleSwitch: true,
+          low_stock: 1,
+          min_sale: 1,
+          max_sale: 1
+        }
+        break
+      case 'bulk':
+        formDetails = {
+          base_unit_price: 100
+        }
+        break
+    }
+
+    return { formData, formDetails }
+  }, [selectedProduct, categories])
 
   const productForm = useForm<ProductDataFormValues>({
     resolver: zodResolver(productDataInputSchema),
@@ -27,36 +76,20 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
     reValidateMode: 'onChange'
   })
 
-  const selectedTypeUnit = productForm.watch('type_unit')
+  const selectedTypeUnit = productForm.watch('sale_type')
 
   const unitForm = useForm<ProductUnitFormValues>({
     resolver: zodResolver(productUnitInputSchema),
     shouldUnregister: false,
     mode: 'all',
-    reValidateMode: 'onChange',
-    defaultValues: {
-      lowStockSwitch: false,
-      minSaleSwitch: false,
-      maxSaleSwitch: false,
-      low_stock: undefined,
-      min_sale: undefined,
-      max_sale: undefined,
-      sale_unit: 'pz',
-      public_price: undefined,
-      base_cost: undefined
-    }
+    reValidateMode: 'onChange'
   })
 
   const bulkForm = useForm({
     resolver: zodResolver(productBulkInputSchema),
     shouldUnregister: false,
     mode: 'all',
-    reValidateMode: 'onChange',
-
-    defaultValues: {
-      bulk_units_available: [],
-      base_unit_price: undefined
-    }
+    reValidateMode: 'onChange'
   })
 
   const handleAddProduct = async () => {
@@ -65,13 +98,18 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
     try {
       // 1) Validamos los datos principales
       const isProductValid = await productForm.trigger()
+
+      console.log(productForm.getValues())
+
+      console.log(productForm.formState.errors)
+
       if (!isProductValid) {
         setActiveTab('data')
         return
       }
 
       const productData = productDataInputSchema.parse(productForm.getValues())
-      const saleType = productData.type_unit
+      const saleType = productData.sale_type
 
       let formValid
       switch (saleType) {
@@ -128,17 +166,29 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
   }
 
   useEffect(() => {
-    if (!isOpen) {
-      setActiveTab('data')
+    const wasOpen = prevIsOpenRef.current
+    const defaultValues = buildFormValues()
+    productForm.reset(defaultValues.formData)
 
-      productForm.unregister()
-      productForm.reset({ type_unit: undefined })
-      unitForm.reset()
-      bulkForm.reset({
-        base_unit_price: undefined
-      })
+    if (isOpen && !wasOpen) {
+      // Al abrir, setea valores actuales
+      switch (defaultValues.formData.sale_type) {
+        case 'unit':
+          unitForm.reset(defaultValues.formDetails)
+          break
+        case 'bulk':
+          bulkForm.reset(defaultValues.formDetails)
+          break
+      }
+    } else if (!isOpen && wasOpen) {
+      // Al cerrar, limpia el producto seleccionado y resetea formularios
+      console.log('Cerrando modal y reseteando formularios')
+      dispatch(setSelectedProduct(null))
+      setActiveTab('data')
+      productForm.setValue('sku', '')
     }
-  }, [isOpen, productForm, unitForm, bulkForm])
+    prevIsOpenRef.current = isOpen
+  }, [isOpen, productForm, unitForm, bulkForm, buildFormValues, dispatch])
 
   return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='xl' backdrop='blur'>
