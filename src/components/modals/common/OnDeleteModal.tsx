@@ -19,8 +19,8 @@ const deleteTypeMap = {
 }
 
 const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) => {
-  const categories = useSelector((state: RootState) => state.categories.categories) ?? []
-  const selectedCategory = useSelector((state: RootState) => state.categories.selectedCategory)
+  const categories = useSelector((state: RootState) => state.users.categories) ?? []
+  const selectedCategory = useSelector((state: RootState) => state.users.selectedCategory)
 
   async function deleteItem() {
     if (!selectedCategory) return

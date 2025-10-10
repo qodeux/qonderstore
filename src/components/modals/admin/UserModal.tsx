@@ -3,8 +3,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useSelector } from 'react-redux'
-import { categoryInputSchema } from '../../../schemas/category.schema'
-import { categoryService } from '../../../services/categoryService'
+import { userInputSchema } from '../../../schemas/users.schema'
+import { userService } from '../../../services/userService'
 import type { RootState } from '../../../store/store'
 import UserForm from '../../forms/admin/UserForm'
 
@@ -14,20 +14,21 @@ type Props = {
 }
 
 const UserModal = ({ isOpen, onOpenChange }: Props) => {
-  const editMode = useSelector((state: RootState) => state.categories.editMode)
-  const selectedCategory = useSelector((state: RootState) => state.categories.selectedCategory)
+  const editMode = useSelector((state: RootState) => state.users.editMode)
+  const selectedUser = useSelector((state: RootState) => state.users.selectedUser)
 
   const userForm = useForm({
-    resolver: zodResolver(categoryInputSchema),
+    resolver: zodResolver(userInputSchema),
     shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange',
 
     defaultValues: {
-      name: '',
-      slug_id: '',
-      parent: undefined,
-      color: undefined
+      id: '',
+      user_name: '',
+      role: '',
+      last_activity: '',
+      is_active: true
     }
   })
 
@@ -36,49 +37,49 @@ const UserModal = ({ isOpen, onOpenChange }: Props) => {
   } = userForm
 
   const buildFormValues = () => ({
-    name: selectedCategory?.name ?? '',
-    slug_id: selectedCategory?.slug_id ?? '',
-    parent: selectedCategory?.parent ?? undefined,
-    color: selectedCategory?.color ?? undefined
+    id: selectedUser?.id ?? '',
+    user_name: selectedUser?.user_name ?? '',
+    role: selectedUser?.role ?? '',
+    last_activity: selectedUser?.last_activity ?? undefined
   })
 
-  const handleSubmitCategory = async () => {
+  const handleSubmitUser = async () => {
     const isValid = await userForm.trigger()
     if (!isValid) return
     let formData = userForm.getValues()
-    let categorySuccess
+    let userSuccess
 
-    if (editMode && selectedCategory?.id) {
-      formData = { ...formData, id: selectedCategory.id }
-      categorySuccess = await categoryService.updateCategory(formData)
+    if (editMode && selectedUser?.id) {
+      formData = { ...formData, id: selectedUser.id }
+      userSuccess = await userService.updateUser(formData)
     } else {
-      categorySuccess = await categoryService.createCategory(formData)
+      userSuccess = await userService.createUser(formData)
     }
 
-    if (!categorySuccess.error && categorySuccess) {
-      console.log('Categoría OK:', categorySuccess)
+    if (!userSuccess.error && userSuccess) {
+      console.log('Usuario OK:', userSuccess)
 
       onOpenChange() // Cierra el modal
       userForm.reset() // Resetea el formulario
     } else {
-      console.error('Error al guardar categoría')
-      console.error(categorySuccess.error)
+      console.error('Error al guardar usuario:')
+      console.error(userSuccess.error)
 
-      if (categorySuccess.error.code === '23505') {
+      if (userSuccess.error.code === '23505') {
         // Manejo de error: clave duplicada
 
-        const details = categorySuccess.error?.details ?? ''
+        const details = userSuccess.error?.details ?? ''
 
-        if (details.includes('Key (name)')) {
-          userForm.setError('name', { message: 'El nombre ya existe' })
-        } else if (details.includes('Key (slug_id)')) {
-          userForm.setError('slug_id', { message: 'La clave ya existe' })
+        if (details.includes('Key (id)')) {
+          userForm.setError('id', { message: 'El id ya existe' })
+        } else if (details.includes('Key (user_name)')) {
+          userForm.setError('user_name', { message: 'El usuario ya existe' })
         } else {
           console.error('Error desconocido:', details)
         }
 
-        console.error('Error: La categoría ya existe')
-        userForm.setError('slug_id', { message: 'La clave ya existe' })
+        console.error('Error: El usuario ya existe')
+        userForm.setError('user_name', { message: 'El usuario ya existe' })
       }
     }
   }
@@ -90,13 +91,13 @@ const UserModal = ({ isOpen, onOpenChange }: Props) => {
     } else {
       // Al cerrar, limpia
       userForm.reset({
-        name: '',
-        slug_id: '',
-        parent: undefined,
-        color: undefined
+        id: '',
+        user_name: '',
+        role: '',
+        last_activity: undefined
       })
     }
-  }, [isOpen, selectedCategory, userForm]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, selectedUser, userForm]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='sm' backdrop='blur'>
@@ -114,7 +115,7 @@ const UserModal = ({ isOpen, onOpenChange }: Props) => {
                 Cerrar
               </Button>
               {(!editMode || isDirty) && (
-                <Button color='primary' onPress={handleSubmitCategory} isDisabled={Object.keys(errors).length > 0}>
+                <Button color='primary' onPress={handleSubmitUser} isDisabled={Object.keys(errors).length > 0}>
                   Aceptar
                 </Button>
               )}
