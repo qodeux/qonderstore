@@ -13,70 +13,77 @@ import ProductBulkForm from '../../forms/admin/ProductBulkForm'
 import ProductDataForm from '../../forms/admin/ProductDataForm'
 import ProductUnitForm from '../../forms/admin/ProductUnitForm'
 
+// ========================
+// Tipos derivados de Zod
+// ========================
+export type ProductDataFormValues = z.input<typeof productDataInputSchema>
+export type ProductUnitFormValues = z.input<typeof productUnitInputSchema>
+export type ProductBulkFormValues = z.input<typeof productBulkInputSchema>
+
+// ========================
+// Default helpers
+// ========================
+const makeNewProductDefaults = (sku: string): ProductDataFormValues => ({
+  name: '',
+  slug: '',
+  sku,
+  category: undefined,
+  subcategory: undefined,
+  sale_type: undefined,
+  description: '',
+  is_active: true,
+  featured: false
+})
+
+const unitDefaults: ProductUnitFormValues = {
+  // Coloca aquí tus defaults reales para la sección Unidad
+  unit: 'pz',
+  base_cost: undefined,
+  public_price: undefined,
+  lowStockSwitch: false,
+  minSaleSwitch: false,
+  maxSaleSwitch: false,
+  low_stock: undefined,
+  min_sale: undefined,
+  max_sale: undefined
+}
+
+const bulkDefaults: ProductBulkFormValues = {
+  // Coloca aquí tus defaults reales para la sección Granel
+  base_unit: 'gr',
+  base_unit_price: undefined,
+  bulk_units_available: [],
+  units: {}
+}
+
+// ========================
+// Componente principal
+// ========================
+
 type Props = {
   isOpen: boolean
   onOpenChange: () => void
 }
 
-type ProductDataFormValues = z.input<typeof productDataInputSchema>
-type ProductUnitFormValues = z.input<typeof productUnitInputSchema>
-
 const ProductModal = ({ isOpen, onOpenChange }: Props) => {
   const dispatch = useDispatch()
-  const selectedProduct = useSelector((state: RootState) => state.products.selectedProduct)
+  const { isEditing, selectedProduct } = useSelector((state: RootState) => state.products)
   const categories = useSelector((state: RootState) => state.categories.categories)
-  const prevIsOpenRef = useRef(isOpen)
 
+  const prevIsOpenRef = useRef(isOpen)
   const [activeTab, setActiveTab] = useState<'data' | 'unit' | 'bulk'>('data')
 
+  // nanoid para SKU temporal por apertura
   const gen6Ref = useRef(customAlphabet('0123456789', 6))
+  const sessionSkuRef = useRef<string | null>(null)
 
-  const buildFormValues = useCallback(() => {
-    const randomSku = gen6Ref.current()
-
-    const formData = {
-      name: selectedProduct?.name || '',
-      slug: selectedProduct?.slug || '',
-      sku: selectedProduct?.sku || randomSku,
-      category: categories.find((cat) => cat.name.toLowerCase() === selectedProduct?.category?.toLowerCase())?.id || undefined,
-      subcategory: selectedProduct?.subcategory || '',
-      sale_type: selectedProduct?.sale_type || undefined,
-      description: selectedProduct?.description || '',
-      is_active: selectedProduct?.is_active ?? true,
-      featured: selectedProduct?.featured ?? false
-    }
-
-    let formDetails = {}
-
-    switch (selectedProduct?.sale_type) {
-      case 'unit':
-        formDetails = {
-          lowStockSwitch: true,
-          minSaleSwitch: true,
-          maxSaleSwitch: true,
-          low_stock: 1,
-          min_sale: 1,
-          max_sale: 1
-        }
-        break
-      case 'bulk':
-        formDetails = {
-          base_unit_price: 100
-        }
-        break
-    }
-
-    return { formData, formDetails }
-  }, [selectedProduct, categories])
-
+  // Forms: mantenemos shouldUnregister:false para no perder valores entre tabs
   const productForm = useForm<ProductDataFormValues>({
     resolver: zodResolver(productDataInputSchema),
     shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange'
   })
-
-  const selectedTypeUnit = productForm.watch('sale_type')
 
   const unitForm = useForm<ProductUnitFormValues>({
     resolver: zodResolver(productUnitInputSchema),
@@ -85,24 +92,55 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
     reValidateMode: 'onChange'
   })
 
-  const bulkForm = useForm({
+  const bulkForm = useForm<ProductBulkFormValues>({
     resolver: zodResolver(productBulkInputSchema),
     shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange'
   })
 
-  const handleAddProduct = async () => {
-    console.log('Agregando producto')
+  // Controla qué tabs mostrar
+  const selectedTypeUnit = productForm.watch('sale_type')
 
+  // Construye valores iniciales según edición/nuevo
+  const buildFormValues = useCallback(async () => {
+    // sku estable por sesión de modal (nuevo). Si no existe, genera uno.
+    if (!sessionSkuRef.current) sessionSkuRef.current = gen6Ref.current()
+
+    const baseData: ProductDataFormValues =
+      isEditing && selectedProduct
+        ? {
+            name: selectedProduct.name ?? '',
+            slug: selectedProduct.slug ?? '',
+            sku: selectedProduct.sku ?? sessionSkuRef.current,
+            category:
+              categories.find((cat) => cat.name?.toLowerCase?.() === selectedProduct.category?.toLowerCase?.())?.id ??
+              (undefined as unknown as number | undefined),
+            subcategory: (selectedProduct as any)?.subcategory ?? (undefined as unknown as number | undefined),
+            sale_type: (selectedProduct as any)?.sale_type ?? (undefined as unknown as 'unit' | 'bulk' | undefined),
+            description: selectedProduct.description ?? '',
+            is_active: selectedProduct.is_active ?? true,
+            featured: selectedProduct.featured ?? false
+          }
+        : makeNewProductDefaults(sessionSkuRef.current)
+
+    let details: ProductUnitFormValues | ProductBulkFormValues | undefined
+    if (isEditing && selectedProduct) {
+      try {
+        details = await productService.fetchProductDetails(selectedProduct)
+      } catch (e) {
+        console.warn('No se pudieron obtener los detalles del producto:', e)
+      }
+    }
+
+    return { formData: baseData, formDetails: details }
+  }, [isEditing, selectedProduct, categories])
+
+  // Crear/Guardar
+  const handleAddProduct = useCallback(async () => {
     try {
-      // 1) Validamos los datos principales
+      // 1) Validación de datos principales
       const isProductValid = await productForm.trigger()
-
-      console.log(productForm.getValues())
-
-      console.log(productForm.formState.errors)
-
       if (!isProductValid) {
         setActiveTab('data')
         return
@@ -111,91 +149,105 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
       const productData = productDataInputSchema.parse(productForm.getValues())
       const saleType = productData.sale_type
 
-      let formValid
-      switch (saleType) {
-        case 'unit':
-          formValid = await unitForm.trigger()
-          if (!formValid) {
-            setActiveTab('unit')
-            return
-          }
-          break
-        case 'bulk':
-          formValid = await bulkForm.trigger()
-
-          console.log(formValid, bulkForm.getValues())
-
-          console.log(bulkForm.formState.errors)
-
-          if (!formValid) {
-            setActiveTab('bulk')
-            //bulkForm.trigger()
-            return
-          }
-          break
+      // 2) Validar sección específica
+      if (saleType === 'unit') {
+        const ok = await unitForm.trigger()
+        if (!ok) {
+          setActiveTab('unit')
+          return
+        }
+      }
+      if (saleType === 'bulk') {
+        const ok = await bulkForm.trigger()
+        if (!ok) {
+          setActiveTab('bulk')
+          return
+        }
       }
 
       // 3) Insertar Producto
       const productInserted = await productService.createProduct(productData)
 
-      // 4) Insertar datos de unidad si es necesario
+      // 4) Insertar detalles
       if (saleType === 'unit') {
-        const productUnit = productUnitInputSchema.parse(unitForm.getValues())
-        const productUnitInserted = await productService.insertProductUnit(productInserted.id, productUnit)
-
-        console.log('Product and unit data inserted:', productInserted, productUnitInserted)
-
-        // Cerrar el modal y resetear formularios
-        unitForm.reset()
-        productForm.reset()
-        onOpenChange()
+        const unitData = productUnitInputSchema.parse(unitForm.getValues())
+        await productService.insertProductUnit(productInserted.id, unitData)
       } else if (saleType === 'bulk') {
-        const productBulk = productBulkInputSchema.parse(bulkForm.getValues())
-        const productBulkInserted = await productService.insertProductBulk(productInserted.id, productBulk)
-
-        console.log('Product and bulk data inserted:', productInserted, productBulkInserted)
-
-        // Cerrar el modal y resetear formularios
-        bulkForm.reset()
-        productForm.reset()
-        onOpenChange()
+        const bulkData = productBulkInputSchema.parse(bulkForm.getValues())
+        await productService.insertProductBulk(productInserted.id, bulkData)
       }
-    } catch (error) {
-      console.error('Error adding product and unit data:', error)
-    }
-  }
 
+      // 5) Reiniciar para siguiente alta
+      sessionSkuRef.current = gen6Ref.current() // nuevo sku para próxima captura
+      productForm.reset(makeNewProductDefaults(sessionSkuRef.current))
+      unitForm.reset(unitDefaults)
+      bulkForm.reset(bulkDefaults)
+      setActiveTab('data')
+
+      // Cerrar el modal al terminar:
+      onOpenChange()
+    } catch (error) {
+      console.error('Error agregando producto:', error)
+    }
+  }, [productForm, unitForm, bulkForm, onOpenChange])
+
+  // Manejo de apertura/cierre del modal
   useEffect(() => {
     const wasOpen = prevIsOpenRef.current
-    const defaultValues = buildFormValues()
-    productForm.reset(defaultValues.formData)
 
-    if (isOpen && !wasOpen) {
-      // Al abrir, setea valores actuales
-      switch (defaultValues.formData.sale_type) {
-        case 'unit':
-          unitForm.reset(defaultValues.formDetails)
-          break
-        case 'bulk':
-          bulkForm.reset(defaultValues.formDetails)
-          break
+    const setDefaults = async () => {
+      if (isOpen && !wasOpen) {
+        // Al abrir
+        const { formData, formDetails } = await buildFormValues()
+        productForm.reset(formData)
+
+        if (isEditing) {
+          if (formData.sale_type === 'unit') {
+            unitForm.reset((formDetails as ProductUnitFormValues) ?? unitDefaults)
+          } else if (formData.sale_type === 'bulk') {
+            bulkForm.reset((formDetails as ProductBulkFormValues) ?? bulkDefaults)
+          } else {
+            unitForm.reset(unitDefaults)
+            bulkForm.reset(bulkDefaults)
+          }
+        } else {
+          unitForm.reset(unitDefaults)
+          bulkForm.reset(bulkDefaults)
+          setActiveTab('data')
+        }
       }
-    } else if (!isOpen && wasOpen) {
-      // Al cerrar, limpia el producto seleccionado y resetea formularios
-      console.log('Cerrando modal y reseteando formularios')
-      dispatch(setSelectedProduct(null))
-      setActiveTab('data')
-      productForm.setValue('sku', '')
+
+      if (!isOpen && wasOpen) {
+        // Al cerrar
+        dispatch(setSelectedProduct(null))
+        setActiveTab('data')
+        sessionSkuRef.current = null // forzar nuevo SKU la próxima vez
+
+        // Dejar todo listo para próxima apertura (estado limpio)
+        const nextSku = gen6Ref.current()
+        productForm.reset(makeNewProductDefaults(nextSku), {
+          keepDefaultValues: false,
+          keepErrors: false,
+          keepDirty: false,
+          keepTouched: false,
+          keepIsSubmitted: false
+        })
+        unitForm.reset(unitDefaults)
+        bulkForm.reset(bulkDefaults)
+      }
+
+      prevIsOpenRef.current = isOpen
     }
-    prevIsOpenRef.current = isOpen
-  }, [isOpen, productForm, unitForm, bulkForm, buildFormValues, dispatch])
+
+    void setDefaults()
+  }, [isOpen, isEditing, buildFormValues, dispatch, productForm, unitForm, bulkForm])
 
   return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='xl' backdrop='blur'>
       <ModalContent>
         {(onClose) => (
           <>
-            <ModalHeader className='flex flex-col gap-1 pb-0'>Agregar producto</ModalHeader>
+            <ModalHeader className='flex flex-col gap-1 pb-0'>{isEditing ? 'Editar' : 'Agregar'} producto</ModalHeader>
             <ModalBody>
               <Tabs
                 aria-label='Nuevo producto'
@@ -203,23 +255,21 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
                 variant='solid'
                 disableAnimation
                 selectedKey={activeTab}
-                onSelectionChange={(key) => {
-                  setActiveTab(key as 'data' | 'unit' | 'bulk')
-                }}
-                classNames={{
-                  base: 'justify-end'
-                }}
+                onSelectionChange={(key) => setActiveTab(key as 'data' | 'unit' | 'bulk')}
+                classNames={{ base: 'justify-end' }}
               >
                 <Tab key='data' title='Datos'>
                   <FormProvider {...productForm}>
                     <ProductDataForm />
                   </FormProvider>
                 </Tab>
+
                 <Tab key='unit' title='Unidad' className={selectedTypeUnit === 'unit' ? '' : 'hidden'}>
                   <FormProvider {...unitForm}>
                     <ProductUnitForm />
                   </FormProvider>
                 </Tab>
+
                 <Tab key='bulk' title='Granel' className={selectedTypeUnit === 'bulk' ? '' : 'hidden'}>
                   <FormProvider {...bulkForm}>
                     <ProductBulkForm />
@@ -232,7 +282,7 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
                 Cancelar
               </Button>
               <Button color='primary' className='ml-2' onPress={handleAddProduct}>
-                Agregar
+                {isEditing ? 'Guardar' : 'Agregar'}
               </Button>
             </ModalFooter>
           </>

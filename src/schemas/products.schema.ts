@@ -16,43 +16,50 @@ const toNullIfEmptyJson = (v: unknown) => {
 
 export const productDataInputSchema = z
   .object({
-    name: z.string('Obligatorio').min(3, 'El nombre debe tener al menos 3 caracteres'),
-    slug: z.string('Obligatorio').min(3, 'El slug debe tener al menos 3 caracteres'),
+    name: z.string({ error: 'Obligatorio' }).min(3, { error: 'El nombre debe tener al menos 3 caracteres' }),
+    slug: z.string({ error: 'Obligatorio' }).min(3, { error: 'El slug debe tener al menos 3 caracteres' }),
     sku: z.string().optional(),
-    category: z.coerce.number('La categoría es obligatoria').nonnegative().positive(),
+
+    category: z.coerce
+      .number({ error: 'La categoría es obligatoria' })
+      .int({ error: 'Selecciona una categoría válida' })
+      .positive({ error: 'Selecciona una categoría válida' }),
+
     hasChildren: z.boolean().default(false),
-    subcategory: z.preprocess(
-      (v) => (v === '' || v === null ? undefined : v),
-      z.coerce.number('La subcategoría es obligatoria').int().positive({ message: 'Selecciona una subcategoría válida' }).optional()
+
+    subcategory: z.optional(
+      z.preprocess(
+        (v) => (v === '' || v === null ? undefined : v),
+        z.coerce
+          .number({ error: 'La subcategoría es obligatoria' })
+          .int({ error: 'Selecciona una subcategoría válida' })
+          .positive({ error: 'Selecciona una subcategoría válida' })
+      )
     ),
 
-    //price: z.number().min(0, 'El precio no puede ser negativo'),
-    sale_type: z.enum(['unit', 'bulk'], {
-      message: 'La unidad de venta es obligatoria'
-    }),
-    //stock: z.number().min(0, 'El stock no puede ser negativo'),
+    sale_type: z.enum(['unit', 'bulk'], { error: 'La unidad de venta es obligatoria' }),
+
     description: z.string().optional(),
-    tags: z.string().optional(),
+    // tags: z.string().optional(),
     featured: z.boolean().optional(),
     is_active: z.boolean().optional(),
     brand: z.string().optional()
-    //images: z.array(z.string().url('Cada imagen debe ser una URL válida')).optional()
   })
   .superRefine((val, ctx) => {
-    // // Reglas condicionales
-    if (val.hasChildren && (val.subcategory === undefined || Number.isNaN(val.subcategory))) {
+    if (val.hasChildren && val.subcategory == null) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['subcategory'],
         message: 'Selecciona una subcategoría'
       })
     }
   })
+
 export type ProductDataInput = z.infer<typeof productDataInputSchema>
 
 export const productUnitInputSchema = z
   .object({
-    sale_unit: z.enum(['pz', 'pk', 'box'], {
+    unit: z.enum(['pz', 'pk', 'box'], {
       message: 'La unidad de venta es obligatoria'
     }),
 
@@ -74,19 +81,19 @@ export const productUnitInputSchema = z
   .superRefine((val, ctx) => {
     // Reglas condicionales
     if (val.lowStockSwitch && (val.low_stock === undefined || Number.isNaN(val.low_stock))) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['low_stock'], message: 'Ingresa el nivel de alerta' })
+      ctx.addIssue({ code: 'custom', path: ['low_stock'], message: 'Ingresa el nivel de alerta' })
     }
     if (val.minSaleSwitch && (val.min_sale === undefined || Number.isNaN(val.min_sale))) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['min_sale'], message: 'Ingresa el mínimo de compra' })
+      ctx.addIssue({ code: 'custom', path: ['min_sale'], message: 'Ingresa el mínimo de compra' })
     }
     if (val.maxSaleSwitch && (val.max_sale === undefined || Number.isNaN(val.max_sale))) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['max_sale'], message: 'Ingresa el máximo por transacción' })
+      ctx.addIssue({ code: 'custom', path: ['max_sale'], message: 'Ingresa el máximo por transacción' })
     }
 
     // (opcional) coherencia entre mínimos y máximos si ambos están activos
     if (val.minSaleSwitch && val.maxSaleSwitch && val.min_sale != null && val.max_sale != null) {
       if (val.min_sale > val.max_sale) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['max_sale'], message: 'El máximo debe ser ≥ al mínimo' })
+        ctx.addIssue({ code: 'custom', path: ['max_sale'], message: 'El máximo debe ser ≥ al mínimo' })
       }
     }
 
@@ -98,7 +105,7 @@ export const productUnitInputSchema = z
       rows = JSON.parse(val.wholesale_prices ?? '[]')
     } catch {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['wholesale_prices'],
         message: 'Datos de mayoreo incompletos o inválidos'
       })
@@ -141,7 +148,7 @@ export const productUnitInputSchema = z
 
     if (invalid) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['wholesale_prices'],
         message: 'Datos de mayoreo incompletos o inválidos'
       })
@@ -180,7 +187,7 @@ export const productBulkInputSchema = z
     // 1) base_unit ∈ bulk_units_available
     if (!val.bulk_units_available.includes(val.base_unit)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['base_unit'],
         message: 'La unidad base debe estar en bulk_units_available'
       })
@@ -189,28 +196,28 @@ export const productBulkInputSchema = z
     // 2) Requeridos condicionales
     if (val.minSaleSwitch && (val.min_sale == null || Number.isNaN(val.min_sale))) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['min_sale'],
         message: 'Campo requerido al activar el mínimo de compra'
       })
     }
     if (val.maxSaleSwitch && (val.max_sale == null || Number.isNaN(val.max_sale))) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['max_sale'],
         message: 'Campo requerido al activar el máximo de compra'
       })
     }
     if (val.minSaleSwitch && val.maxSaleSwitch && val.min_sale != null && val.max_sale != null && val.min_sale > val.max_sale) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['min_sale'],
         message: 'El mínimo no puede ser mayor que el máximo'
       })
     }
     if (val.minSaleSwitch && val.maxSaleSwitch && val.min_sale != null && val.max_sale != null && val.min_sale == val.max_sale) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['min_sale'],
         message: 'Los valores no pueden ser iguales'
       })
@@ -225,7 +232,7 @@ export const productBulkInputSchema = z
       // Solo base seleccionada -> units debe venir vacío
       if (unitKeys.length > 0) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: ['units'],
           message: 'No se esperan ajustes por unidad cuando solo está la unidad base.'
         })
@@ -237,7 +244,7 @@ export const productBulkInputSchema = z
     for (const k of expectedKeys) {
       if (!val.units[k]) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: ['units'],
           message: `Falta configuración para la unidad "${k}".`
         })
@@ -246,7 +253,7 @@ export const productBulkInputSchema = z
     for (const k of unitKeys) {
       if (!expectedKeys.includes(k)) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           path: ['units', k],
           message: `Unidad "${k}" no corresponde a las unidades seleccionadas (debe ser alguna de: ${expectedKeys.join(', ')}).`
         })
@@ -259,7 +266,7 @@ export const productBulkInputSchema = z
     )
     if (hasGenericIssue) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['units'],
         message: 'Completa margen y precio en cada unidad.'
       })

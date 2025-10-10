@@ -1,25 +1,12 @@
 import { Autocomplete, AutocompleteItem, Button, Checkbox, Input, Select, SelectItem, Switch, Textarea } from '@heroui/react'
 import { IterationCw, Star } from 'lucide-react'
 import { customAlphabet } from 'nanoid'
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { PatternFormat } from 'react-number-format'
 import { useSelector } from 'react-redux'
 import '../../../components/common/react-tags/style.css'
 import type { RootState } from '../../../store/store'
-
-// const suggestions = [
-//   { id: 1, name: 'United States', label: 'United States', value: 'United States' },
-//   { id: 2, name: 'United Kingdom', label: 'United Kingdom', value: 'United Kingdom' },
-//   { id: 3, name: 'Afghanistan', label: 'Afghanistan', value: 'Afghanistan' },
-//   { id: 4, name: 'Aland Islands', label: 'Aland Islands', value: 'Aland Islands' },
-//   { id: 5, name: 'Albania', label: 'Albania', value: 'Albania' },
-//   { id: 6, name: 'Algeria', label: 'Algeria', value: 'Algeria' },
-//   { id: 7, name: 'American Samoa', label: 'American Samoa', value: 'American Samoa' },
-//   { id: 8, name: 'Andorra', label: 'Andorra', value: 'Andorra' },
-//   { id: 9, name: 'Angola', label: 'Angola', value: 'Angola' },
-//   { id: 10, name: 'Anguilla', label: 'Anguilla', value: 'Anguilla' }
-// ]
 
 function slugify(text: string) {
   return text
@@ -38,6 +25,7 @@ const ProductDataForm = () => {
     register,
     control,
     setValue,
+    trigger,
     formState: { errors }
   } = useFormContext()
 
@@ -47,42 +35,36 @@ const ProductDataForm = () => {
   const genRef = useRef(makeId)
   const skuDigitsRef = useRef<string>('')
 
-  const categoryWatch = useWatch({
-    control,
-    name: 'category'
-  })
+  // watches
+  const categoryWatch = useWatch({ control, name: 'category' })
+  const saleTypeWatch = useWatch({ control, name: 'sale_type' })
+  const formHasChildren = useWatch({ control, name: 'hasChildren' }) // del form
 
+  // derive prefix
   const categoryPrefix = useMemo(() => {
     if (!categoryWatch) return ''
     const category = categories.find((cat) => cat.id === categoryWatch)
     return category?.slug_id ? `${category.slug_id}` : ''
   }, [categoryWatch, categories])
 
-  const hasChildren = categories.some((cat) => cat.parent === categoryWatch)
+  // registrar campos condicionales para que RHF muestre errores aunque no se monten
+  useEffect(() => {
+    register('subcategory')
+    register('hasChildren')
+  }, [register])
 
-  const selectedTypeUnit = useWatch({
-    control,
-    name: 'sale_type'
-  })
-
-  // const [selected, setSelected] = useState([])
-
-  // const onAdd = useCallback(
-  //   (newTag) => {
-  //     setSelected([...selected, newTag])
-  //   },
-  //   [selected]
-  // )
-
-  // const onDelete = useCallback(
-  //   (tagIndex) => {
-  //     setSelected(selected.filter((_, i) => i !== tagIndex))
-  //   },
-  //   [selected]
-  // )
+  // cuando cambie category => calcular si tiene hijos y guardarlo en el form; si no tiene, limpiar subcategory
+  useEffect(() => {
+    if (categoryWatch == null) return
+    const nextHasChildren = categories.some((cat) => cat.parent === categoryWatch)
+    setValue('hasChildren', nextHasChildren, { shouldDirty: true, shouldValidate: true })
+    if (!nextHasChildren) {
+      setValue('subcategory', undefined, { shouldDirty: true, shouldValidate: true })
+    }
+    void trigger('subcategory') // muestra/actualiza el error de inmediato si aplica
+  }, [categoryWatch, categories, setValue, trigger])
 
   const regenerateSku = useCallback(() => {
-    // si el usuario ya editó el SKU, no lo sobreescribo
     const next = genRef.current()
     skuDigitsRef.current = next
     setValue('sku', next, { shouldDirty: true, shouldValidate: true })
@@ -90,6 +72,10 @@ const ProductDataForm = () => {
 
   return (
     <form className='flex flex-row gap-4' name='product-data-form'>
+      {/* asegurar registro siempre */}
+      <input type='hidden' {...register('subcategory')} />
+      <input type='hidden' {...register('hasChildren')} />
+
       <section className='w-1/3 flex flex-col gap-2'>
         <figure className='w-full aspect-square border border-dashed border-gray-400 bg-gray-50 flex items-center justify-center'>
           <span className='text-sm text-gray-400 text-center'>
@@ -147,6 +133,7 @@ const ProductDataForm = () => {
           )}
         />
       </section>
+
       <section className='w-2/3 space-y-2'>
         <Controller
           name='name'
@@ -161,10 +148,7 @@ const ProductDataForm = () => {
               onValueChange={(v) => {
                 field.onChange(v)
                 if (!userTouchedSlug.current) {
-                  setValue('slug', slugify(v), {
-                    shouldValidate: true,
-                    shouldDirty: true
-                  })
+                  setValue('slug', slugify(v), { shouldValidate: true, shouldDirty: true })
                 }
               }}
               isInvalid={!!errors.name}
@@ -172,6 +156,7 @@ const ProductDataForm = () => {
             />
           )}
         />
+
         <Controller
           name='slug'
           control={control}
@@ -191,6 +176,7 @@ const ProductDataForm = () => {
             />
           )}
         />
+
         <Controller
           name='category'
           control={control}
@@ -201,8 +187,17 @@ const ProductDataForm = () => {
               variant='bordered'
               selectedKeys={field.value ? [String(field.value)] : []}
               onSelectionChange={(keys) => {
-                const value = Array.from(keys)[0]
-                field.onChange(Number(value))
+                const raw = Array.from(keys)[0]
+                const nextCategory = Number(raw)
+                field.onChange(nextCategory)
+
+                // sincroniza hasChildren y limpia subcategory si no aplica
+                const nextHasChildren = categories.some((cat) => cat.parent === nextCategory)
+                setValue('hasChildren', nextHasChildren, { shouldDirty: true, shouldValidate: true })
+                if (!nextHasChildren) {
+                  setValue('subcategory', undefined, { shouldDirty: true, shouldValidate: true })
+                }
+                void trigger('subcategory')
               }}
               isInvalid={!!errors.category}
               errorMessage={errors.category?.message as string}
@@ -216,7 +211,8 @@ const ProductDataForm = () => {
             </Select>
           )}
         />
-        {hasChildren && (
+
+        {formHasChildren && (
           <Controller
             name='subcategory'
             control={control}
@@ -227,11 +223,12 @@ const ProductDataForm = () => {
                 variant='bordered'
                 selectedKeys={field.value ? [String(field.value)] : []}
                 onSelectionChange={(keys) => {
-                  const value = Array.from(keys)[0]
-                  field.onChange(Number(value))
+                  const raw = Array.from(keys)[0]
+                  const next = Number(raw)
+                  field.onChange(next)
                 }}
                 isInvalid={!!fieldState.error}
-                errorMessage={errors.sub_category?.message as string}
+                errorMessage={fieldState.error?.message as string}
                 disallowEmptySelection
               >
                 {categories
@@ -243,6 +240,7 @@ const ProductDataForm = () => {
             )}
           />
         )}
+
         <Controller
           name='sale_type'
           control={control}
@@ -254,7 +252,7 @@ const ProductDataForm = () => {
               selectedKeys={field.value ? [String(field.value)] : []}
               onSelectionChange={(keys) => {
                 const value = Array.from(keys)[0]
-                field.onChange(value)
+                field.onChange(value) // 'unit' | 'bulk'
               }}
               selectionMode='single'
               isInvalid={!!errors.sale_type}
@@ -266,7 +264,8 @@ const ProductDataForm = () => {
             </Select>
           )}
         />
-        {selectedTypeUnit === 'unit' && (
+
+        {saleTypeWatch === 'unit' && (
           <Controller
             name='brand'
             control={control}
@@ -279,6 +278,7 @@ const ProductDataForm = () => {
             )}
           />
         )}
+
         <Textarea
           label='Descripcion'
           size='sm'
@@ -287,19 +287,6 @@ const ProductDataForm = () => {
           errorMessage={errors.description?.message as string}
           {...register('description')}
         />
-        {/* 
-          <ReactTags
-            selected={selected}
-            suggestions={suggestions}
-            onAdd={onAdd}
-            onDelete={onDelete}
-            noOptionsText='No matching countries'
-            placeholderText='Agrega una etiqueta'
-            collapseOnSelect
-            allowNew
-            newOptionText='Agregar: %value%'
-
-          /> */}
       </section>
     </form>
   )

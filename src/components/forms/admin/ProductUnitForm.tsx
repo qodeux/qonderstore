@@ -164,9 +164,9 @@ const ProductUnitForm = () => {
   return (
     <form className='space-y-2' name='product-unit-form'>
       <Controller
-        name='sale_unit'
+        name='unit'
         control={control}
-        render={({ field }) => (
+        render={({ field, fieldState }) => (
           <Select
             label='Unidad de venta'
             size='sm'
@@ -175,8 +175,8 @@ const ProductUnitForm = () => {
               const value = Array.from(keys)[0]
               field.onChange(value)
             }}
-            isInvalid={!!errors.sale_unit}
-            errorMessage={errors.sale_unit?.message as string}
+            isInvalid={!!fieldState.error}
+            errorMessage={fieldState.error?.message}
             disallowEmptySelection
           >
             <SelectItem key='pz'>Pieza</SelectItem>

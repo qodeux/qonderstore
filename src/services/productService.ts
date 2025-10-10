@@ -1,5 +1,5 @@
 import supabase from '../lib/supabase'
-import type { ProductBulkInput, ProductDataInput, ProductUnitInput } from '../schemas/products.schema'
+import type { Product, ProductBulkInput, ProductDataInput, ProductUnitInput } from '../schemas/products.schema'
 
 export const productService = {
   fetchProducts: async () => {
@@ -8,6 +8,15 @@ export const productService = {
       console.error('Error fetching products:', error)
     }
     return products
+  },
+  fetchProductDetails: async (product: Product) => {
+    const table = product.sale_type === 'unit' ? 'products_unit' : 'products_bulk'
+
+    const { data: productDetails, error } = await supabase.from(table).select('*').eq('product_id', product.id).single()
+    if (error) {
+      console.error('Error fetching product details:', error)
+    }
+    return productDetails
   },
   createProduct: async (productData: ProductDataInput) => {
     const { data: productInserted, error: productError } = await supabase
@@ -18,7 +27,8 @@ export const productService = {
           slug: productData.slug,
           sku: productData.sku,
           category: productData.category,
-          sale_type: productData.type_unit,
+          subcategory: productData.subcategory || null,
+          sale_type: productData.sale_type,
           is_active: productData.is_active,
           featured: productData.featured || false,
           description: productData.description,
@@ -42,7 +52,7 @@ export const productService = {
       .insert([
         {
           product_id: productId,
-          unit: dataProductUnit.sale_unit,
+          unit: dataProductUnit.unit,
           base_cost: dataProductUnit.base_cost,
           public_price: dataProductUnit.public_price,
           min_sale: dataProductUnit.min_sale,
