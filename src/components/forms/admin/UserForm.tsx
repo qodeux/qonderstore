@@ -1,5 +1,5 @@
-import { Input, Select, SelectItem, Switch } from '@heroui/react'
-import { Eye, EyeOff } from 'lucide-react'
+import { Input, Select, SelectItem, Switch, Tooltip } from '@heroui/react'
+import { Eye, EyeOff, RotateCcwKey } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { useSelector } from 'react-redux'
@@ -38,6 +38,7 @@ const UserForm = () => {
           <Select
             label='Tipo de usuario'
             size='sm'
+            variant='bordered'
             selectedKeys={field.value ? [String(field.value)] : []}
             onSelectionChange={(keys) => {
               const rawValue = Array.from(keys)[0]
@@ -64,6 +65,8 @@ const UserForm = () => {
             label='Usuario'
             type='text'
             size='sm'
+            variant='bordered'
+            maxLength={30}
             isInvalid={!!errors.user_name}
             errorMessage={errors.user_name?.message as string}
             {...field}
@@ -78,49 +81,10 @@ const UserForm = () => {
             {...field}
             type='email'
             label='Correo electrónico'
+            variant='bordered'
             //placeholder='nombre@ejemplo.com'
             isInvalid={!!fieldState.error}
             errorMessage={fieldState.error?.message}
-          />
-        )}
-      />
-      <Controller
-        name='full_name'
-        control={control}
-        render={({ field }) => (
-          <Input
-            label='Nombre completo'
-            type='text'
-            size='sm'
-            isInvalid={!!errors.full_name}
-            errorMessage={errors.full_name?.message as string}
-            {...field}
-          />
-        )}
-      />
-      <Controller
-        name='phone'
-        control={control}
-        rules={{
-          required: 'El teléfono es obligatorio',
-          // Formato internacional E.164 (+528112345678). Cambia por /^\d{10}$/ si quieres MX de 10 dígitos.
-          pattern: {
-            value: /^\+?[1-9]\d{7,14}$/,
-            message: 'Formato inválido. Ej: +528121234567 (entre 8 y 15 dígitos sin espacios).'
-          }
-        }}
-        render={({ field, fieldState }) => (
-          <Input
-            {...field}
-            type='tel'
-            inputMode='tel'
-            label='Teléfono'
-            //placeholder='+528121234567'
-            autoComplete='tel'
-            isInvalid={!!fieldState.error}
-            errorMessage={fieldState.error?.message}
-            variant='bordered'
-            description='Usa código de país. Ej: +52 para México.'
           />
         )}
       />
@@ -147,19 +111,73 @@ const UserForm = () => {
             errorMessage={fieldState.error?.message}
             variant='bordered'
             endContent={
-              <button
-                type='button'
-                aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                onClick={() => setShowPass((v) => !v)}
-                className='focus:outline-none'
-              >
-                {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+              <div className='flex space-x-1'>
+                <button
+                  type='button'
+                  aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  onClick={() => setShowPass((v) => !v)}
+                  className='focus:outline-none'
+                >
+                  {showPass ? <EyeOff /> : <Eye />}
+                </button>
+                <Tooltip content='Generar nueva contraseña' placement='top'>
+                  <button
+                    type='button'
+                    //onClick={() => setShowPass((v) => !v)}
+                    className='focus:outline-none'
+                  >
+                    <RotateCcwKey />
+                  </button>
+                </Tooltip>
+              </div>
             }
           />
         )}
       />
-      <Switch aria-label='Activo' size='sm'>
+      <Controller
+        name='full_name'
+        control={control}
+        render={({ field }) => (
+          <Input
+            label='Nombre completo'
+            type='text'
+            size='sm'
+            variant='bordered'
+            isInvalid={!!errors.full_name}
+            errorMessage={errors.full_name?.message as string}
+            {...field}
+          />
+        )}
+      />
+      <Controller
+        name='phone'
+        control={control}
+        rules={{
+          required: 'El teléfono es obligatorio',
+          // Formato internacional E.164 (+528112345678). Cambia por /^\d{10}$/ si quieres MX de 10 dígitos.
+          pattern: {
+            value: /^\+?[1-9]\d{7,14}$/,
+            message: 'Formato inválido. Ej: +528121234567 (entre 8 y 15 dígitos sin espacios).'
+          }
+        }}
+        render={({ field, fieldState }) => (
+          <Input
+            {...field}
+            type='tel'
+            inputMode='tel'
+            label='Teléfono'
+            maxLength={10}
+            //placeholder='+528121234567'
+            autoComplete='tel'
+            isInvalid={!!fieldState.error}
+            errorMessage={fieldState.error?.message}
+            variant='bordered'
+            //description='Usa código de país. Ej: +52 para México.'
+          />
+        )}
+      />
+
+      <Switch aria-label='Activo' size='sm' defaultChecked={true}>
         Activo
       </Switch>
     </form>
