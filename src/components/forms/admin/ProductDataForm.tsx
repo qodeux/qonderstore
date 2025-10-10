@@ -1,7 +1,7 @@
 import { Autocomplete, AutocompleteItem, Button, Checkbox, Input, Select, SelectItem, Switch, Textarea } from '@heroui/react'
 import { IterationCw, Star } from 'lucide-react'
 import { customAlphabet } from 'nanoid'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { PatternFormat } from 'react-number-format'
 import { useSelector } from 'react-redux'
@@ -38,14 +38,12 @@ const ProductDataForm = () => {
     register,
     control,
     setValue,
-    getValues,
     formState: { errors }
   } = useFormContext()
 
   const userTouchedSlug = useRef(false)
 
   const makeId = customAlphabet('0123456789', 6)
-  // generador estable (función que cuando la llamas te da 6 dígitos)
   const genRef = useRef(makeId)
   const skuDigitsRef = useRef<string>('')
 
@@ -64,7 +62,7 @@ const ProductDataForm = () => {
 
   const selectedTypeUnit = useWatch({
     control,
-    name: 'type_unit'
+    name: 'sale_type'
   })
 
   // const [selected, setSelected] = useState([])
@@ -83,23 +81,16 @@ const ProductDataForm = () => {
   //   [selected]
   // )
 
-  useEffect(() => {
-    if (!skuDigitsRef.current) {
-      const existing = getValues('sku')?.match(/\d{6}$/)?.[0]
-      skuDigitsRef.current = existing ?? makeId()
-      setValue('sku', skuDigitsRef.current, { shouldDirty: false })
-    }
-  }, [makeId, setValue, getValues])
-
   const regenerateSku = useCallback(() => {
-    const next = genRef.current() // ✅ función estable por instancia
+    // si el usuario ya editó el SKU, no lo sobreescribo
+    const next = genRef.current()
     skuDigitsRef.current = next
     setValue('sku', next, { shouldDirty: true, shouldValidate: true })
   }, [setValue])
 
   return (
     <form className='flex flex-row gap-4' name='product-data-form'>
-      <section className='w-1/3 space-y-2'>
+      <section className='w-1/3 flex flex-col gap-2'>
         <figure className='w-full aspect-square border border-dashed border-gray-400 bg-gray-50 flex items-center justify-center'>
           <span className='text-sm text-gray-400 text-center'>
             Click para agregar imagen
@@ -109,15 +100,31 @@ const ProductDataForm = () => {
         </figure>
 
         <Controller
+          name='featured'
+          control={control}
+          render={({ field }) => (
+            <Checkbox
+              icon={<Star fill='#000' />}
+              size='lg'
+              color='warning'
+              {...field}
+              classNames={{ label: 'justify-start text-base text-sm' }}
+            >
+              {field.value ? 'Destacado' : 'Destacar'}
+            </Checkbox>
+          )}
+        />
+
+        <Controller
           name='sku'
           control={control}
           render={({ field }) => (
             <PatternFormat
               format={`${categoryWatch ? `${categoryPrefix}-######` : '######'}`}
-              allowEmptyFormatting
               customInput={Input}
               label='SKU'
               size='sm'
+              variant='bordered'
               value={field.value ?? ''}
               onValueChange={(v) => field.onChange(v.value)}
               isInvalid={!!errors.sku}
@@ -128,17 +135,17 @@ const ProductDataForm = () => {
               }
             />
           )}
-
-          // solo limpia SKU
         />
-        <div className='flex flex-col gap-4'>
-          <Switch defaultSelected size='sm' {...register('is_active')}>
-            Activo
-          </Switch>
-          <Checkbox icon={<Star fill='#000' />} size='lg' color='warning' {...register('featured')}>
-            Destacado
-          </Checkbox>
-        </div>
+
+        <Controller
+          name='is_active'
+          control={control}
+          render={({ field }) => (
+            <Switch size='sm' {...field}>
+              {field.value ? 'Activo' : 'Inactivo'}
+            </Switch>
+          )}
+        />
       </section>
       <section className='w-2/3 space-y-2'>
         <Controller
@@ -149,6 +156,7 @@ const ProductDataForm = () => {
               label='Nombre'
               type='text'
               size='sm'
+              variant='bordered'
               value={field.value ?? ''}
               onValueChange={(v) => {
                 field.onChange(v)
@@ -172,6 +180,7 @@ const ProductDataForm = () => {
               label='Slug'
               type='text'
               size='sm'
+              variant='bordered'
               value={field.value ?? ''}
               onValueChange={(v) => {
                 userTouchedSlug.current = true
@@ -189,6 +198,7 @@ const ProductDataForm = () => {
             <Select
               label='Categoria'
               size='sm'
+              variant='bordered'
               selectedKeys={field.value ? [String(field.value)] : []}
               onSelectionChange={(keys) => {
                 const value = Array.from(keys)[0]
@@ -210,16 +220,17 @@ const ProductDataForm = () => {
           <Controller
             name='subcategory'
             control={control}
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <Select
                 label='Subcategoria'
                 size='sm'
+                variant='bordered'
                 selectedKeys={field.value ? [String(field.value)] : []}
                 onSelectionChange={(keys) => {
                   const value = Array.from(keys)[0]
                   field.onChange(Number(value))
                 }}
-                isInvalid={!!errors.sub_category}
+                isInvalid={!!fieldState.error}
                 errorMessage={errors.sub_category?.message as string}
                 disallowEmptySelection
               >
@@ -233,20 +244,21 @@ const ProductDataForm = () => {
           />
         )}
         <Controller
-          name='type_unit'
+          name='sale_type'
           control={control}
           render={({ field }) => (
             <Select
               label='Tipo de venta'
               size='sm'
+              variant='bordered'
               selectedKeys={field.value ? [String(field.value)] : []}
               onSelectionChange={(keys) => {
                 const value = Array.from(keys)[0]
                 field.onChange(value)
               }}
               selectionMode='single'
-              isInvalid={!!errors.type_unit}
-              errorMessage={errors.type_unit?.message as string}
+              isInvalid={!!errors.sale_type}
+              errorMessage={errors.sale_type?.message as string}
               disallowEmptySelection
             >
               <SelectItem key='unit'>Unidad</SelectItem>
@@ -259,7 +271,7 @@ const ProductDataForm = () => {
             name='brand'
             control={control}
             render={() => (
-              <Autocomplete label='Selecciona una marca' size='sm'>
+              <Autocomplete label='Selecciona una marca' size='sm' variant='bordered'>
                 {productBrands.map((brand) => (
                   <AutocompleteItem key={brand.id}>{brand.name}</AutocompleteItem>
                 ))}
@@ -270,6 +282,7 @@ const ProductDataForm = () => {
         <Textarea
           label='Descripcion'
           size='sm'
+          variant='bordered'
           isInvalid={!!errors.description}
           errorMessage={errors.description?.message as string}
           {...register('description')}

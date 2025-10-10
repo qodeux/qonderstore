@@ -14,24 +14,40 @@ const toNullIfEmptyJson = (v: unknown) => {
   return v
 }
 
-export const productDataInputSchema = z.object({
-  name: z.string('Obligatorio').min(3, 'El nombre debe tener al menos 3 caracteres'),
-  slug: z.string('Obligatorio').min(3, 'El slug debe tener al menos 3 caracteres'),
-  sku: z.string().optional(),
-  category: z.coerce.number('La categoría es obligatoria').nonnegative().positive(),
-  subcategory: z.coerce.number('La subcategoría es obligatoria').nonnegative().positive().optional(),
-  //price: z.number().min(0, 'El precio no puede ser negativo'),
-  type_unit: z.enum(['unit', 'bulk'], {
-    message: 'La unidad de venta es obligatoria'
-  }),
-  //stock: z.number().min(0, 'El stock no puede ser negativo'),
-  description: z.string().optional(),
-  tags: z.string().optional(),
-  featured: z.boolean().optional(),
-  is_active: z.boolean().optional(),
-  brand: z.string().optional()
-  //images: z.array(z.string().url('Cada imagen debe ser una URL válida')).optional()
-})
+export const productDataInputSchema = z
+  .object({
+    name: z.string('Obligatorio').min(3, 'El nombre debe tener al menos 3 caracteres'),
+    slug: z.string('Obligatorio').min(3, 'El slug debe tener al menos 3 caracteres'),
+    sku: z.string().optional(),
+    category: z.coerce.number('La categoría es obligatoria').nonnegative().positive(),
+    hasChildren: z.boolean().default(false),
+    subcategory: z.preprocess(
+      (v) => (v === '' || v === null ? undefined : v),
+      z.coerce.number('La subcategoría es obligatoria').int().positive({ message: 'Selecciona una subcategoría válida' }).optional()
+    ),
+
+    //price: z.number().min(0, 'El precio no puede ser negativo'),
+    sale_type: z.enum(['unit', 'bulk'], {
+      message: 'La unidad de venta es obligatoria'
+    }),
+    //stock: z.number().min(0, 'El stock no puede ser negativo'),
+    description: z.string().optional(),
+    tags: z.string().optional(),
+    featured: z.boolean().optional(),
+    is_active: z.boolean().optional(),
+    brand: z.string().optional()
+    //images: z.array(z.string().url('Cada imagen debe ser una URL válida')).optional()
+  })
+  .superRefine((val, ctx) => {
+    // // Reglas condicionales
+    if (val.hasChildren && (val.subcategory === undefined || Number.isNaN(val.subcategory))) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['subcategory'],
+        message: 'Selecciona una subcategoría'
+      })
+    }
+  })
 export type ProductDataInput = z.infer<typeof productDataInputSchema>
 
 export const productUnitInputSchema = z
