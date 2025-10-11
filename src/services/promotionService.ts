@@ -14,13 +14,22 @@ export const promotionsService = {
       .from('promos')
       .insert([
         {
+          promo_type: promotionsData.promo_type,
+          category: promotionsData.category,
+          subcategory: promotionsData.subcategory,
+          products: promotionsData.products,
           discount_type: promotionsData.discount_type,
           frequency: promotionsData.frequency,
+          date: promotionsData.date,
+          week_days: promotionsData.week_days,
+          day_month: promotionsData.day_month,
+          code: promotionsData.code,
           mode: promotionsData.mode,
-          value: promotionsData.value,
-          color: promotionsData.color,
+          mode_value: promotionsData.mode_value,
+          valid_until: promotionsData.valid_until,
+          limit: promotionsData.limit,
+          condition: promotionsData.condition,
           is_active: true
-          //featured: false
         }
       ])
       .select()

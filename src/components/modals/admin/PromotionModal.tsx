@@ -21,16 +21,28 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
     reValidateMode: 'onChange',
     defaultValues: {
       promo_type: '',
+      category: undefined,
+      subcategory: '',
+      products: undefined,
       discount_type: '',
-      value: undefined,
-      color: undefined
+      frequency: '',
+      date: [],
+      week_days: [],
+      day_month: [],
+      code: '',
+      mode: '',
+      mode_value: undefined,
+      valid_until: '',
+      limit: undefined,
+      condition: '',
+      is_active: true
     }
   })
   const handleAddPromotion = async () => {
+    console.log(promotionForm.getValues())
     const isValid = await promotionForm.trigger()
+    console.log(promotionForm.formState.errors)
     if (!isValid) return
-    const formData = promotionForm.getValues()
-    console.log(formData)
     // Lógica para enviar los datos al servidor
     // const promotionCreated = await promotionsService.createPromotion(formData)
     // console.log('Promoción creada:', promotionCreated)
@@ -40,6 +52,7 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
     //   promotionForm.reset() // Resetea el formulario
     // }
   }
+
   useEffect(() => {
     if (!isOpen) {
       promotionForm.reset() // Resetea el formulario cuando se cierra el modal
