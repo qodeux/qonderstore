@@ -1,4 +1,4 @@
-import { HeroUIProvider } from '@heroui/react'
+import { HeroUIProvider, ToastProvider } from '@heroui/react'
 import { useHref, useNavigate } from 'react-router'
 import { useProductBrands } from './hooks/useBrands'
 import { useCategories } from './hooks/useCategories'
@@ -13,6 +13,7 @@ function App() {
   useProductBrands()
   return (
     <HeroUIProvider navigate={navigate} useHref={useHref}>
+      <ToastProvider />
       <AppRoutes />
     </HeroUIProvider>
   )
