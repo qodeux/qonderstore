@@ -1,4 +1,4 @@
-import { Alert, Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
+import { addToast, Alert, Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
 import { ShieldAlert } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
@@ -45,6 +45,14 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
       case 'product':
         if (selectedProduct) {
           await productService.deleteProduct(String(selectedProduct.id))
+
+          addToast({
+            title: 'Producto eliminado',
+            description: `El producto "${itemToDelete}" ha sido eliminado correctamente.`,
+            color: 'success',
+            variant: 'bordered'
+          })
+
           console.log('Product deleted successfully')
         }
         break
