@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { addToast } from '@heroui/react'
 import type { ReactNode } from 'react'
 import supabase from '../lib/supabase'
 
@@ -19,7 +20,7 @@ export type EntityAdapter<T> = {
   table: string
   getId: (row: T) => string | number
   fields?: { active?: keyof T & string; featured?: keyof T & string }
-  update?: (id: string | number, patch: Record<string, any>) => Promise<void>
+  update?: (id: string | number, patch: Record<string, any>, row: T) => Promise<void>
   delete?: (id: string | number) => Promise<void>
   edit?: (row: T) => void
   onRequestDelete?: (id: string | number, row: T) => void
@@ -33,11 +34,20 @@ export const entityRegistry: Record<EntityKind, EntityAdapter<any>> = {
     table: 'products',
     getId: (r) => r.id,
     fields: { active: 'is_active', featured: 'featured' },
-    update: async (id, patch) => {
+    update: async (id, patch, row) => {
       await supabase.from('products').update(patch).eq('id', id)
-    },
-    delete: async (id) => {
-      await supabase.from('products').delete().eq('id', id)
+
+      setTimeout(() => {
+        // to see the toast after the table refresh
+        addToast({
+          title: 'Producto actualizado',
+          description: `El producto "${row.name}" ha sido actualizado correctamente.`,
+          color: 'primary',
+          variant: 'bordered',
+          timeout: 4000,
+          shouldShowTimeoutProgress: true
+        })
+      }, 1000)
     },
     actions: [
       // { key: "export", label: "Exportar", onPress: (row) => ... }
