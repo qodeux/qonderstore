@@ -1,29 +1,29 @@
 import type { Selection, SortDescriptor } from '@heroui/react'
 import { useDisclosure } from '@heroui/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { PresetKey } from '../../components/common/DataTable'
 import { DataTable } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 
+import { useDispatch, useSelector } from 'react-redux'
 import ProductModal from '../../components/modals/admin/ProductModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
-import { productService } from '../../services/productService'
-import { categories } from '../../types/products'
+import { setEditMode, setSelectedProduct } from '../../store/slices/productsSlice'
+import type { RootState } from '../../store/store'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const Products = () => {
+  const dispatch = useDispatch()
+  const products = useSelector((state: RootState) => state.products.items)
+
   type Row = {
-    key: string
-    sku: string
+    id: number
     name: string
-    slug: string
-    price: string
+    price: number
     category: string
-    brand?: string
-    stock: number
+    stock?: number
     is_active: boolean
     featured: boolean
-    created_at: string
   }
 
   const columns = [
@@ -67,14 +67,10 @@ const Products = () => {
     }
   ]
 
-  const [rowsDB, setRowsDB] = useState<Row[]>([])
-
   const [criteria, setCriteria] = useState<ToolbarCriteria<Row>>({
     searchText: '',
     selected: {}
   })
-
-  const [deleteProductId, setDeleteProductId] = useState<string | null>(null)
 
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]))
   const [selectionBehavior, setSelectionBehavior] = useState<'replace' | 'toggle'>('replace')
@@ -89,94 +85,73 @@ const Products = () => {
 
   // Filtra las filas según criterios del toolbar
   const filteredRows = useMemo(() => {
-    return applyToolbarFilters(rowsDB, ['name'], criteria)
-  }, [rowsDB, criteria])
+    return applyToolbarFilters(products, ['name'], criteria)
+  }, [products, criteria])
 
   const toggleSelectionBehavior = () => {
     setSelectionBehavior((prevMode) => (prevMode === 'replace' ? 'toggle' : 'replace'))
     setSelectedKeys(new Set()) // Clear selection when mode changes
   }
 
-  function exportOne(row: Row) {
-    console.log('Exportar', row)
+  // function exportOne(row: Row) {
+  //   console.log('Exportar', row)
+  // }
+
+  const handleAddProduct = () => {
+    dispatch(setEditMode(false))
+    onOpenProduct()
   }
 
-  async function fetchData() {
-    const productsDB = await productService.fetchProducts()
-    console.log(productsDB)
-
-    if (productsDB) {
-      setRowsDB(
-        productsDB.map((product) => ({
-          key: product.id.toString(),
-          name: product.name,
-          price: product.price,
-          category: categories.find((cat) => cat.id == product.category)?.name || 'N/A',
-          stock: product.stock,
-          is_active: product.is_active,
-          featured: product.featured,
-          sku: product.sku,
-          slug: product.slug,
-          created_at: product.created_at
-        }))
-      )
-    }
+  const handleEditProduct = (id: number) => {
+    dispatch(setEditMode(true))
+    dispatch(setSelectedProduct(id))
+    onOpenProduct()
   }
-
-  // carga inicial
-  useEffect(() => {
-    fetchData()
-  }, [])
 
   return (
     <>
       <section className='space-y-6'>
         <ToolbarTable<Row>
-          rows={rowsDB}
+          rows={products}
           searchFilter={['name']}
           filters={[{ label: 'Categoría', column: 'category', multiple: true }]}
           enableToggleBehavior
           selectionBehavior={selectionBehavior}
           onToggleBehavior={toggleSelectionBehavior}
-          buttons={[{ label: 'Agregar Producto', onPress: onOpenProduct, color: 'primary' }]}
+          buttons={[{ label: 'Agregar Producto', onPress: handleAddProduct, color: 'primary' }]}
           onCriteriaChange={setCriteria}
         />
 
         <DataTable<Row>
           entity='products'
           adapterOverrides={{
-            edit: () => onOpenProduct(),
-            onRequestDelete: (id) => {
-              setDeleteProductId(String(id))
+            edit: (row) => handleEditProduct(row.id),
+            onRequestDelete: (id, item) => {
+              console.log(id)
+              dispatch(setSelectedProduct(item.id))
               onOpenDeleteProduct()
-            },
-            afterChange: fetchData,
-            actions: [
-              { key: 'export', label: 'Exportar', onPress: (row) => exportOne(row) },
-              { key: 'despachar', label: 'Despachar', onPress: (row) => exportOne(row) },
-              { key: 'importar', label: 'Importar', onPress: (row) => exportOne(row) }
-            ]
+            }
+            // actions: [
+            //   { key: 'solicitar', label: 'Solicitar', onPress: (row) => exportOne(row) },
+            //   { key: 'suministrar', label: 'Suministrar', onPress: (row) => exportOne(row) }
+            // ]
             // rowActions: (row) => [{ key:"share", label:"Compartir", onPress: ... }]
           }}
           rows={filteredRows}
           columns={columns}
           selectedKeys={selectedKeys}
           onSelectionChange={setSelectedKeys}
-          selectionMode='multiple'
+          selectionMode='single'
           selectionBehavior={selectionBehavior}
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
+          getRowKey={(row) => row.id as number}
         />
       </section>
 
-      <ProductModal isOpen={isOpenProduct} onOpenChange={onOpenChangeProduct} fetchData={fetchData} />
+      <ProductModal isOpen={isOpenProduct} onOpenChange={onOpenChangeProduct} />
 
-      <OnDeleteModal
-        isOpenDelete={isOpenDeleteProduct}
-        onOpenChangeDelete={onOpenChangeDeleteProduct}
-        deleteType='product'
-        itemId={deleteProductId}
-      />
+      <OnDeleteModal isOpenDelete={isOpenDeleteProduct} onOpenChangeDelete={onOpenChangeDeleteProduct} deleteType='product' />
     </>
   )
 }
