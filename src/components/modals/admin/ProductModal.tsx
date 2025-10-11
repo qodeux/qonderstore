@@ -278,6 +278,8 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
         if (isEditing) {
           if (formData.sale_type === 'unit') {
             unitForm.reset((formDetails as ProductUnitFormValues) ?? unitDefaults)
+
+            unitForm.setValue('wholesale_prices_read', unitForm.getValues('wholesale_prices'))
           } else if (formData.sale_type === 'bulk') {
             bulkForm.reset((formDetails as ProductBulkFormValues) ?? bulkDefaults)
           } else {

@@ -4,6 +4,8 @@ import { nanoid } from 'nanoid'
 import { useEffect, useState } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
 import { NumericFormat } from 'react-number-format'
+import { useSelector } from 'react-redux'
+import type { RootState } from '../../../store/store'
 
 export type WholeSalePrice = {
   min: number | undefined
@@ -13,6 +15,8 @@ export type WholeSalePrice = {
 export type WholeSaleRow = { id: string; min?: number; price?: number }
 
 const ProductUnitForm = () => {
+  const isEditing = useSelector((state: RootState) => state.products.isEditing)
+
   const {
     control,
     register,
@@ -29,6 +33,8 @@ const ProductUnitForm = () => {
   const minSaleSwitch = watch('minSaleSwitch')
   const maxSaleSwitch = watch('maxSaleSwitch')
   const wholesaleSwitch = watch('wholesaleSwitch')
+
+  const wholesaleRead = watch('wholesale_prices_read')
 
   const minSale = watch('min_sale')
   const maxSale = watch('max_sale')
@@ -189,6 +195,13 @@ const ProductUnitForm = () => {
       setValue('lowStockSwitch', true, { shouldValidate: false })
     }
   }, [lowStock, setValue])
+
+  useEffect(() => {
+    if (wholesaleRead) {
+      console.log('Se ejecutaaaaaa')
+      setValue('wholesale_prices', 'wholesaleRead', { shouldValidate: false })
+    }
+  }, [wholesaleRead])
 
   return (
     <form className='space-y-2' name='product-unit-form'>
@@ -455,19 +468,47 @@ const ProductUnitForm = () => {
             )}
           />
         </div>
-        <div className='flex flex-row justify-between items-center'>
-          <Switch aria-label='Compra máxima' size='sm' {...register('wholesaleSwitch')}>
-            Mayoreo
-          </Switch>
+        {/* {(!isEditing || (isEditing && !wholesaleRead)) && ( */}
+        {wholesaleRead && (
+          <div className='flex flex-row justify-between items-center hidden'>
+            <Switch aria-label='Compra máxima' size='sm' {...register('wholesaleSwitch')}>
+              Mayoreo
+            </Switch>
 
-          {wholesaleSwitch && (
-            <Button variant='ghost' color='primary' size='sm' onPress={addRow} isDisabled={!canAdd}>
-              Agregar precio
-            </Button>
-          )}
-        </div>
+            {wholesaleSwitch && (
+              <Button variant='ghost' color='primary' size='sm' onPress={addRow} isDisabled={!canAdd}>
+                Agregar precio
+              </Button>
+            )}
+          </div>
+        )}
       </section>
       <Controller name='wholesale_prices' control={control} defaultValue='[]' render={({ field }) => <input {...field} type='hidden' />} />
+      <Controller name='wholesale_prices_read' control={control} render={({ field }) => <input {...field} type='hidden' />} />
+
+      {/* TODO [UN-69]: Implementar lógica para volver a establecer precios de mayoreo */}
+      {/* {wholesaleRead && isEditing && (
+        <>
+          <Button>Volver a establecer</Button>
+
+          <table className='w-full text-sm border-collapse border border-slate-200'>
+            <thead>
+              <th>Minimo </th>
+              <th>Precio</th>
+            </thead>
+            {JSON.parse(wholesaleRead).map((row: WholeSalePrice, index: number) => (
+              <tr key={index}>
+                <td className='pr-4 text-right'>{row.min} </td>
+                <td className='pr-4 text-right'>{row.price}</td>
+              </tr>
+            ))}
+          </table>
+
+          <p className='text-sm text-info flex items-center gap-2'>
+            <TriangleAlert /> Los precios de mayoreo no se pueden editar en se deben volver a generar
+          </p>
+        </>
+      )} */}
 
       <section>
         {wholesaleSwitch && (
