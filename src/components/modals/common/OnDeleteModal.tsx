@@ -49,8 +49,9 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
           addToast({
             title: 'Producto eliminado',
             description: `El producto "${itemToDelete}" ha sido eliminado correctamente.`,
-            color: 'success',
-            variant: 'bordered'
+            color: 'danger',
+            variant: 'bordered',
+            shouldShowTimeoutProgress: true
           })
 
           console.log('Product deleted successfully')

@@ -13,7 +13,7 @@ function App() {
   useProductBrands()
   return (
     <HeroUIProvider navigate={navigate} useHref={useHref}>
-      <ToastProvider />
+      <ToastProvider toastProps={{ classNames: { title: 'font-bold' } }} />
       <AppRoutes />
     </HeroUIProvider>
   )

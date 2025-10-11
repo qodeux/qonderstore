@@ -1,3 +1,4 @@
+import { addToast } from '@heroui/react'
 import supabase from '../lib/supabase'
 import type { Product, ProductBulkInput, ProductDataInput, ProductUnitInput } from '../schemas/products.schema'
 import type { ProductDetails } from '../types/products'
@@ -44,6 +45,15 @@ export const productService = {
 
       return { error: productError }
     }
+
+    addToast({
+      title: 'Producto agregado',
+      description: `El producto "${productInserted.name}" ha sido agregado correctamente.`,
+      color: 'success',
+      variant: 'bordered',
+      shouldShowTimeoutProgress: true
+    })
+
     return productInserted
   },
   insertProductUnit: async (productId: string, dataProductUnit: ProductUnitInput) => {
@@ -110,6 +120,16 @@ export const productService = {
 
       return { error }
     }
+
+    addToast({
+      title: 'Producto actualizado',
+      description: `El producto "${data.product.name}" ha sido actualizado correctamente.`,
+      color: 'primary',
+      variant: 'bordered',
+      timeout: 4000,
+      shouldShowTimeoutProgress: true
+    })
+
     return data
   },
 
