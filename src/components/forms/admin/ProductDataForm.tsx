@@ -1,28 +1,12 @@
-import { Autocomplete, AutocompleteItem, Checkbox, Input, Select, SelectItem, Switch, Textarea } from '@heroui/react'
-import { Star } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { Autocomplete, AutocompleteItem, Button, Checkbox, Input, Select, SelectItem, Switch, Textarea } from '@heroui/react'
+import { IterationCw, Star } from 'lucide-react'
+import { customAlphabet } from 'nanoid'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
+import { PatternFormat } from 'react-number-format'
 import { useSelector } from 'react-redux'
 import '../../../components/common/react-tags/style.css'
 import type { RootState } from '../../../store/store'
-
-const suggestions = [
-  { id: 1, name: 'United States', label: 'United States', value: 'United States' },
-  { id: 2, name: 'United Kingdom', label: 'United Kingdom', value: 'United Kingdom' },
-  { id: 3, name: 'Afghanistan', label: 'Afghanistan', value: 'Afghanistan' },
-  { id: 4, name: 'Aland Islands', label: 'Aland Islands', value: 'Aland Islands' },
-  { id: 5, name: 'Albania', label: 'Albania', value: 'Albania' },
-  { id: 6, name: 'Algeria', label: 'Algeria', value: 'Algeria' },
-  { id: 7, name: 'American Samoa', label: 'American Samoa', value: 'American Samoa' },
-  { id: 8, name: 'Andorra', label: 'Andorra', value: 'Andorra' },
-  { id: 9, name: 'Angola', label: 'Angola', value: 'Angola' },
-  { id: 10, name: 'Anguilla', label: 'Anguilla', value: 'Anguilla' }
-]
-
-type Props = {
-  selectedTypeUnit: string
-  onchangeTypeUnit: (value: string) => void
-}
 
 function slugify(text: string) {
   return text
@@ -33,7 +17,7 @@ function slugify(text: string) {
     .replace(/[^\w-]+/g, '')
 }
 
-const ProductDataForm = ({ selectedTypeUnit, onchangeTypeUnit }: Props) => {
+const ProductDataForm = () => {
   const categories = useSelector((state: RootState) => state.categories.categories)
   const productBrands = useSelector((state: RootState) => state.products.brands)
 
@@ -41,234 +25,282 @@ const ProductDataForm = ({ selectedTypeUnit, onchangeTypeUnit }: Props) => {
     register,
     control,
     setValue,
-    getValues,
-    formState: { errors, isSubmitted, touchedFields }
+    trigger,
+    formState: { errors }
   } = useFormContext()
 
   const userTouchedSlug = useRef(false)
-  const didInitSlug = useRef(false)
 
-  // const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
+  const makeId = customAlphabet('0123456789', 6)
+  const genRef = useRef(makeId)
+  const skuDigitsRef = useRef<string>('')
 
-  const categoryWatch = useWatch({
-    control,
-    name: 'category'
-  })
+  // watches
+  const categoryWatch = useWatch({ control, name: 'category' })
+  const saleTypeWatch = useWatch({ control, name: 'sale_type' })
+  const formHasChildren = useWatch({ control, name: 'hasChildren' }) // del form
 
-  const hasChildren = categories.some((cat) => cat.parent === categoryWatch)
+  const brandWatch = useWatch({ control, name: 'brand' })
 
-  // const [selected, setSelected] = useState([])
+  // derive prefix
+  const categoryPrefix = useMemo(() => {
+    if (!categoryWatch) return ''
+    const category = categories.find((cat) => cat.id === categoryWatch)
+    return category?.slug_id ? `${category.slug_id}` : ''
+  }, [categoryWatch, categories])
 
-  // const onAdd = useCallback(
-  //   (newTag) => {
-  //     setSelected([...selected, newTag])
-  //   },
-  //   [selected]
-  // )
-
-  // const onDelete = useCallback(
-  //   (tagIndex) => {
-  //     setSelected(selected.filter((_, i) => i !== tagIndex))
-  //   },
-  //   [selected]
-  // )
-
+  // registrar campos condicionales para que RHF muestre errores aunque no se monten
   useEffect(() => {
-    if (didInitSlug.current) return
-    didInitSlug.current = true
+    register('subcategory')
+    register('hasChildren')
+  }, [register])
 
-    const currentName = getValues('name') || ''
-    const currentSlug = getValues('slug') || ''
-    if (!currentSlug) {
-      // No valides en el primer fill para evitar error visual inicial
-      setValue('slug', slugify(currentName), { shouldValidate: false, shouldDirty: false })
+  // cuando cambie category => calcular si tiene hijos y guardarlo en el form; si no tiene, limpiar subcategory
+  useEffect(() => {
+    if (categoryWatch == null) return
+    const nextHasChildren = categories.some((cat) => cat.parent === categoryWatch)
+    setValue('hasChildren', nextHasChildren, { shouldDirty: true, shouldValidate: true })
+    if (!nextHasChildren) {
+      setValue('subcategory', undefined, { shouldDirty: true, shouldValidate: true })
     }
-  }, [getValues, setValue])
+    void trigger('subcategory') // muestra/actualiza el error de inmediato si aplica
+  }, [categoryWatch, categories, setValue, trigger])
+
+  const regenerateSku = useCallback(() => {
+    const next = genRef.current()
+    skuDigitsRef.current = next
+    setValue('sku', next, { shouldDirty: true, shouldValidate: true })
+  }, [setValue])
 
   return (
-    <section className='flex flex-row gap-4'>
-      <div className='w-1/3'>
+    <form className='flex flex-row gap-4' name='product-data-form'>
+      {/* asegurar registro siempre */}
+      <input type='hidden' {...register('subcategory')} />
+      <input type='hidden' {...register('hasChildren')} />
+
+      <section className='w-1/3 flex flex-col gap-2'>
         <figure className='w-full aspect-square border border-dashed border-gray-400 bg-gray-50 flex items-center justify-center'>
-          <span className='text-sm text-gray-400'>Click para agregar imagen</span>
+          <span className='text-sm text-gray-400 text-center'>
+            Click para agregar imagen
+            <br />
+            (Próximamente)
+          </span>
         </figure>
-        <br />
-        {selectedTypeUnit}
-        <div className='flex flex-col gap-4'>
-          <Switch defaultSelected size='sm' {...register('is_active')}>
-            Activo
-          </Switch>
-          <Checkbox icon={<Star fill='#000' />} size='lg' color='warning' {...register('featured')}>
-            Destacado
-          </Checkbox>
-        </div>
-      </div>
-      <div className='w-2/3'>
-        <form className='space-y-2' name='product-data-form'>
-          <Controller
-            name='name'
-            control={control}
-            render={({ field }) => (
-              <Input
-                label='Nombre'
-                type='text'
-                size='sm'
-                value={field.value ?? ''}
-                onValueChange={(v) => {
-                  field.onChange(v)
-                  if (!userTouchedSlug.current) {
-                    setValue('slug', slugify(v), {
-                      shouldValidate: true || !!touchedFields.slug, // valida solo si ya interactuaron
-                      shouldDirty: true
-                    })
-                  }
-                }}
-                isInvalid={!!errors.name}
-                errorMessage={errors.name?.message as string}
-              />
-            )}
-          />
-          <Controller
-            name='slug'
-            control={control}
-            render={({ field }) => (
-              <Input
-                label='Slug'
-                type='text'
-                size='sm'
-                value={field.value ?? ''}
-                onValueChange={(v) => {
-                  userTouchedSlug.current = true
-                  field.onChange(v)
-                }}
-                isInvalid={!!errors.slug}
-                errorMessage={errors.slug?.message as string}
-              />
-            )}
-          />
 
-          <Input
-            label='SKU'
-            type='text'
-            size='sm'
-            isInvalid={!!errors.sku}
-            errorMessage={errors.sku?.message as string}
-            {...register('sku')}
-          />
+        <Controller
+          name='featured'
+          control={control}
+          render={({ field }) => (
+            <Checkbox
+              icon={<Star fill='#000' />}
+              size='lg'
+              color='warning'
+              {...field}
+              classNames={{ label: 'justify-start text-base text-sm' }}
+              isSelected={field.value}
+            >
+              {field.value ? 'Destacado' : 'Destacar'}
+            </Checkbox>
+          )}
+        />
 
+        <Controller
+          name='sku'
+          control={control}
+          render={({ field }) => (
+            <PatternFormat
+              format={`${categoryWatch ? `${categoryPrefix}-######` : '######'}`}
+              customInput={Input}
+              label='SKU'
+              size='sm'
+              variant='bordered'
+              value={field.value ?? ''}
+              onValueChange={(v) => field.onChange(v.value)}
+              isInvalid={!!errors.sku}
+              endContent={
+                <Button isIconOnly className='absolute right-0 top-0 m-2' size='sm' variant='ghost' color='primary' onPress={regenerateSku}>
+                  <IterationCw size={18} />
+                </Button>
+              }
+            />
+          )}
+        />
+
+        <Controller
+          name='is_active'
+          control={control}
+          render={({ field }) => (
+            <Switch size='sm' {...field} isSelected={field.value}>
+              {field.value ? 'Activo' : 'Inactivo'}
+            </Switch>
+          )}
+        />
+      </section>
+
+      <section className='w-2/3 space-y-2'>
+        <Controller
+          name='name'
+          control={control}
+          render={({ field }) => (
+            <Input
+              label='Nombre'
+              type='text'
+              size='sm'
+              variant='bordered'
+              value={field.value ?? ''}
+              onValueChange={(v) => {
+                field.onChange(v)
+                if (!userTouchedSlug.current) {
+                  setValue('slug', slugify(v), { shouldValidate: true, shouldDirty: true })
+                }
+              }}
+              isInvalid={!!errors.name}
+              errorMessage={errors.name?.message as string}
+            />
+          )}
+        />
+
+        <Controller
+          name='slug'
+          control={control}
+          render={({ field }) => (
+            <Input
+              label='Slug'
+              type='text'
+              size='sm'
+              variant='bordered'
+              value={field.value ?? ''}
+              onValueChange={(v) => {
+                userTouchedSlug.current = true
+                field.onChange(v)
+              }}
+              isInvalid={!!errors.slug}
+              errorMessage={errors.slug?.message as string}
+            />
+          )}
+        />
+
+        <Controller
+          name='category'
+          control={control}
+          render={({ field }) => (
+            <Select
+              label='Categoria'
+              size='sm'
+              variant='bordered'
+              selectedKeys={field.value ? [String(field.value)] : []}
+              onSelectionChange={(keys) => {
+                const raw = Array.from(keys)[0]
+                const nextCategory = Number(raw)
+                field.onChange(nextCategory)
+
+                // sincroniza hasChildren y limpia subcategory si no aplica
+                const nextHasChildren = categories.some((cat) => cat.parent === nextCategory)
+                setValue('hasChildren', nextHasChildren, { shouldDirty: true, shouldValidate: true })
+                if (!nextHasChildren) {
+                  setValue('subcategory', undefined, { shouldDirty: true, shouldValidate: true })
+                }
+                void trigger('subcategory')
+              }}
+              isInvalid={!!errors.category}
+              errorMessage={errors.category?.message as string}
+              disallowEmptySelection
+            >
+              {categories
+                .filter((cat) => cat.parent === null)
+                .map((cat) => (
+                  <SelectItem key={cat.id}>{cat.name}</SelectItem>
+                ))}
+            </Select>
+          )}
+        />
+
+        {formHasChildren && (
           <Controller
-            name='category'
+            name='subcategory'
             control={control}
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <Select
-                label='Categoria'
+                label='Subcategoria'
                 size='sm'
+                variant='bordered'
                 selectedKeys={field.value ? [String(field.value)] : []}
                 onSelectionChange={(keys) => {
-                  const value = Array.from(keys)[0]
-                  field.onChange(Number(value))
+                  const raw = Array.from(keys)[0]
+                  const next = Number(raw)
+                  field.onChange(next)
                 }}
-                isInvalid={!!errors.category}
-                errorMessage={errors.category?.message as string}
+                isInvalid={!!fieldState.error}
+                errorMessage={fieldState.error?.message as string}
                 disallowEmptySelection
               >
                 {categories
-                  .filter((cat) => cat.parent === null)
+                  .filter((cat) => cat.parent === categoryWatch)
                   .map((cat) => (
                     <SelectItem key={cat.id}>{cat.name}</SelectItem>
                   ))}
               </Select>
             )}
           />
+        )}
 
-          {hasChildren && (
-            <Controller
-              name='subcategory'
-              control={control}
-              render={({ field }) => (
-                <Select
-                  label='Subcategoria'
-                  size='sm'
-                  selectedKeys={field.value ? [String(field.value)] : []}
-                  onSelectionChange={(keys) => {
-                    const value = Array.from(keys)[0]
-                    field.onChange(Number(value))
-                  }}
-                  isInvalid={!!errors.sub_category}
-                  errorMessage={errors.sub_category?.message as string}
-                  disallowEmptySelection
-                >
-                  {categories
-                    .filter((cat) => cat.parent === categoryWatch)
-                    .map((cat) => (
-                      <SelectItem key={cat.id}>{cat.name}</SelectItem>
-                    ))}
-                </Select>
-              )}
-            />
+        <Controller
+          name='sale_type'
+          control={control}
+          render={({ field }) => (
+            <Select
+              label='Tipo de venta'
+              size='sm'
+              variant='bordered'
+              selectedKeys={field.value ? [String(field.value)] : []}
+              onSelectionChange={(keys) => {
+                const value = Array.from(keys)[0]
+                field.onChange(value) // 'unit' | 'bulk'
+              }}
+              selectionMode='single'
+              isInvalid={!!errors.sale_type}
+              errorMessage={errors.sale_type?.message as string}
+              disallowEmptySelection
+            >
+              <SelectItem key='unit'>Unidad</SelectItem>
+              <SelectItem key='bulk'>Granel</SelectItem>
+            </Select>
           )}
+        />
 
+        {saleTypeWatch === 'unit' && (
           <Controller
-            name='type_unit'
+            name='brand'
             control={control}
             render={({ field }) => (
-              <Select
-                label='Tipo de venta'
+              <Autocomplete
+                label='Selecciona una marca'
                 size='sm'
-                selectedKeys={field.value ? [field.value] : selectedTypeUnit ? [selectedTypeUnit] : []}
-                onSelectionChange={(keys) => {
-                  const value = Array.from(keys)[0] as string
-                  field.onChange(value)
-                  onchangeTypeUnit(value)
+                variant='bordered'
+                selectedKey={String(field.value) || ''}
+                onSelectionChange={(sel) => {
+                  console.log(sel)
+                  field.onChange(sel)
                 }}
-                selectionMode='single'
-                isInvalid={!!errors.type_unit}
-                errorMessage={errors.type_unit?.message as string}
-                disallowEmptySelection
               >
-                <SelectItem key='unit'>Unidad</SelectItem>
-                <SelectItem key='bulk'>Granel</SelectItem>
-              </Select>
+                {productBrands.map((brand) => (
+                  <AutocompleteItem key={brand.id}>{brand.name}</AutocompleteItem>
+                ))}
+              </Autocomplete>
             )}
           />
+        )}
 
-          {selectedTypeUnit === 'unit' && (
-            <Controller
-              name='brand'
-              control={control}
-              render={() => (
-                <Autocomplete label='Selecciona una marca' size='sm'>
-                  {productBrands.map((brand) => (
-                    <AutocompleteItem key={brand.id}>{brand.name}</AutocompleteItem>
-                  ))}
-                </Autocomplete>
-              )}
-            />
-          )}
-
-          <Textarea
-            label='Descripcion'
-            size='sm'
-            isInvalid={!!errors.description}
-            errorMessage={errors.description?.message as string}
-            {...register('description')}
-          />
-
-          {/* 
-          <ReactTags
-            selected={selected}
-            suggestions={suggestions}
-            onAdd={onAdd}
-            onDelete={onDelete}
-            noOptionsText='No matching countries'
-            placeholderText='Agrega una etiqueta'
-            collapseOnSelect
-            allowNew
-            newOptionText='Agregar: %value%'
-
-          /> */}
-        </form>
-      </div>
-    </section>
+        <Textarea
+          label='Descripcion'
+          size='sm'
+          variant='bordered'
+          isInvalid={!!errors.description}
+          errorMessage={errors.description?.message as string}
+          {...register('description')}
+        />
+      </section>
+    </form>
   )
 }
 

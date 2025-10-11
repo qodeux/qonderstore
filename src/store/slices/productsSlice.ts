@@ -29,13 +29,16 @@ const productsSlice = createSlice({
   name: 'products',
   initialState,
   reducers: {
+    setEditMode(state, action: PayloadAction<boolean>) {
+      state.isEditing = action.payload
+    },
     setProducts(state, action: PayloadAction<Product[]>) {
       state.items = action.payload
       state.loading = false
       state.error = null
     },
-    setSelectedProduct(state, action: PayloadAction<Product | null>) {
-      state.selectedProduct = action.payload
+    setSelectedProduct(state, action: PayloadAction<number | null>) {
+      state.selectedProduct = state.items.find((item) => item.id === action.payload) || null
       state.loading = false
       state.error = null
     },
@@ -47,6 +50,6 @@ const productsSlice = createSlice({
   }
 })
 
-export const { setProducts, setSelectedProduct, setProductBrands } = productsSlice.actions
+export const { setProducts, setSelectedProduct, setProductBrands, setEditMode } = productsSlice.actions
 
 export default productsSlice.reducer

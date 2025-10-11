@@ -226,6 +226,9 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
         if (!(field in (row as any)) || !adapter.update) return null
 
         const value = !!(row as any)[field]
+
+        const rowSend = row
+
         return (
           <Switch
             size='sm'
@@ -233,7 +236,7 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
             onClick={(e) => e.stopPropagation()}
             onValueChange={async (next) => {
               const id = adapter.getId(row)
-              await adapter.update!(id, { [field]: next })
+              await adapter.update!(id, { [field]: next }, rowSend)
               adapter.afterChange?.()
             }}
           />
@@ -243,12 +246,12 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
       case 'featured': {
         const field = adapter.fields?.featured ?? ('featured' as keyof T & string)
         if (!(field in (row as any)) || !adapter.update) return null
-
+        const rowSend = row
         const value = !!(row as any)[field]
         const click = async (e: React.MouseEvent) => {
           e.stopPropagation()
           const id = adapter.getId(row)
-          await adapter.update!(id, { [field]: !value })
+          await adapter.update!(id, { [field]: !value }, rowSend)
           adapter.afterChange?.()
         }
         return (
