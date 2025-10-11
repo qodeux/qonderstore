@@ -103,19 +103,12 @@ const ProductBulkForm = () => {
             // Bloqueo: no permitimos quitar la unidad base
             onValueChange={(next: string[]) => {
               const prev = (field.value ?? []) as string[]
-              if (baseUnit && !next.includes(baseUnit)) {
-                return
-              }
+
               field.onChange(next)
 
               // Si no hay base y se marcó al menos una, ponemos la primera como base
               if (!baseUnit && next.length > 0) {
                 setValue('base_unit', next[0], { shouldDirty: true, shouldTouch: true, shouldValidate: true })
-              }
-
-              // Si se desmarcaron todas, limpiamos la base
-              if (next.length === 0) {
-                setValue('base_unit', undefined, { shouldDirty: true, shouldTouch: true, shouldValidate: true })
               }
 
               // ---- SYNC de units con la selección ----
@@ -171,15 +164,6 @@ const ProductBulkForm = () => {
               onSelectionChange={(keys: Selection) => {
                 const key = Array.from(keys)[0] as string | undefined
                 field.onChange(key)
-
-                // Si el usuario elige una base que no está marcada, la agregamos
-                if (key && !selectedKeys.includes(key)) {
-                  setValue('bulk_units_available', [...selectedKeys, key], {
-                    shouldDirty: true,
-                    shouldTouch: true,
-                    shouldValidate: true
-                  })
-                }
               }}
               isDisabled={selectedUnits.length === 0}
               isInvalid={!!errors.base_unit}
@@ -195,15 +179,12 @@ const ProductBulkForm = () => {
           control={control}
           render={({ field, fieldState }) => (
             <NumericFormat
+              label='Precio público'
               value={field.value ?? ''}
-              onValueChange={(v) => {
-                const num = v.floatValue === undefined ? undefined : v.floatValue
-                setValue(field.name, num, {
-                  shouldValidate: true,
-                  shouldDirty: true,
-                  shouldTouch: true
-                })
-              }}
+              onValueChange={(v) => field.onChange(v.floatValue ?? undefined)}
+              onBlur={field.onBlur}
+              name={field.name}
+              getInputRef={field.ref}
               thousandSeparator
               decimalScale={2}
               fixedDecimalScale
@@ -211,18 +192,19 @@ const ProductBulkForm = () => {
               prefix='$ '
               inputMode='decimal'
               customInput={Input}
-              label='Precio público'
               size='sm'
               isInvalid={!!fieldState.error}
               errorMessage={fieldState.error?.message}
-              isClearable
-              onClear={() => {
-                setValue(field.name, undefined, {
-                  shouldValidate: true,
-                  shouldDirty: true,
-                  shouldTouch: true
-                })
-                // clearErrors('base_unit_price') // opcional
+              onFocus={(e) => {
+                setTimeout(() => e.currentTarget.select(), 0)
+              }}
+              onPointerDown={(e) => {
+                const el = e.currentTarget as HTMLInputElement
+                if (document.activeElement !== el) {
+                  e.preventDefault()
+                  el.focus()
+                  el.select()
+                }
               }}
               isDisabled={selectedUnits.length === 0}
             />
@@ -337,7 +319,7 @@ const ProductBulkForm = () => {
           />
         </div>
       </section>
-      <div>
+      <div className='grid grid-cols-2 gap-2'>
         <p className='text-sm text-danger pt-2'>{errors.min_sale?.type === 'custom' ? <>{errors.min_sale.message}</> : null}</p>
         <p className='text-sm text-danger pt-2'>{errors.max_sale?.type === 'custom' ? <>{errors.max_sale.message}</> : null}</p>
       </div>

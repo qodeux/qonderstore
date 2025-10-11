@@ -1,5 +1,6 @@
 import supabase from '../lib/supabase'
 import type { Product, ProductBulkInput, ProductDataInput, ProductUnitInput } from '../schemas/products.schema'
+import type { ProductDetails } from '../types/products'
 
 export const productService = {
   fetchProducts: async () => {
@@ -32,9 +33,7 @@ export const productService = {
           is_active: productData.is_active,
           featured: productData.featured || false,
           description: productData.description,
-          //tags: productData.tags,
           brand: productData.brand || null
-          //images: productData.images
         }
       ])
       .select()
@@ -42,7 +41,8 @@ export const productService = {
 
     if (productError) {
       console.error('Error inserting product:', productError)
-      return
+
+      return { error: productError }
     }
     return productInserted
   },
@@ -92,6 +92,25 @@ export const productService = {
       return
     }
     return productBulkInserted
+  },
+
+  updateProduct: async (id: number, product: ProductDataInput, details: ProductDetails) => {
+    const payload = details.sale_type === 'unit' ? { p_unit: details.details, p_bulk: null } : { p_unit: null, p_bulk: details.details }
+
+    console.log(product, details)
+
+    const { data, error } = await supabase.rpc('update_product_and_details', {
+      p_id: id,
+      p_product: product,
+      ...payload
+    })
+
+    if (error) {
+      console.error('Error inserting product:', error)
+
+      return { error }
+    }
+    return data
   },
 
   deleteProduct: async (productId: string) => {

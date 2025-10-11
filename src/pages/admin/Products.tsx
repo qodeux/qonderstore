@@ -141,7 +141,7 @@ const Products = () => {
           columns={columns}
           selectedKeys={selectedKeys}
           onSelectionChange={setSelectedKeys}
-          selectionMode='multiple'
+          selectionMode='single'
           selectionBehavior={selectionBehavior}
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}

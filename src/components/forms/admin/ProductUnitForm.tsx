@@ -30,6 +30,10 @@ const ProductUnitForm = () => {
   const maxSaleSwitch = watch('maxSaleSwitch')
   const wholesaleSwitch = watch('wholesaleSwitch')
 
+  const minSale = watch('min_sale')
+  const maxSale = watch('max_sale')
+  const lowStock = watch('low_stock')
+
   // Estado local con IDs estables
   const [wholesalePrices, setWholesalePrices] = useState<WholeSaleRow[]>([])
 
@@ -135,6 +139,7 @@ const ProductUnitForm = () => {
       return () => clearTimeout(id)
     } else {
       // si se desactiva, limpia errores del campo
+      setValue('low_stock', undefined, { shouldValidate: false })
       //clearErrors('low_stock')
     }
   }, [lowStockSwitch, setFocus, clearErrors])
@@ -160,6 +165,30 @@ const ProductUnitForm = () => {
       //clearErrors('max_sale')
     }
   }, [maxSaleSwitch, setFocus, clearErrors])
+
+  useEffect(() => {
+    if (!minSale) {
+      setValue('minSaleSwitch', false, { shouldValidate: false })
+    } else {
+      setValue('minSaleSwitch', true, { shouldValidate: false })
+    }
+  }, [minSale, setValue])
+
+  useEffect(() => {
+    if (!maxSale) {
+      setValue('maxSaleSwitch', false, { shouldValidate: false })
+    } else {
+      setValue('maxSaleSwitch', true, { shouldValidate: false })
+    }
+  }, [maxSale, setValue])
+
+  useEffect(() => {
+    if (!lowStock) {
+      setValue('lowStockSwitch', false, { shouldValidate: false })
+    } else {
+      setValue('lowStockSwitch', true, { shouldValidate: false })
+    }
+  }, [lowStock, setValue])
 
   return (
     <form className='space-y-2' name='product-unit-form'>
@@ -191,17 +220,12 @@ const ProductUnitForm = () => {
           control={control}
           render={({ field, fieldState }) => (
             <NumericFormat
-              // 1) Controlado por RHF: si no hay valor, muestra vacío
+              label='Costo base'
               value={field.value ?? ''}
-              // 2) Siempre manda undefined cuando está vacío
-              onValueChange={(v) => {
-                const num = v.floatValue === undefined ? undefined : v.floatValue
-                setValue('base_cost', num, {
-                  shouldValidate: true,
-                  shouldDirty: true,
-                  shouldTouch: true
-                })
-              }}
+              onValueChange={(v) => field.onChange(v.floatValue ?? undefined)}
+              onBlur={field.onBlur}
+              name={field.name}
+              getInputRef={field.ref}
               thousandSeparator
               decimalScale={2}
               fixedDecimalScale
@@ -209,18 +233,19 @@ const ProductUnitForm = () => {
               prefix='$ '
               inputMode='decimal'
               customInput={Input}
-              label='Costo base'
               size='sm'
               isInvalid={!!fieldState.error}
               errorMessage={fieldState.error?.message}
-              isClearable
-              onClear={() => {
-                setValue('base_cost', undefined, {
-                  shouldValidate: true,
-                  shouldDirty: true,
-                  shouldTouch: true
-                })
-                // opcional: clearErrors('base_cost')
+              onFocus={(e) => {
+                setTimeout(() => e.currentTarget.select(), 0)
+              }}
+              onPointerDown={(e) => {
+                const el = e.currentTarget as HTMLInputElement
+                if (document.activeElement !== el) {
+                  e.preventDefault()
+                  el.focus()
+                  el.select()
+                }
               }}
             />
           )}
@@ -231,17 +256,12 @@ const ProductUnitForm = () => {
           control={control}
           render={({ field, fieldState }) => (
             <NumericFormat
-              // 1) Controlado por RHF: si no hay valor, muestra vacío
+              label='Precio público'
               value={field.value ?? ''}
-              // 2) Siempre manda undefined cuando está vacío
-              onValueChange={(v) => {
-                const num = v.floatValue === undefined ? undefined : v.floatValue
-                setValue('public_price', num, {
-                  shouldValidate: true,
-                  shouldDirty: true,
-                  shouldTouch: true
-                })
-              }}
+              onValueChange={(v) => field.onChange(v.floatValue ?? undefined)}
+              onBlur={field.onBlur}
+              name={field.name}
+              getInputRef={field.ref}
               thousandSeparator
               decimalScale={2}
               fixedDecimalScale
@@ -249,18 +269,19 @@ const ProductUnitForm = () => {
               prefix='$ '
               inputMode='decimal'
               customInput={Input}
-              label='Precio público'
               size='sm'
               isInvalid={!!fieldState.error}
               errorMessage={fieldState.error?.message}
-              isClearable
-              onClear={() => {
-                setValue('public_price', undefined, {
-                  shouldValidate: true,
-                  shouldDirty: true,
-                  shouldTouch: true
-                })
-                // opcional: clearErrors('public_price')
+              onFocus={(e) => {
+                setTimeout(() => e.currentTarget.select(), 0)
+              }}
+              onPointerDown={(e) => {
+                const el = e.currentTarget as HTMLInputElement
+                if (document.activeElement !== el) {
+                  e.preventDefault()
+                  el.focus()
+                  el.select()
+                }
               }}
             />
           )}

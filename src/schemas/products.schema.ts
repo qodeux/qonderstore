@@ -43,7 +43,7 @@ export const productDataInputSchema = z
     // tags: z.string().optional(),
     featured: z.boolean().optional(),
     is_active: z.boolean().optional(),
-    brand: z.string().optional()
+    brand: z.coerce.number().optional()
   })
   .superRefine((val, ctx) => {
     if (val.hasChildren && val.subcategory == null) {
@@ -57,6 +57,11 @@ export const productDataInputSchema = z
 
 export type ProductDataInput = z.infer<typeof productDataInputSchema>
 
+const toUndefIfEmpty = (v: unknown) => (v === '' || v === null || v === undefined ? undefined : v)
+
+// Número opcional con mínimo 1, después de normalizar
+const optionalPosInt = z.preprocess(toUndefIfEmpty, z.coerce.number('Ingresa un número válido').min(1, 'El mínimo es 1').optional())
+
 export const productUnitInputSchema = z
   .object({
     unit: z.enum(['pz', 'pk', 'box'], {
@@ -65,16 +70,16 @@ export const productUnitInputSchema = z
 
     base_cost: z.coerce.number('Dato requerido').min(0, 'El costo base no puede ser negativo'),
     public_price: z.coerce.number('Dato requerido').min(0, 'El precio no puede ser negativo'),
-    // 🔑 switches controlados por el form
-    lowStockSwitch: z.boolean().default(false),
-    minSaleSwitch: z.boolean().default(false),
-    maxSaleSwitch: z.boolean().default(false),
-    wholesaleSwitch: z.boolean().default(false),
+    // switches: si no vienen de la DB, blíndalos a false
+    lowStockSwitch: z.preprocess((v) => v ?? false, z.coerce.boolean()).catch(false),
+    minSaleSwitch: z.preprocess((v) => v ?? false, z.coerce.boolean()).catch(false),
+    maxSaleSwitch: z.preprocess((v) => v ?? false, z.coerce.boolean()).catch(false),
+    wholesaleSwitch: z.preprocess((v) => v ?? false, z.coerce.boolean()).catch(false),
 
-    // 🔑 campos numéricos: OPCIONALES; los exigimos abajo si el switch está activo
-    low_stock: z.union([emptyToUndefined, z.number('Ingresa un número válido').min(1, 'El mínimo es 1').optional()]),
-    min_sale: z.union([emptyToUndefined, z.number('Ingresa un número válido').min(1, 'El mínimo es 1').optional()]),
-    max_sale: z.union([emptyToUndefined, z.number('Ingresa un número válido').min(1, 'El mínimo es 1').optional()]),
+    // numéricos opcionales, sin union/literal
+    low_stock: optionalPosInt,
+    min_sale: optionalPosInt,
+    max_sale: optionalPosInt,
 
     wholesale_prices: z.preprocess(toNullIfEmptyJson, z.string().nullable()).default(null)
   })
@@ -174,45 +179,35 @@ export const productBulkInputSchema = z
     base_unit: z.string('La unidad base es obligatoria'),
     base_unit_price: z.number('El precio es obligatorio').min(0, 'El precio no puede ser negativo'),
 
-    minSaleSwitch: z.boolean().default(false),
-    min_sale: z.number().optional(),
+    minSaleSwitch: z.preprocess((v) => v ?? false, z.coerce.boolean()).catch(false),
+    min_sale: optionalPosInt,
 
-    maxSaleSwitch: z.boolean().default(false),
-    max_sale: z.number().optional(),
+    maxSaleSwitch: z.preprocess((v) => v ?? false, z.coerce.boolean()).catch(false),
+    max_sale: optionalPosInt,
 
     // <-- SOLO OBJETO
     units: unitsSchema
   })
   .superRefine((val, ctx) => {
-    // 1) base_unit ∈ bulk_units_available
-    if (!val.bulk_units_available.includes(val.base_unit)) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['base_unit'],
-        message: 'La unidad base debe estar en bulk_units_available'
-      })
-    }
-
-    // 2) Requeridos condicionales
     if (val.minSaleSwitch && (val.min_sale == null || Number.isNaN(val.min_sale))) {
       ctx.addIssue({
         code: 'custom',
         path: ['min_sale'],
-        message: 'Campo requerido al activar el mínimo de compra'
+        message: 'Campo requerido al activar'
       })
     }
     if (val.maxSaleSwitch && (val.max_sale == null || Number.isNaN(val.max_sale))) {
       ctx.addIssue({
         code: 'custom',
         path: ['max_sale'],
-        message: 'Campo requerido al activar el máximo de compra'
+        message: 'Campo requerido al activar'
       })
     }
     if (val.minSaleSwitch && val.maxSaleSwitch && val.min_sale != null && val.max_sale != null && val.min_sale > val.max_sale) {
       ctx.addIssue({
         code: 'custom',
         path: ['min_sale'],
-        message: 'El mínimo no puede ser mayor que el máximo'
+        message: 'No puede ser mayor que el máximo'
       })
     }
     if (val.minSaleSwitch && val.maxSaleSwitch && val.min_sale != null && val.max_sale != null && val.min_sale == val.max_sale) {

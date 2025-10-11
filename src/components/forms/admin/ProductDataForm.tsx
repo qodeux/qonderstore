@@ -40,6 +40,8 @@ const ProductDataForm = () => {
   const saleTypeWatch = useWatch({ control, name: 'sale_type' })
   const formHasChildren = useWatch({ control, name: 'hasChildren' }) // del form
 
+  const brandWatch = useWatch({ control, name: 'brand' })
+
   // derive prefix
   const categoryPrefix = useMemo(() => {
     if (!categoryWatch) return ''
@@ -95,6 +97,7 @@ const ProductDataForm = () => {
               color='warning'
               {...field}
               classNames={{ label: 'justify-start text-base text-sm' }}
+              isSelected={field.value}
             >
               {field.value ? 'Destacado' : 'Destacar'}
             </Checkbox>
@@ -127,7 +130,7 @@ const ProductDataForm = () => {
           name='is_active'
           control={control}
           render={({ field }) => (
-            <Switch size='sm' {...field}>
+            <Switch size='sm' {...field} isSelected={field.value}>
               {field.value ? 'Activo' : 'Inactivo'}
             </Switch>
           )}
@@ -269,8 +272,17 @@ const ProductDataForm = () => {
           <Controller
             name='brand'
             control={control}
-            render={() => (
-              <Autocomplete label='Selecciona una marca' size='sm' variant='bordered'>
+            render={({ field }) => (
+              <Autocomplete
+                label='Selecciona una marca'
+                size='sm'
+                variant='bordered'
+                selectedKey={String(field.value) || ''}
+                onSelectionChange={(sel) => {
+                  console.log(sel)
+                  field.onChange(sel)
+                }}
+              >
                 {productBrands.map((brand) => (
                   <AutocompleteItem key={brand.id}>{brand.name}</AutocompleteItem>
                 ))}
