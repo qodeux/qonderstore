@@ -33,7 +33,6 @@ export type ColumnDef<T> = {
   render?: (row: T) => React.ReactNode
   sortAccessor?: (row: T) => string | number
   align?: 'start' | 'center' | 'end'
-
   type?: 'date'
   datePreset?: DatePreset
   locale?: string

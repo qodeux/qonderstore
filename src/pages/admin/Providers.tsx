@@ -40,11 +40,15 @@ const Providers = () => {
     {
       key: 'last_order',
       label: 'Último Pedido',
+      type: 'date',
+      datePreset: 'relative',
       allowsSorting: true
     },
     {
       key: 'last_payment',
       label: 'Último Pago',
+      type: 'date',
+      datePreset: 'full',
       allowsSorting: true
     },
     {
