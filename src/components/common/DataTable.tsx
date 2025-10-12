@@ -24,6 +24,7 @@ import { formatDate, toDate } from '../../utils/date'
 
 export type PresetKey = 'is_active' | 'featured' | 'actions'
 export type DatePreset = 'full' | 'only-date' | 'relative' | 'time'
+export type TypePreset = 'date' | 'string' | 'number' | 'money' | undefined
 
 export type ColumnDef<T> = {
   key: keyof T | string
@@ -33,7 +34,7 @@ export type ColumnDef<T> = {
   render?: (row: T) => React.ReactNode
   sortAccessor?: (row: T) => string | number
   align?: 'start' | 'center' | 'end'
-  type?: 'date'
+  type?: 'date' | 'string' | 'number' | 'money'
   datePreset?: DatePreset
   locale?: string
   timeZone?: string
@@ -52,6 +53,7 @@ type Props<T> = {
   bottomContent?: React.ReactNode
   getRowKey?: (row: T) => Key
   onRowActivate?: (row: T) => void | Promise<void>
+  maxHeight?: number | undefined
 
   /** modo recomendado: la tabla resuelve todo via registry */
   entity: EntityKind
@@ -64,9 +66,11 @@ type Props<T> = {
 }
 
 const DefaultFooter = ({ selectionCount, totalRows }: { selectionCount: number; totalRows: number }) => (
-  <section className='flex justify-between items-center mt-4'>
+  <section className='flex justify-between items-center m-4 mb-2 text-sm text-default-500'>
     <div>
-      <span>{totalRows} resultados </span>
+      <span>
+        Mostrando {totalRows} {totalRows > 1 ? 'resultados' : 'resultado'}{' '}
+      </span>
       {selectionCount > 1 ? <>| {selectionCount} seleccionados</> : null}
     </div>
     {/* <div>Filtros</div> */}
@@ -82,6 +86,7 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
     selectionMode = 'multiple',
     selectionBehavior = 'replace',
     sortDescriptor,
+    maxHeight = undefined,
     onSortChange,
     bottomContent = (
       <DefaultFooter totalRows={rows.length} selectionCount={selectedKeys === 'all' ? rows.length : (selectedKeys as Set<Key>).size} />
@@ -347,58 +352,70 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
   )
 
   return (
-    <Table
-      aria-label='Data table'
-      selectedKeys={selectedKeys}
-      selectionMode={selectionMode}
-      selectionBehavior={selectionBehavior}
-      onSelectionChange={onSelectionChange}
-      sortDescriptor={sortDescriptor}
-      onSortChange={onSortChange}
-      bottomContent={bottomContent}
-      onRowAction={canRowAction ? handleRowAction : undefined}
-    >
-      <TableHeader columns={columns}>
-        {(column) => (
-          <TableColumn key={String(column.key)} allowsSorting={!!column.allowsSorting} align={column.align ?? 'start'}>
-            {column.label}
-          </TableColumn>
-        )}
-      </TableHeader>
-
-      <TableBody items={sortedItems}>
-        {(row) => (
-          <TableRow key={getRowKey(row)}>
-            {(columnKey) => {
-              const col = columns.find((c) => String(c.key) === String(columnKey))
-
-              let content: React.ReactNode
-
-              switch (true) {
-                case !!col?.render:
-                  content = col!.render!(row)
-                  break
-                case !!col?.preset:
-                  content = renderPreset(col!.preset!, row)
-                  break
-                case col?.type === 'date': {
-                  const raw = (row as any)[String(col.key)]
-                  if (col.dateFormatter) {
-                    const d = toDate(raw)
-                    content = d ? col.dateFormatter(d) : ''
-                  } else {
-                    content = formatDate(raw, col.datePreset ?? 'full', col.locale ?? 'es-MX', col.timeZone)
+    <>
+      <section
+        style={maxHeight ? { height: `${maxHeight}px` } : undefined}
+        className='border-default-200  rounded-large border shadow-sm bg-white'
+      >
+        <Table
+          isHeaderSticky
+          aria-label='Data table'
+          rowHeight={40}
+          selectedKeys={selectedKeys}
+          selectionMode={selectionMode}
+          selectionBehavior={selectionBehavior}
+          onSelectionChange={onSelectionChange}
+          sortDescriptor={sortDescriptor}
+          onSortChange={onSortChange}
+          // bottomContent={bottomContent}
+          onRowAction={canRowAction ? handleRowAction : undefined}
+          // className='max-h-full'
+          classNames={{
+            base: `max-h-full overflow-auto`,
+            wrapper: `shadow-none `
+          }}
+        >
+          <TableHeader columns={columns}>
+            {(column) => (
+              <TableColumn key={String(column.key)} allowsSorting={!!column.allowsSorting} align={column.align ?? 'start'}>
+                {column.label}
+              </TableColumn>
+            )}
+          </TableHeader>
+          <TableBody items={sortedItems}>
+            {(row) => (
+              <TableRow key={getRowKey(row)}>
+                {(columnKey) => {
+                  const col = columns.find((c) => String(c.key) === String(columnKey))
+                  let content: React.ReactNode
+                  switch (true) {
+                    case !!col?.render:
+                      content = col!.render!(row)
+                      break
+                    case !!col?.preset:
+                      content = renderPreset(col!.preset!, row)
+                      break
+                    case col?.type === 'date': {
+                      const raw = (row as any)[String(col.key)]
+                      if (col.dateFormatter) {
+                        const d = toDate(raw)
+                        content = d ? col.dateFormatter(d) : ''
+                      } else {
+                        content = formatDate(raw, col.datePreset ?? 'full', col.locale ?? 'es-MX', col.timeZone)
+                      }
+                      break
+                    }
+                    default:
+                      content = (row as any)[String(col?.key)]
                   }
-                  break
-                }
-                default:
-                  content = (row as any)[String(col?.key)]
-              }
-              return <TableCell>{content}</TableCell>
-            }}
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
+                  return <TableCell>{content}</TableCell>
+                }}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </section>
+      {bottomContent}
+    </>
   )
 }
