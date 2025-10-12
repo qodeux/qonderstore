@@ -1,28 +1,17 @@
 import { Input } from '@heroui/react'
-import { Controller, useFormContext } from 'react-hook-form'
+import { motion } from 'framer-motion'
+import { Controller, useForm } from 'react-hook-form'
 
-// const colorsOptions = [
-//   { label: 'Rojo', key: 'red' },
-//   { label: 'Azul', key: 'blue' },
-//   { label: 'Verde', key: 'green' },
-//   { label: 'Amarillo', key: 'yellow' },
-//   { label: 'Negro', key: 'black' }
-// ]
-
-const ProviderForm = () => {
-  //   const providers = useSelector((state: RootState) => state.providers.items) ?? []
-  //   const editMode = useSelector((state: RootState) => state.providers.editMode)
-
-  const { control } = useFormContext()
-
+const BankDataForm = () => {
+  const { control } = useForm()
   return (
-    <form className='space-y-2'>
+    <motion.form className='space-y-3'>
       <Controller
-        name='alias'
+        name='Banco'
         control={control}
         render={({ field, fieldState }) => (
           <Input
-            label='Alias'
+            label='Banco'
             type='text'
             size='sm'
             variant='bordered'
@@ -33,11 +22,11 @@ const ProviderForm = () => {
         )}
       />
       <Controller
-        name='name'
+        name='account'
         control={control}
         render={({ field, fieldState }) => (
           <Input
-            label='Nombre'
+            label='CLABE'
             type='text'
             size='sm'
             variant='bordered'
@@ -48,14 +37,14 @@ const ProviderForm = () => {
         )}
       />
       <Controller
-        name='phone'
+        name='holder_name'
         control={control}
         render={({ field, fieldState }) => (
           <Input
-            label='Teléfono'
+            label='Nombre del titular'
             type='text'
-            variant='bordered'
             size='sm'
+            variant='bordered'
             isInvalid={!!fieldState.error}
             errorMessage={fieldState.error?.message as string}
             {...field}
@@ -63,37 +52,22 @@ const ProviderForm = () => {
         )}
       />
       <Controller
-        name='email'
+        name='rfc'
         control={control}
         render={({ field, fieldState }) => (
           <Input
-            label='Email'
+            label='RFC'
             type='text'
-            variant='bordered'
             size='sm'
+            variant='bordered'
             isInvalid={!!fieldState.error}
             errorMessage={fieldState.error?.message as string}
             {...field}
           />
         )}
       />
-      <Controller
-        name='address'
-        control={control}
-        render={({ field, fieldState }) => (
-          <Input
-            label='Dirección'
-            type='text'
-            variant='bordered'
-            size='sm'
-            isInvalid={!!fieldState.error}
-            errorMessage={fieldState.error?.message as string}
-            {...field}
-          />
-        )}
-      />
-    </form>
+    </motion.form>
   )
 }
 
-export default ProviderForm
+export default BankDataForm

@@ -3,6 +3,7 @@ import type { Provider } from '../../schemas/providers.schema'
 
 interface providersState {
   editMode: boolean
+  previousStep: number
   selectedProvider?: Provider | null
   items: Provider[]
 }
@@ -10,6 +11,7 @@ interface providersState {
 const initialState: providersState = {
   editMode: false,
   selectedProvider: null,
+  previousStep: 0,
   items: []
 }
 
@@ -29,9 +31,13 @@ const providerSlice = createSlice({
 
     setSelectedProvider(state, action) {
       state.selectedProvider = action.payload
+    },
+
+    setPreviousStep(state, action) {
+      state.previousStep = action.payload
     }
   }
 })
-export const { setEditMode, setSelectedProvider, setProviders } = providerSlice.actions
+export const { setEditMode, setSelectedProvider, setProviders, setPreviousStep } = providerSlice.actions
 
 export default providerSlice.reducer

@@ -1,12 +1,21 @@
-import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
+import { Modal, ModalBody, ModalContent } from '@heroui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { AnimatePresence } from 'framer-motion'
 import { useEffect } from 'react'
-import { FormProvider, useForm } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { useSelector } from 'react-redux'
+import { Wizard } from 'react-use-wizard'
 import { providerInputSchema } from '../../../schemas/providers.schema'
 import { providerService } from '../../../services/providerService'
+import { setPreviousStep } from '../../../store/slices/providersSlice'
 import type { RootState } from '../../../store/store'
-import ProviderForm from '../../forms/admin/ProviderForm'
+import AnimatedStep from '../../common/wizard/AnimatedStep'
+import RowSteps from '../../common/wizard/RowSteps'
+import WizardFooter from '../../common/wizard/WizardFooter'
+import BankDataForm from '../../forms/admin/ProviderWizard/BankDataForm'
+import Confirmation from '../../forms/admin/ProviderWizard/Confirmation'
+import ContactDataForm from '../../forms/admin/ProviderWizard/ContactDataForm'
+import ProductSelection from '../../forms/admin/ProviderWizard/ProductSelection'
 
 type Props = {
   isOpen: boolean
@@ -15,7 +24,9 @@ type Props = {
 
 const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
   const editMode = useSelector((state: RootState) => state.providers.editMode)
-  const selectedProvider = useSelector((state: RootState) => state.providers.selectedProvider)
+  const { selectedProvider, previousStep } = useSelector((state: RootState) => state.providers)
+
+  const currentStep = previousStep + 1
 
   const providerForm = useForm({
     resolver: zodResolver(providerInputSchema),
@@ -89,28 +100,53 @@ const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
   }, [isOpen, selectedProvider, providerForm])
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='sm' backdrop='blur'>
+    <Modal
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      size={currentStep > 2 ? 'lg' : 'sm'}
+      backdrop='blur'
+      classNames={{ base: ' overflow-hidden pt-4 bg-gray-50' }}
+    >
       <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader className='flex flex-col gap-1'>{editMode ? 'Editar' : 'Agregar'} proveedor</ModalHeader>
-            <ModalBody>
-              <FormProvider {...providerForm}>
-                <ProviderForm />
-              </FormProvider>
-            </ModalBody>
-            <ModalFooter>
-              <Button color='danger' variant='light' onPress={onClose}>
-                Cerrar
-              </Button>
-              {(!editMode || isDirty) && (
-                <Button color='primary' onPress={handleSubmitProvider} isDisabled={Object.keys(errors).length > 0}>
-                  Aceptar
-                </Button>
-              )}
-            </ModalFooter>
-          </>
-        )}
+        <ModalBody>
+          <section className='flex flex-col items-center'>
+            <RowSteps
+              currentStep={previousStep}
+              steps={[
+                {
+                  title: 'Datos de contacto'
+                },
+                {
+                  title: 'Datos bancarios'
+                },
+                {
+                  title: 'Selección de productos'
+                },
+                {
+                  title: 'Confirmar y guardar'
+                }
+              ]}
+            />
+          </section>
+          <Wizard footer={<WizardFooter />} wrapper={<AnimatePresence initial={false} mode='wait' />}>
+            <AnimatedStep rxStep={setPreviousStep}>
+              <ContactDataForm />
+            </AnimatedStep>
+            <AnimatedStep rxStep={setPreviousStep}>
+              <BankDataForm />
+            </AnimatedStep>
+            <AnimatedStep rxStep={setPreviousStep}>
+              <ProductSelection />
+            </AnimatedStep>
+            <AnimatedStep rxStep={setPreviousStep}>
+              <Confirmation />
+            </AnimatedStep>
+          </Wizard>
+
+          <footer className='self-center'>
+            Step {currentStep} - {Object.keys(errors).length} errores
+          </footer>
+        </ModalBody>
       </ModalContent>
     </Modal>
   )

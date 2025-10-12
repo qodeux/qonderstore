@@ -40,15 +40,15 @@ const Providers = () => {
     {
       key: 'last_order',
       label: 'Último Pedido',
-      type: 'date',
-      datePreset: 'relative',
+      // type: 'date',
+      // datePreset: 'relative',
       allowsSorting: true
     },
     {
       key: 'last_payment',
       label: 'Último Pago',
-      type: 'date',
-      datePreset: 'full',
+      // type: 'date' as TypePreset,
+      // datePreset: 'full',
       allowsSorting: true
     },
     {
@@ -71,7 +71,6 @@ const Providers = () => {
   })
 
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]))
-  const [selectionBehavior, setSelectionBehavior] = useState<'replace' | 'toggle'>('replace')
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'last_order',
@@ -84,11 +83,6 @@ const Providers = () => {
   const filteredRows = useMemo(() => {
     return applyToolbarFilters(providers, ['name'], criteria)
   }, [providers, criteria])
-
-  const toggleSelectionBehavior = () => {
-    setSelectionBehavior((prevMode) => (prevMode === 'replace' ? 'toggle' : 'replace'))
-    setSelectedKeys(new Set())
-  }
 
   const handleAddProvider = () => {
     dispatch(setEditMode(false))
@@ -112,9 +106,7 @@ const Providers = () => {
           rows={providers}
           searchFilter={['name']}
           //filters={[{ label: 'Categoría', column: 'category', multiple: true }]}
-          enableToggleBehavior
-          selectionBehavior={selectionBehavior}
-          onToggleBehavior={toggleSelectionBehavior}
+
           buttons={[{ label: 'Agregar proveedor', onPress: handleAddProvider, color: 'primary' }]}
           onCriteriaChange={setCriteria}
         />
@@ -140,7 +132,6 @@ const Providers = () => {
           selectedKeys={selectedKeys}
           onSelectionChange={setSelectedKeys}
           selectionMode='single'
-          selectionBehavior={selectionBehavior}
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
           getRowKey={(row) => row.id as number}
