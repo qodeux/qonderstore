@@ -73,6 +73,9 @@ export const entityRegistry: Record<EntityKind, EntityAdapter<any>> = {
     },
     delete: async (id) => {
       await supabase.from('providers').delete().eq('id', id)
-    }
+    },
+    actions: [
+      // { key: "export", label: "Exportar", onPress: (row) => ... }
+    ]
   }
 }
