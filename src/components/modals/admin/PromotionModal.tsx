@@ -1,9 +1,10 @@
 import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useSelector } from 'react-redux'
-import { promotionsSchema } from '../../../schemas/promotions.schema'
+import { promotionsInputSchema } from '../../../schemas/promotions.schema'
+import { promotionsService } from '../../../services/promotionService'
 import type { RootState } from '../../../store/store'
 import PromotionForm from '../../forms/admin/PromotionForm'
 
@@ -14,29 +15,14 @@ type Props = {
 
 const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
   const editMode = useSelector((state: RootState) => state.promotions.editMode)
+
+  const prevIsOpenRef = useRef(isOpen)
+
   const promotionForm = useForm({
-    resolver: zodResolver(promotionsSchema),
+    resolver: zodResolver(promotionsInputSchema),
     shouldUnregister: false,
     mode: 'all',
-    reValidateMode: 'onChange',
-    defaultValues: {
-      promo_type: '',
-      category: undefined,
-      subcategory: '',
-      products: undefined,
-      discount_type: '',
-      frequency: '',
-      date: [],
-      week_days: [],
-      day_month: [],
-      code: '',
-      mode: '',
-      mode_value: undefined,
-      valid_until: '',
-      limit: undefined,
-      condition: '',
-      is_active: true
-    }
+    reValidateMode: 'onChange'
   })
   const handleAddPromotion = async () => {
     console.log(promotionForm.getValues())
@@ -44,21 +30,58 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
     console.log(promotionForm.formState.errors)
     if (!isValid) return
     // Lógica para enviar los datos al servidor
-    // const promotionCreated = await promotionsService.createPromotion(formData)
-    // console.log('Promoción creada:', promotionCreated)
-    // if (promotionCreated) {
-    //   onOpenChange() // Cierra el modal
-    //   fetchData() // Refresca los datos en la tabla principal
-    //   promotionForm.reset() // Resetea el formulario
-    // }
+
+    const formData = promotionForm.getValues()
+
+    const promotionCreated = await promotionsService.createPromotion(promotionsInputSchema.parse(formData))
+
+    console.log(promotionCreated)
+
+    console.log('Promoción creada:', promotionCreated)
+    if (promotionCreated) {
+      onOpenChange() // Cierra el modal
+    }
+  }
+
+  const buildFormValues = () => {
+    const defaultValues = {
+      promo_type: undefined,
+      category: undefined,
+      subcategory: undefined,
+      products: undefined,
+      discount_type: undefined,
+      frequency: undefined,
+      date: undefined,
+      week_days: undefined,
+      day_month: undefined,
+      code: undefined,
+      mode: undefined,
+      mode_value: undefined,
+      valid_until: undefined,
+      limit: undefined,
+      condition: undefined,
+      is_active: true
+    }
+
+    return defaultValues
   }
 
   useEffect(() => {
-    if (!isOpen) {
-      promotionForm.reset() // Resetea el formulario cuando se cierra el modal
-      // fetchData() // Refresca los datos en la tabla principal
+    const wasOpen = prevIsOpenRef.current
+    if (isOpen && !wasOpen) {
+      console.log('Modal Abierto')
+      //Al abrir modal
     }
-  }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (!isOpen && wasOpen) {
+      console.log('Modal Cerrado')
+      //Al cerrar modal
+    }
+
+    promotionForm.reset(buildFormValues())
+
+    prevIsOpenRef.current = isOpen
+  }, [isOpen, promotionForm])
 
   return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='md' backdrop='blur'>

@@ -14,8 +14,7 @@ const Promotions = () => {
     promo_type: string
     discount_type: string
     frequency: string
-    mode: string
-    value: string
+    mode_value: string
     valid_until?: string
     is_active: boolean
   }
@@ -29,6 +28,7 @@ const Promotions = () => {
     {
       key: 'discount_type',
       label: 'Descuento',
+      //type: 'discount_type',
       allowsSorting: true
     },
     {
@@ -42,13 +42,15 @@ const Promotions = () => {
       allowsSorting: true
     },
     {
-      key: 'value',
+      key: 'mode_value',
       label: 'Valor',
       allowsSorting: true
     },
     {
       key: 'valid_until',
       label: 'Vigencia',
+      type: 'date',
+      datePreset: '',
       allowsSorting: true
     },
     {
@@ -107,7 +109,7 @@ const Promotions = () => {
           discount_type: promotions.discount_type,
           frequency: promotions.frequency,
           mode: promotions.mode,
-          value: promotions.value,
+          mode_value: promotions.value,
           valid_until: promotions.valid_until,
           is_active: promotions.is_active || false
         }))
@@ -171,7 +173,7 @@ const Promotions = () => {
           onSortChange={setSortDescriptor}
         />
       </section>
-      <PromotionModal isOpen={isOpenCategory} onOpenChange={onOpenChangeCategory} fetchData={fetchData} />
+      <PromotionModal isOpen={isOpenCategory} onOpenChange={onOpenChangeCategory} />
 
       <OnDeleteModal isOpenDelete={isOpenDelete} onOpenChangeDelete={onOpenChangeDelete} deleteType='category' />
     </>

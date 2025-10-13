@@ -1,5 +1,5 @@
 import supabase from '../lib/supabase'
-import type { Promotions } from '../schemas/promotions.schema'
+import type { PromotionsInput } from '../schemas/promotions.schema'
 
 export const promotionsService = {
   fetchPromotion: async () => {
@@ -9,27 +9,28 @@ export const promotionsService = {
     }
     return promotions
   },
-  createPromotion: async (promotionsData: Promotions) => {
+  createPromotion: async (promotionsData: PromotionsInput) => {
     const { data: promotionInserted, error: promotionError } = await supabase
       .from('promos')
       .insert([
         {
           promo_type: promotionsData.promo_type,
-          category: promotionsData.category,
-          subcategory: promotionsData.subcategory,
-          products: promotionsData.products,
+          promo_type_target_id: 1,
           discount_type: promotionsData.discount_type,
-          frequency: promotionsData.frequency,
-          date: promotionsData.date,
-          week_days: promotionsData.week_days,
-          day_month: promotionsData.day_month,
           code: promotionsData.code,
+          frequency: promotionsData.frequency || 'once',
+          frequency_value: {},
           mode: promotionsData.mode,
           mode_value: promotionsData.mode_value,
           valid_until: promotionsData.valid_until,
+          is_active: true,
+          is_limited: false,
+          limit_type: promotionsData.limit_type,
           limit: promotionsData.limit,
+          is_conditioned: promotionsData.is_conditioned,
+          condition_type: promotionsData.condition_type,
           condition: promotionsData.condition,
-          is_active: true
+          condition_product: null
         }
       ])
       .select()

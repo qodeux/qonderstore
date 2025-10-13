@@ -126,7 +126,7 @@ const PromotionForm = () => {
       )}
       {promoType === 'product' && (
         <Controller
-          name='products'
+          name='product'
           control={control}
           render={({ field }) => (
             <Autocomplete
@@ -135,7 +135,7 @@ const PromotionForm = () => {
               selectedKey={String(field.value) || ''}
               onSelectionChange={(sel) => {
                 console.log(sel)
-                field.onChange(sel)
+                field.onChange(Number(sel))
               }}
             >
               {products.map((product) => (
@@ -366,12 +366,14 @@ const PromotionForm = () => {
         name='valid_until'
         control={control}
         rules={{ required: 'La fecha es obligatoria' }}
-        render={({ field }) => (
+        render={({ field, fieldState }) => (
           <div className='flex flex-col items-start'>
             <DatePicker
               {...field}
               label='Vigencia'
               size='sm'
+              isInvalid={!!fieldState.error}
+              errorMessage={fieldState.error?.message}
               onChange={(date) => field.onChange(date)} // muy importante
               value={field.value}
             />
