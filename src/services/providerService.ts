@@ -14,12 +14,19 @@ export const providerService = {
       .from('providers')
       .insert([
         {
+          alias: providerData.alias,
           name: providerData.name,
-          parent: providerData.parent,
-          color: providerData.color,
-          slug_id: providerData.slug_id,
-          is_active: true,
-          featured: false
+          phone: providerData.phone,
+          email: providerData.email,
+          postal_code: providerData.postal_code,
+          address: providerData.address,
+          neighborhood: providerData.neighborhood,
+          bank: providerData.bank,
+          account_type: providerData.account_type,
+          account: providerData.account,
+          holder_name: providerData.holder_name,
+          rfc: providerData.rfc,
+          products: providerData.selected_products
         }
       ])
       .select()
@@ -39,12 +46,19 @@ export const providerService = {
     const { data: providerUpdated, error: providerError } = await supabase
       .from('providers')
       .update({
+        alias: providerData.alias,
         name: providerData.name,
-        parent: providerData.parent,
-        color: providerData.color,
-        slug_id: providerData.slug_id,
-        is_active: providerData.is_active,
-        featured: providerData.featured
+        phone: providerData.phone,
+        email: providerData.email,
+        postal_code: providerData.postal_code,
+        address: providerData.address,
+        neighborhood: providerData.neighborhood,
+        bank: providerData.bank,
+        account_type: providerData.account_type,
+        account: providerData.account,
+        holder_name: providerData.holder_name,
+        rfc: providerData.rfc,
+        products: providerData.selected_products
       })
       .eq('id', providerData.id)
       .select()

@@ -1,34 +1,48 @@
-const Confirmation = () => {
+import { useSelector } from 'react-redux'
+import type { ProviderInputBankData, ProviderInputContactData, ProviderInputProductSelection } from '../../../../schemas/providers.schema'
+import type { RootState } from '../../../../store/store'
+
+type Props = {
+  data: {
+    contactData: ProviderInputContactData
+    bankData: ProviderInputBankData
+    productSelection: ProviderInputProductSelection
+  }
+}
+
+const Confirmation = ({ data }: Props) => {
+  const products = useSelector((state: RootState) => state.products.items)
   return (
     <>
       <section>
         <h4 className=' font-semibold'>Datos del proveedor</h4>
 
         <div className='text-sm space-y-1 mt-2 grid grid-cols-2'>
-          <p>Nombre: Nombre del proveedor</p>
-          <p>Alias: Alias del proveedor</p>
-          <p>Teléfono: 1234567890</p>
-          <p>Email: email@proveedor.com</p>
-          <p className='col-span-2'>Dirección: Calle Falsa 123, Ciudad, País</p>
-          <p>Código Postal: 12345</p>
+          <p>Nombre: {data.contactData.name}</p>
+          <p>Alias: {data.contactData.alias}</p>
+          <p>Teléfono: {data.contactData.phone}</p>
+
+          {data.contactData.email && <p>Email: {data.contactData.email}</p>}
+          <p className='col-span-2'>Dirección: {data.contactData.address}</p>
+          <p>Código Postal: {data.contactData.postal_code}</p>
         </div>
       </section>
 
       <section>
         <h4 className=' font-semibold mt-4'>Datos bancarios</h4>
         <div className='text-sm space-y-1 mt-2 grid grid-cols-2'>
-          <p>Banco: Banco Ejemplo</p>
-          <p>Tipo de Cuenta: CLABE</p>
-          <p>CLABE: 123456789012345678</p>
-          <p>RFC: ABCD123456</p>
-          <p className='col-span-2'>Titular: Nombre del Titular</p>
+          <p>Banco: {data.bankData.bank}</p>
+          <p>Tipo de Cuenta: {data.bankData.account_type}</p>
+          <p>CLABE: {data.bankData.account}</p>
+          <p>RFC: {data.bankData.rfc}</p>
+          <p className='col-span-2'>Titular: {data.bankData.holder_name}</p>
         </div>
       </section>
 
       <section>
         <h4 className=' font-semibold mt-4'>Productos seleccionados</h4>
         <div className='mt-2'>
-          <p>Producto 1, Producto 2, Producto 3, Producto 4, Producto 5, Producto 6, Producto 7, Producto 8, Producto 9.</p>
+          <p>{data.productSelection.selected_products.map((product) => products.find((p) => p.id === product)?.name).join(', ')}</p>
         </div>
       </section>
     </>

@@ -1,33 +1,67 @@
-import { Input } from '@heroui/react'
+import { Autocomplete, AutocompleteItem, Input, Radio, RadioGroup } from '@heroui/react'
 import { motion } from 'framer-motion'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useFormContext, useWatch } from 'react-hook-form'
+import { PatternFormat } from 'react-number-format'
+
+const banks = [
+  { name: 'Banco 1', key: 'banco_1' },
+  { name: 'Banco 2', key: 'banco_2' },
+  { name: 'Banco 3', key: 'banco_3' }
+]
 
 const BankDataForm = () => {
-  const { control } = useForm()
+  const { control } = useFormContext()
+
+  const accountType = useWatch({ control, name: 'account_type' })
+
   return (
     <motion.form className='space-y-3'>
       <Controller
-        name='Banco'
+        name='bank'
         control={control}
         render={({ field, fieldState }) => (
-          <Input
-            label='Banco'
-            type='text'
+          <Autocomplete
+            label='Selecciona un banco'
             size='sm'
             variant='bordered'
+            classNames={{ base: 'bg-white' }}
+            selectedKey={String(field.value) || ''}
             isInvalid={!!fieldState.error}
             errorMessage={fieldState.error?.message as string}
-            {...field}
-          />
+            onSelectionChange={(sel) => {
+              console.log(sel)
+              field.onChange(sel)
+            }}
+          >
+            {banks.map((bank) => (
+              <AutocompleteItem key={bank.key}>{bank.name}</AutocompleteItem>
+            ))}
+          </Autocomplete>
         )}
       />
+
+      <Controller
+        name='account_type'
+        control={control}
+        render={({ field }) => (
+          <RadioGroup orientation='horizontal' size='sm' {...field}>
+            <Radio value='clabe'>CLABE</Radio>
+            <Radio value='cuenta'>Cuenta</Radio>
+            <Radio value='tarjeta'>Tarjeta</Radio>
+          </RadioGroup>
+        )}
+      />
+
       <Controller
         name='account'
         control={control}
         render={({ field, fieldState }) => (
-          <Input
-            label='CLABE'
+          <PatternFormat
+            customInput={Input}
+            label={accountType === 'clabe' ? 'Cuenta CLABE' : accountType === 'cuenta' ? 'Número de cuenta' : 'Número de tarjeta'}
+            format={accountType === 'clabe' ? '### ### ########### #' : accountType === 'cuenta' ? '############' : '#### #### #### ####'}
             type='text'
+            classNames={{ inputWrapper: 'bg-white' }}
             size='sm'
             variant='bordered'
             isInvalid={!!fieldState.error}
@@ -45,9 +79,11 @@ const BankDataForm = () => {
             type='text'
             size='sm'
             variant='bordered'
+            maxLength={50}
             isInvalid={!!fieldState.error}
             errorMessage={fieldState.error?.message as string}
             {...field}
+            classNames={{ inputWrapper: 'bg-white' }}
           />
         )}
       />
@@ -60,8 +96,10 @@ const BankDataForm = () => {
             type='text'
             size='sm'
             variant='bordered'
+            maxLength={13}
             isInvalid={!!fieldState.error}
             errorMessage={fieldState.error?.message as string}
+            classNames={{ inputWrapper: 'bg-white' }}
             {...field}
           />
         )}

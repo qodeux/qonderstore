@@ -1,6 +1,6 @@
 import { Autocomplete, AutocompleteItem, Input, Switch } from '@heroui/react'
-import { motion } from 'framer-motion'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useFormContext } from 'react-hook-form'
+import { PatternFormat } from 'react-number-format'
 
 const neighborhoods = [
   { name: 'Colonia 1', key: 'colonia_1' },
@@ -9,12 +9,12 @@ const neighborhoods = [
 ]
 
 const ContactDataForm = () => {
-  const { control, watch } = useForm()
+  const { control, watch } = useFormContext()
 
   const addAddress = watch('switchAddAddress', false)
 
   return (
-    <motion.form className='space-y-2'>
+    <form className='space-y-2'>
       <Controller
         name='alias'
         control={control}
@@ -51,7 +51,9 @@ const ContactDataForm = () => {
         name='phone'
         control={control}
         render={({ field, fieldState }) => (
-          <Input
+          <PatternFormat
+            customInput={Input}
+            format='## #### ####'
             label='Teléfono'
             type='text'
             variant='bordered'
@@ -101,6 +103,7 @@ const ContactDataForm = () => {
                 type='text'
                 variant='bordered'
                 size='sm'
+                maxLength={5}
                 isInvalid={!!fieldState.error}
                 errorMessage={fieldState.error?.message as string}
                 {...field}
@@ -148,7 +151,7 @@ const ContactDataForm = () => {
           />
         </>
       )}
-    </motion.form>
+    </form>
   )
 }
 
