@@ -19,7 +19,7 @@ const catalogsSlice = createSlice({
   name: 'catalogs',
   initialState,
   reducers: {
-    setBanks(state, action: PayloadAction<string[]>) {
+    setBanks(state, action: PayloadAction<Bank[]>) {
       state.banks = action.payload
     }
   }

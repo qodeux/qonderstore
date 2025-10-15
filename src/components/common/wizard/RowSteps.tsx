@@ -6,7 +6,7 @@ import type { ComponentProps } from 'react'
 import { cn } from '@heroui/react'
 import { useControlledState } from '@react-stately/utils'
 import { LazyMotion, domAnimation, m } from 'framer-motion'
-import React from 'react'
+import React, { useEffect } from 'react'
 
 export type RowStepProps = {
   title?: React.ReactNode
@@ -93,6 +93,17 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
   ) => {
     const [currentStep, setCurrentStep] = useControlledState(currentStepProp, defaultStep, onStepChange)
 
+    const handleClick = (stepIndex: number, status: 'active' | 'inactive' | 'complete') => {
+      console.log(`Status del paso ${stepIndex}:`, status)
+
+      if (status === 'complete') {
+        // Aquí puedes manejar la lógica para pasos inactivos si es necesario
+        //console.log(`El paso ${stepIndex} está completo y se ha hecho clic en él.`)
+
+        onStepChange?.(stepIndex)
+      }
+    }
+
     const colors = React.useMemo(() => {
       let userColor
       let fgColor
@@ -145,6 +156,10 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
       return colorsVars
     }, [color, className])
 
+    useEffect(() => {
+      console.log('Paso seleccionado:', currentStep)
+    }, [currentStep])
+
     return (
       <nav aria-label='Progress' className='-my-4 max-w-fit overflow-x-auto py-4'>
         <ol className={cn('flex flex-row flex-nowrap ', colors, className)}>
@@ -161,7 +176,7 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
                     'group rounded-large flex w-full cursor-pointer flex-row items-center justify-center py-2.5',
                     stepClassName
                   )}
-                  onClick={() => setCurrentStep(stepIdx)}
+                  onClick={() => handleClick(stepIdx, status)}
                   {...props}
                 >
                   <div className='h-ful relative flex items-center'>

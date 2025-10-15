@@ -26,7 +26,9 @@ const WizardFooter = ({ getStepForm, onConfirm }: Props) => {
       // Valida TODO el formulario del paso actual y enfoca el primero con error
       const ok = await currentForm.trigger(undefined, { shouldFocus: true })
 
-      console.log(currentForm.formState.errors)
+      if (!ok) {
+        console.error(currentForm.formState.errors)
+      }
 
       setChecking(false)
       if (!ok) return // ❌ No avanza si hay errores

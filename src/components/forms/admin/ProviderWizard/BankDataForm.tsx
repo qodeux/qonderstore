@@ -2,15 +2,16 @@ import { Autocomplete, AutocompleteItem, Input, Radio, RadioGroup } from '@herou
 import { motion } from 'framer-motion'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { PatternFormat } from 'react-number-format'
-
-const banks = [
-  { name: 'Banco 1', key: 'banco_1' },
-  { name: 'Banco 2', key: 'banco_2' },
-  { name: 'Banco 3', key: 'banco_3' }
-]
+import { useSelector } from 'react-redux'
+import { useCatalog } from '../../../../hooks/useCatalog'
+import type { RootState } from '../../../../store/store'
 
 const BankDataForm = () => {
   const { control } = useFormContext()
+
+  useCatalog('banks')
+
+  const banksOptions = useSelector((state: RootState) => state.catalogs.banks)
 
   const accountType = useWatch({ control, name: 'account_type' })
 
@@ -29,12 +30,11 @@ const BankDataForm = () => {
             isInvalid={!!fieldState.error}
             errorMessage={fieldState.error?.message as string}
             onSelectionChange={(sel) => {
-              console.log(sel)
               field.onChange(sel)
             }}
           >
-            {banks.map((bank) => (
-              <AutocompleteItem key={bank.key}>{bank.name}</AutocompleteItem>
+            {banksOptions.map((bank) => (
+              <AutocompleteItem key={bank.id}>{bank.short_name}</AutocompleteItem>
             ))}
           </Autocomplete>
         )}
@@ -46,8 +46,8 @@ const BankDataForm = () => {
         render={({ field }) => (
           <RadioGroup orientation='horizontal' size='sm' {...field}>
             <Radio value='clabe'>CLABE</Radio>
-            <Radio value='cuenta'>Cuenta</Radio>
-            <Radio value='tarjeta'>Tarjeta</Radio>
+            <Radio value='account'>Cuenta</Radio>
+            <Radio value='card'>Tarjeta</Radio>
           </RadioGroup>
         )}
       />
@@ -58,8 +58,8 @@ const BankDataForm = () => {
         render={({ field, fieldState }) => (
           <PatternFormat
             customInput={Input}
-            label={accountType === 'clabe' ? 'Cuenta CLABE' : accountType === 'cuenta' ? 'Número de cuenta' : 'Número de tarjeta'}
-            format={accountType === 'clabe' ? '### ### ########### #' : accountType === 'cuenta' ? '############' : '#### #### #### ####'}
+            label={accountType === 'clabe' ? 'Cuenta CLABE' : accountType === 'account' ? 'Número de cuenta' : 'Número de tarjeta'}
+            format={accountType === 'clabe' ? '### ### ########### #' : accountType === 'account' ? '############' : '#### #### #### ####'}
             type='text'
             classNames={{ inputWrapper: 'bg-white' }}
             size='sm'
@@ -100,7 +100,8 @@ const BankDataForm = () => {
             isInvalid={!!fieldState.error}
             errorMessage={fieldState.error?.message as string}
             classNames={{ inputWrapper: 'bg-white' }}
-            {...field}
+            value={field.value?.toUpperCase() || ''}
+            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
           />
         )}
       />

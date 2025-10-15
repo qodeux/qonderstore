@@ -1,5 +1,6 @@
+import { addToast } from '@heroui/react'
 import supabase from '../lib/supabase'
-import type { ProviderInput } from '../schemas/providers.schema'
+import type { Provider, ProviderCreateInput } from '../schemas/providers.schema'
 
 export const providerService = {
   fetchProviders: async () => {
@@ -9,7 +10,7 @@ export const providerService = {
     }
     return products
   },
-  createProvider: async (providerData: ProviderInput) => {
+  createProvider: async (providerData: ProviderCreateInput) => {
     const { data: providerInserted, error: providerError } = await supabase
       .from('providers')
       .insert([
@@ -36,9 +37,21 @@ export const providerService = {
       console.error('Error inserting provider:', providerError)
       return { error: providerError }
     }
+
+    setTimeout(() => {
+      addToast({
+        title: 'Proveedor agregado',
+        description: `El proveedor "${providerInserted.alias}" ha sido agregado correctamente.`,
+        color: 'success',
+        variant: 'bordered',
+        shouldShowTimeoutProgress: true,
+        timeout: 4000
+      })
+    }, 1000)
+
     return providerInserted
   },
-  updateProvider: async (providerData: ProviderInput) => {
+  updateProvider: async (providerData: Provider) => {
     if (!providerData.id) {
       console.error('El id de la categoría es obligatorio para actualizar')
       return

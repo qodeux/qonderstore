@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { AnimatePresence } from 'framer-motion'
 import { useCallback, useEffect } from 'react'
 import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Wizard } from 'react-use-wizard'
 import {
   providerInputBankDataSchema,
@@ -14,7 +14,7 @@ import {
   type ProviderInputProductSelection
 } from '../../../schemas/providers.schema'
 import { providerService } from '../../../services/providerService'
-import { setPreviousStep } from '../../../store/slices/providersSlice'
+import { requestJumpToStep, setPreviousStep } from '../../../store/slices/providersSlice'
 import type { RootState } from '../../../store/store'
 import AnimatedStep from '../../common/wizard/AnimatedStep'
 import RowSteps from '../../common/wizard/RowSteps'
@@ -44,6 +44,7 @@ type ProviderCombinedData = {
 
 const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
   const { selectedProvider, previousStep } = useSelector((state: RootState) => state.providers)
+  const dispatch = useDispatch()
 
   const currentStep = previousStep + 1
 
@@ -55,13 +56,15 @@ const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
       email: selectedProvider?.email || '',
       postal_code: selectedProvider?.postal_code || '',
       address: selectedProvider?.address || '',
-      neighborhood: selectedProvider?.neighborhood || undefined
+      neighborhood: selectedProvider?.neighborhood || undefined,
+
+      city_state: '' // campo calculado, no se envia
     },
     bankData: {
       bank: selectedProvider?.bank || '',
       account_type: selectedProvider?.account_type || 'clabe',
       account: selectedProvider?.account || '',
-      holder_name: selectedProvider?.holder || '',
+      holder_name: selectedProvider?.holder_name || '',
       rfc: selectedProvider?.rfc || ''
     },
     productSelection: {
@@ -136,6 +139,16 @@ const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
     }
   ]
 
+  const onStepClick = (stepIndex: number) => {
+    console.log('cambiar a paso:', stepIndex)
+
+    if (stepIndex < currentStep) {
+      dispatch(requestJumpToStep(stepIndex))
+    }
+  }
+
+  // ===== Envío final =====
+
   const onConfirm = async () => {
     const { contactData, bankData, productSelection } = getCombined()
     // Si vas a enviar plano:
@@ -147,7 +160,24 @@ const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
     const insertedProvider = await providerService.createProvider(payload)
     // await api.post('/providers', payload)
 
-    console.log(insertedProvider)
+    if (insertedProvider?.error) {
+      // manejar error
+      if (insertedProvider.error.code === '23505') {
+        if (insertedProvider.error.details.includes('Key (alias)')) {
+          contactDataForm.setError('alias', { message: 'El alias ya está en uso' })
+        }
+
+        if (insertedProvider.error.details.includes('Key (email)')) {
+          contactDataForm.setError('email', { message: 'El email ya está en uso' }, { shouldFocus: true })
+        }
+
+        dispatch(requestJumpToStep(0)) // Salta a paso 1
+
+        return
+      }
+    }
+
+    onOpenChange()
   }
 
   return (
@@ -156,12 +186,17 @@ const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
       onOpenChange={onOpenChange}
       size={currentStep > 2 ? 'lg' : 'sm'}
       backdrop='blur'
-      classNames={{ base: ' overflow-hidden pt-4 bg-gray-50' }}
+      isDismissable={false}
+      classNames={{
+        base: ' overflow-hidden pt-4 bg-gray-50',
+        closeButton:
+          'focus:outline-none focus:ring-0 data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-0 cursor-pointer'
+      }}
     >
       <ModalContent>
         <ModalBody>
-          <section className='flex flex-col items-center'>
-            <RowSteps currentStep={previousStep} steps={WizardSteps} />
+          <section className='flex flex-col items-center '>
+            <RowSteps currentStep={previousStep} onStepChange={onStepClick} steps={WizardSteps} />
           </section>
 
           <Wizard
