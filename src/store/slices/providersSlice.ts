@@ -1,9 +1,10 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { Provider } from '../../schemas/providers.schema'
 
 interface providersState {
   editMode: boolean
   previousStep: number
+  jumpToStep: number | null
   selectedProvider?: Provider | null
   items: Provider[]
 }
@@ -12,6 +13,7 @@ const initialState: providersState = {
   editMode: false,
   selectedProvider: null,
   previousStep: 0,
+  jumpToStep: null,
   items: []
 }
 
@@ -35,9 +37,15 @@ const providerSlice = createSlice({
 
     setPreviousStep(state, action) {
       state.previousStep = action.payload
+    },
+    requestJumpToStep: (state, action: PayloadAction<number>) => {
+      state.jumpToStep = action.payload
+    },
+    clearJumpToStep: (state) => {
+      state.jumpToStep = null
     }
   }
 })
-export const { setEditMode, setSelectedProvider, setProviders, setPreviousStep } = providerSlice.actions
+export const { setEditMode, setSelectedProvider, setProviders, setPreviousStep, requestJumpToStep, clearJumpToStep } = providerSlice.actions
 
 export default providerSlice.reducer
