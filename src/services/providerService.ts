@@ -108,7 +108,7 @@ export const providerService = {
       addToast({
         title: 'Proveedor eliminado',
         description: `El proveedor ha sido eliminado correctamente.`,
-        color: 'primary',
+        color: 'danger',
         variant: 'bordered',
         shouldShowTimeoutProgress: true,
         timeout: 4000
