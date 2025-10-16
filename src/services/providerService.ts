@@ -52,6 +52,8 @@ export const providerService = {
     return providerInserted
   },
   updateProvider: async (id: number, providerData: ProviderCreateInput) => {
+    console.log(providerData)
+
     if (!id) {
       console.error('El id del proveedor es obligatorio para actualizar')
       return
@@ -63,9 +65,9 @@ export const providerService = {
         name: providerData.name,
         phone: providerData.phone,
         email: providerData.email,
-        postal_code: providerData.postal_code,
-        address: providerData.address,
-        neighborhood: providerData.neighborhood,
+        postal_code: providerData.postal_code || null,
+        address: providerData.address || null,
+        neighborhood: providerData.neighborhood || null,
         bank: providerData.bank,
         account_type: providerData.account_type,
         account: providerData.account,

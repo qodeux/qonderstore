@@ -13,24 +13,74 @@ const ContactDataForm = () => {
   // Concurrencia / control
   const fetchVersionRef = useRef(0) // incrementa por cada búsqueda
   const pendingDesiredRef = useRef('') // colonia deseada capturada antes de limpiar
+  const clearVersionRef = useRef(0) // para remounts durante limpiezas
+  const prevAddAddressRef = useRef<boolean | null>(null) // <-- para detectar transición true→false
 
-  // Forzamos remount del Autocomplete cuando cambian CP/opciones
+  // Remount del Autocomplete cuando cambian CP/opciones o cuando limpiamos todo
   const [autoKey, setAutoKey] = useState('')
 
   const addAddress = watch('switchAddAddress', false)
-  const postalCode = useWatch({ control, name: 'postal_code' })
-  const neighborhood = useWatch({ control, name: 'neighborhood' }) // lo manejaremos como string
+  const postalCodeRaw = useWatch({ control, name: 'postal_code' })
+  const postalCode = postalCodeRaw && postalCodeRaw.length === 5 ? postalCodeRaw : undefined
+  const neighborhood = useWatch({ control, name: 'neighborhood' }) // string | undefined
 
-  // ---- FETCH por CP ----
+  // ---------- LIMPIEZAS CUANDO NO HAY CP VÁLIDO ----------
+  useEffect(() => {
+    // Si el CP se borra o es inválido (<5), limpiamos ciudad/estado, colonias y selección
+    if (!postalCodeRaw || postalCodeRaw.length !== 5) {
+      setNeighborhoodsOptions([])
+      setValue('city_state', '', { shouldDirty: false })
+      setValue('neighborhood', undefined, { shouldDirty: false, shouldValidate: true })
+      setValue('neighborhood_data', '', { shouldDirty: false })
+      setAutoKey(`auto-clear-${++clearVersionRef.current}`)
+    }
+  }, [postalCodeRaw, setValue])
+
+  // ---------- SOLO limpiar TODO cuando el usuario apaga el switch (true → false) ----------
+  useEffect(() => {
+    const prev = prevAddAddressRef.current
+    prevAddAddressRef.current = addAddress
+    if (prev === true && addAddress === false) {
+      // cancelar fetch en curso e indicadores
+      fetchVersionRef.current++
+      setSearchingPostalCode(false)
+
+      // limpiar TODOS los campos de dirección (incluye CP)
+      setNeighborhoodsOptions([])
+      setValue('postal_code', '', { shouldDirty: true, shouldValidate: true })
+      setValue('city_state', undefined, { shouldDirty: true })
+      setValue('neighborhood', undefined, { shouldDirty: true, shouldValidate: true })
+      setValue('neighborhood_data', '', { shouldDirty: true })
+      setValue('address', '', { shouldDirty: true, shouldValidate: true })
+      setAutoKey(`auto-switch-off-${++clearVersionRef.current}`)
+    }
+  }, [addAddress, setValue])
+
+  // Si activan "Agregar dirección" sin CP válido, limpia para no arrastrar datos del edit anterior
+  useEffect(() => {
+    if (addAddress) {
+      const pc = getValues('postal_code')
+
+      if (!pc || pc.length !== 5) {
+        setNeighborhoodsOptions([])
+        setValue('city_state', '', { shouldDirty: false })
+        setValue('neighborhood', undefined, { shouldDirty: false, shouldValidate: true })
+        setValue('neighborhood_data', '', { shouldDirty: false })
+        setAutoKey(`auto-add-${++clearVersionRef.current}`)
+      }
+    }
+  }, [addAddress, getValues, setValue])
+
+  // ---------- FETCH POR CP ----------
   useEffect(() => {
     const run = async () => {
-      if (!postalCode || postalCode.length !== 5) return
+      if (!postalCode) return
 
       // Captura lo que el formulario "quiere" antes de limpiar
       const desiredBeforeClear = getValues('neighborhood')
       pendingDesiredRef.current = desiredBeforeClear == null ? '' : String(desiredBeforeClear)
 
-      // Limpia dependencias
+      // Limpia dependencias para evitar rebotes mientras buscamos
       setValue('neighborhood', undefined, { shouldDirty: false, shouldValidate: false })
       setNeighborhoodsOptions([])
       setValue('city_state', '', { shouldDirty: false })
@@ -56,7 +106,6 @@ const ContactDataForm = () => {
       if (!cpData?.length) {
         setError('city_state', { message: 'El código postal no existe' })
         setNeighborhoodsOptions([])
-        // Forzamos remount vacío
         setAutoKey(`auto-${postalCode}-${myVersion}-empty`)
         return
       }
@@ -66,19 +115,20 @@ const ContactDataForm = () => {
       setValue('city_state', `${first.D_mnpio}, ${first.d_estado}`, { shouldDirty: false })
       setNeighborhoodsOptions(cpData)
 
-      // Forzamos remount del Autocomplete para que respete selectedKey
+      // Forzamos remount del Autocomplete para que respete selectedKey con nuevas opciones
       setAutoKey(`auto-${postalCode}-${myVersion}`)
     }
 
     run()
   }, [postalCode, trigger, setValue, setError, getValues])
 
-  // ---- Selección determinista cuando cambian las opciones ----
+  // ---------- SELECCIÓN DETERMINISTA AL CAMBIAR OPCIONES ----------
   useEffect(() => {
     if (!neighborhoodsOptions.length) return
-    // candidatos en orden de prioridad:
-    // a) valor más reciente (por si un reset() ya lo metió)
-    // b) el capturado antes de limpiar
+
+    // Prioridad: (a) valor más reciente en el form (por si reset() lo metió),
+    //            (b) valor capturado antes de limpiar,
+    //            (c) primera opción
     const newestDesired = getValues('neighborhood')
     const candidates = [newestDesired == null ? '' : String(newestDesired), pendingDesiredRef.current].filter(Boolean) as string[]
 
@@ -89,9 +139,7 @@ const ContactDataForm = () => {
         break
       }
     }
-    if (!next) {
-      next = String(neighborhoodsOptions[0].id)
-    }
+    if (!next) next = String(neighborhoodsOptions[0].id)
 
     // Solo escribe si es diferente o inválido
     if (!neighborhoodsOptions.some((n) => String(n.id) === String(neighborhood))) {
@@ -99,9 +147,9 @@ const ContactDataForm = () => {
       clearErrors(['neighborhood'])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [neighborhoodsOptions]) // intencional: solo reaccionamos cuando llegan nuevas opciones
+  }, [neighborhoodsOptions])
 
-  // ---- Sincroniza hidden con la colonia actual ----
+  // ---------- Sincroniza hidden con la colonia actual ----------
   useEffect(() => {
     const key = neighborhood == null ? '' : String(neighborhood)
     const n = neighborhoodsOptions.find((nn) => String(nn.id) === key) ?? null
@@ -225,6 +273,8 @@ const ContactDataForm = () => {
                   setNeighborhoodsOptions([])
                   setValue('city_state', '', { shouldDirty: true, shouldValidate: true })
                   setValue('neighborhood', undefined, { shouldDirty: true, shouldValidate: true })
+                  setValue('neighborhood_data', '', { shouldDirty: true })
+                  setAutoKey(`auto-clear-${++clearVersionRef.current}`)
                 }}
                 onBlur={field.onBlur}
                 inputMode='numeric'
@@ -246,7 +296,7 @@ const ContactDataForm = () => {
           {!!neighborhoodsOptions.length && (
             <>
               <Controller
-                key={autoKey} // <-- remonta cuando cambiamos CP/opciones
+                key={autoKey} // remonta cuando cambiamos CP/opciones o cuando limpiamos todo
                 name='neighborhood'
                 control={control}
                 render={({ field }) => (
