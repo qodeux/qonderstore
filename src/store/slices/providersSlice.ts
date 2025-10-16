@@ -2,7 +2,6 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { Provider } from '../../schemas/providers.schema'
 
 interface providersState {
-  editMode: boolean
   previousStep: number
   jumpToStep: number | null
   selectedProvider?: Provider | null
@@ -13,7 +12,6 @@ interface providersState {
 }
 
 const initialState: providersState = {
-  editMode: false,
   selectedProvider: null,
   previousStep: 0,
   jumpToStep: null,
@@ -28,7 +26,7 @@ const providerSlice = createSlice({
   initialState,
   reducers: {
     setEditMode(state, action) {
-      state.editMode = action.payload
+      state.isEditing = action.payload
       if (!action.payload) {
         state.selectedProvider = null
       }

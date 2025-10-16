@@ -1,66 +1,112 @@
 import { Autocomplete, AutocompleteItem, Input, Spinner, Switch } from '@heroui/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { PatternFormat } from 'react-number-format'
 import { locationService } from '../../../../services/locationService'
 import type { Neighborhood } from '../../../../types/location'
 
 const ContactDataForm = () => {
-  const { control, watch, trigger, setValue, setError, clearErrors } = useFormContext()
+  const { control, watch, trigger, setValue, setError, clearErrors, getValues } = useFormContext()
   const [SearchingPostalCode, setSearchingPostalCode] = useState(false)
   const [neighborhoodsOptions, setNeighborhoodsOptions] = useState<Neighborhood[]>([])
 
+  // Concurrencia / control
+  const fetchVersionRef = useRef(0) // incrementa por cada búsqueda
+  const pendingDesiredRef = useRef('') // colonia deseada capturada antes de limpiar
+
+  // Forzamos remount del Autocomplete cuando cambian CP/opciones
+  const [autoKey, setAutoKey] = useState('')
+
   const addAddress = watch('switchAddAddress', false)
-
   const postalCode = useWatch({ control, name: 'postal_code' })
-  const neighborhood = useWatch({ control, name: 'neighborhood' })
+  const neighborhood = useWatch({ control, name: 'neighborhood' }) // lo manejaremos como string
 
+  // ---- FETCH por CP ----
   useEffect(() => {
-    const check = async () => {
-      // Dispara la validación del campo postal_code
+    const run = async () => {
+      if (!postalCode || postalCode.length !== 5) return
+
+      // Captura lo que el formulario "quiere" antes de limpiar
+      const desiredBeforeClear = getValues('neighborhood')
+      pendingDesiredRef.current = desiredBeforeClear == null ? '' : String(desiredBeforeClear)
+
+      // Limpia dependencias
+      setValue('neighborhood', undefined, { shouldDirty: false, shouldValidate: false })
+      setNeighborhoodsOptions([])
+      setValue('city_state', '', { shouldDirty: false })
+
       const isValid = await trigger('postal_code')
+      if (!isValid) return
 
-      if (isValid) {
-        console.log('Código postal válido:', postalCode)
-        cpLookupData(postalCode)
-      }
-    }
-
-    const cpLookupData = async (cp: string) => {
-      clearErrors('city_state')
+      const myVersion = ++fetchVersionRef.current
       setSearchingPostalCode(true)
 
-      const cpData: Neighborhood[] = await locationService.fetchPostalCodeData(cp)
-
-      if (cpData && cpData.length > 0) {
-        const data = cpData[0]
-
-        setNeighborhoodsOptions(cpData)
-
-        setValue('city_state', `${data.D_mnpio}, ${data.d_estado}`)
-
-        setValue('neighborhood', cpData[0].id)
-      } else {
-        setError('city_state', { message: 'El código postal no existe' })
-        setNeighborhoodsOptions([])
+      let cpData: Neighborhood[] = []
+      try {
+        cpData = await locationService.fetchPostalCodeData(postalCode)
+      } catch {
+        cpData = []
       }
 
+      // Otra búsqueda más nueva ya corrió
+      if (fetchVersionRef.current !== myVersion) return
+
       setSearchingPostalCode(false)
+
+      if (!cpData?.length) {
+        setError('city_state', { message: 'El código postal no existe' })
+        setNeighborhoodsOptions([])
+        // Forzamos remount vacío
+        setAutoKey(`auto-${postalCode}-${myVersion}-empty`)
+        return
+      }
+
+      // Publica ciudad/estado y opciones
+      const first = cpData[0]
+      setValue('city_state', `${first.D_mnpio}, ${first.d_estado}`, { shouldDirty: false })
+      setNeighborhoodsOptions(cpData)
+
+      // Forzamos remount del Autocomplete para que respete selectedKey
+      setAutoKey(`auto-${postalCode}-${myVersion}`)
     }
 
-    if (postalCode?.length === 5) {
-      check()
-    }
-  }, [postalCode, trigger, setValue, setError, clearErrors])
+    run()
+  }, [postalCode, trigger, setValue, setError, getValues])
 
+  // ---- Selección determinista cuando cambian las opciones ----
   useEffect(() => {
-    // Si el usuario borra la colonia, limpia el campo oculto
-    if (!neighborhood) {
-      setValue('neighborhood_data', '')
-    } else {
-      setValue('neighborhood_data', JSON.stringify(neighborhoodsOptions.find((n) => n.id == neighborhood) || null))
+    if (!neighborhoodsOptions.length) return
+    // candidatos en orden de prioridad:
+    // a) valor más reciente (por si un reset() ya lo metió)
+    // b) el capturado antes de limpiar
+    const newestDesired = getValues('neighborhood')
+    const candidates = [newestDesired == null ? '' : String(newestDesired), pendingDesiredRef.current].filter(Boolean) as string[]
+
+    let next = ''
+    for (const cand of candidates) {
+      if (neighborhoodsOptions.some((n) => String(n.id) === String(cand))) {
+        next = String(cand)
+        break
+      }
     }
-  }, [neighborhood, setValue, neighborhoodsOptions])
+    if (!next) {
+      next = String(neighborhoodsOptions[0].id)
+    }
+
+    // Solo escribe si es diferente o inválido
+    if (!neighborhoodsOptions.some((n) => String(n.id) === String(neighborhood))) {
+      setValue('neighborhood', next, { shouldDirty: false, shouldValidate: true })
+      clearErrors(['neighborhood'])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [neighborhoodsOptions]) // intencional: solo reaccionamos cuando llegan nuevas opciones
+
+  // ---- Sincroniza hidden con la colonia actual ----
+  useEffect(() => {
+    const key = neighborhood == null ? '' : String(neighborhood)
+    const n = neighborhoodsOptions.find((nn) => String(nn.id) === key) ?? null
+    setValue('neighborhood_data', n ? JSON.stringify(n) : '', { shouldDirty: false })
+  }, [neighborhood, neighborhoodsOptions, setValue])
 
   return (
     <form className='space-y-2'>
@@ -80,6 +126,7 @@ const ContactDataForm = () => {
           />
         )}
       />
+
       <Controller
         name='name'
         control={control}
@@ -96,6 +143,7 @@ const ContactDataForm = () => {
           />
         )}
       />
+
       <Controller
         name='phone'
         control={control}
@@ -114,6 +162,7 @@ const ContactDataForm = () => {
           />
         )}
       />
+
       <Controller
         name='email'
         control={control}
@@ -166,16 +215,16 @@ const ContactDataForm = () => {
                 endContent={SearchingPostalCode && <Spinner size='sm' />}
                 isDisabled={SearchingPostalCode}
                 isClearable
-                value={field.value ?? ''} // controla siempre el valor
+                value={field.value ?? ''}
                 onValueChange={(val) => {
                   const onlyDigits = val.replace(/\D/g, '').slice(0, 5)
-                  field.onChange(onlyDigits) // avisa a RHF
+                  field.onChange(onlyDigits)
                 }}
                 onClear={() => {
-                  // Limpia el form y fuerza validación/dirty si lo necesitas
-                  field.onChange('') // mejor '' que undefined para inputs controlados
-                  setValue('city_state', '', { shouldDirty: true, shouldValidate: true })
+                  field.onChange('')
                   setNeighborhoodsOptions([])
+                  setValue('city_state', '', { shouldDirty: true, shouldValidate: true })
+                  setValue('neighborhood', undefined, { shouldDirty: true, shouldValidate: true })
                 }}
                 onBlur={field.onBlur}
                 inputMode='numeric'
@@ -194,9 +243,10 @@ const ContactDataForm = () => {
             )}
           />
 
-          {neighborhoodsOptions && neighborhoodsOptions.length > 0 && (
+          {!!neighborhoodsOptions.length && (
             <>
               <Controller
+                key={autoKey} // <-- remonta cuando cambiamos CP/opciones
                 name='neighborhood'
                 control={control}
                 render={({ field }) => (
@@ -205,14 +255,14 @@ const ContactDataForm = () => {
                     size='sm'
                     variant='bordered'
                     classNames={{ base: 'bg-white' }}
-                    selectedKey={String(field.value) || ''}
-                    onSelectionChange={(sel) => {
-                      console.log(sel)
-                      field.onChange(sel)
+                    selectedKey={field.value === undefined || field.value === null || field.value === '' ? undefined : String(field.value)}
+                    onSelectionChange={(key) => {
+                      const k = key == null ? '' : String(key)
+                      field.onChange(k)
                     }}
                   >
-                    {neighborhoodsOptions.map((neighborhood: Neighborhood) => (
-                      <AutocompleteItem key={neighborhood.id}>{neighborhood.d_asenta}</AutocompleteItem>
+                    {neighborhoodsOptions.map((n) => (
+                      <AutocompleteItem key={String(n.id)}>{n.d_asenta}</AutocompleteItem>
                     ))}
                   </Autocomplete>
                 )}

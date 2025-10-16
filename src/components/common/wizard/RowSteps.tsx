@@ -6,7 +6,7 @@ import type { ComponentProps } from 'react'
 import { cn } from '@heroui/react'
 import { useControlledState } from '@react-stately/utils'
 import { LazyMotion, domAnimation, m } from 'framer-motion'
-import React, { useEffect } from 'react'
+import React from 'react'
 
 export type RowStepProps = {
   title?: React.ReactNode
@@ -54,6 +54,7 @@ export interface RowStepsProps extends React.HTMLAttributes<HTMLButtonElement> {
    * Callback function when the step index changes.
    */
   onStepChange?: (stepIndex: number) => void
+  allowAllSteps?: boolean
 }
 
 function CheckIcon(props: ComponentProps<'svg'>) {
@@ -83,22 +84,26 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
       steps = [],
       defaultStep = 0,
       onStepChange,
+
       currentStep: currentStepProp,
       hideProgressBars = false,
       stepClassName,
       className,
+      allowAllSteps = false,
       ...props
     },
     ref
   ) => {
     const [currentStep, setCurrentStep] = useControlledState(currentStepProp, defaultStep, onStepChange)
 
-    const handleClick = (stepIndex: number, status: 'active' | 'inactive' | 'complete') => {
-      console.log(`Status del paso ${stepIndex}:`, status)
+    const handleClick = (stepIndex: number, status: string) => {
+      //console.log(`Status del paso ${stepIndex}:`, status)
 
-      if (status === 'complete') {
+      if (status === 'complete' || allowAllSteps) {
         // Aquí puedes manejar la lógica para pasos inactivos si es necesario
         //console.log(`El paso ${stepIndex} está completo y se ha hecho clic en él.`)
+
+        setCurrentStep(stepIndex)
 
         onStepChange?.(stepIndex)
       }
@@ -156,15 +161,11 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
       return colorsVars
     }, [color, className])
 
-    useEffect(() => {
-      console.log('Paso seleccionado:', currentStep)
-    }, [currentStep])
-
     return (
       <nav aria-label='Progress' className='-my-4 max-w-fit overflow-x-auto py-4'>
         <ol className={cn('flex flex-row flex-nowrap ', colors, className)}>
           {steps?.map((step, stepIdx) => {
-            let status = currentStep === stepIdx ? 'active' : currentStep < stepIdx ? 'inactive' : 'complete'
+            const status = currentStep === stepIdx ? 'active' : currentStep < stepIdx ? 'inactive' : 'complete'
 
             return (
               <li key={stepIdx} className='relative flex w-full items-center pr-12 last:pr-0'>
@@ -236,7 +237,7 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
                       aria-hidden='true'
                       className='pointer-events-none absolute right-0 w-12 flex-none items-center'
                       style={{
-                        // @ts-ignore
+                        // @ts-expect-error CSS variable
                         '--idx': stepIdx
                       }}
                     >

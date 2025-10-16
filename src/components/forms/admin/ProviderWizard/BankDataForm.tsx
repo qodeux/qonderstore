@@ -3,13 +3,10 @@ import { motion } from 'framer-motion'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { PatternFormat } from 'react-number-format'
 import { useSelector } from 'react-redux'
-import { useCatalog } from '../../../../hooks/useCatalog'
 import type { RootState } from '../../../../store/store'
 
 const BankDataForm = () => {
   const { control } = useFormContext()
-
-  useCatalog('banks')
 
   const banksOptions = useSelector((state: RootState) => state.catalogs.banks)
 

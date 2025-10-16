@@ -43,7 +43,7 @@ type ProviderCombinedData = {
 }
 
 const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
-  const { selectedProvider, previousStep } = useSelector((state: RootState) => state.providers)
+  const { selectedProvider, previousStep, isEditing } = useSelector((state: RootState) => state.providers)
   const dispatch = useDispatch()
 
   const currentStep = previousStep + 1
@@ -54,10 +54,10 @@ const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
       name: selectedProvider?.name || '',
       phone: selectedProvider?.phone || '',
       email: selectedProvider?.email || '',
+      switchAddAddress: !!selectedProvider?.postal_code || false, // si tiene código, marca el switch
       postal_code: selectedProvider?.postal_code || '',
       address: selectedProvider?.address || '',
       neighborhood: selectedProvider?.neighborhood || undefined,
-
       city_state: '' // campo calculado, no se envia
     },
     bankData: {
@@ -140,9 +140,7 @@ const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
   ]
 
   const onStepClick = (stepIndex: number) => {
-    console.log('cambiar a paso:', stepIndex)
-
-    if (stepIndex < currentStep) {
+    if (stepIndex < currentStep || isEditing) {
       dispatch(requestJumpToStep(stepIndex))
     }
   }
@@ -157,17 +155,21 @@ const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
     const payload = { ...contactData, ...bankData, ...productSelection }
     console.log('Datos a enviar:', payload)
 
-    const insertedProvider = await providerService.createProvider(payload)
-    // await api.post('/providers', payload)
+    let transaction
+    if (isEditing && selectedProvider) {
+      transaction = await providerService.updateProvider(selectedProvider.id, payload)
+    } else {
+      transaction = await providerService.createProvider(payload)
+    }
 
-    if (insertedProvider?.error) {
+    if (transaction?.error) {
       // manejar error
-      if (insertedProvider.error.code === '23505') {
-        if (insertedProvider.error.details.includes('Key (alias)')) {
+      if (transaction.error.code === '23505') {
+        if (transaction.error.details.includes('Key (alias)')) {
           contactDataForm.setError('alias', { message: 'El alias ya está en uso' })
         }
 
-        if (insertedProvider.error.details.includes('Key (email)')) {
+        if (transaction.error.details.includes('Key (email)')) {
           contactDataForm.setError('email', { message: 'El email ya está en uso' }, { shouldFocus: true })
         }
 
@@ -196,7 +198,7 @@ const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
       <ModalContent>
         <ModalBody>
           <section className='flex flex-col items-center '>
-            <RowSteps currentStep={previousStep} onStepChange={onStepClick} steps={WizardSteps} />
+            <RowSteps currentStep={previousStep} onStepChange={onStepClick} steps={WizardSteps} allowAllSteps={isEditing} />
           </section>
 
           <Wizard

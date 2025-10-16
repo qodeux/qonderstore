@@ -13,7 +13,7 @@ const colorsOptions = [
 
 const CategoryForm = () => {
   const categories = useSelector((state: RootState) => state.categories.categories) ?? []
-  const editMode = useSelector((state: RootState) => state.categories.editMode)
+  const editMode = useSelector((state: RootState) => state.categories.isEditing)
 
   const {
     control,

@@ -1,6 +1,6 @@
 import { addToast } from '@heroui/react'
 import supabase from '../lib/supabase'
-import type { Provider, ProviderCreateInput } from '../schemas/providers.schema'
+import type { ProviderCreateInput } from '../schemas/providers.schema'
 
 export const providerService = {
   fetchProviders: async () => {
@@ -27,7 +27,7 @@ export const providerService = {
           account: providerData.account,
           holder_name: providerData.holder_name,
           rfc: providerData.rfc,
-          products: providerData.selected_products
+          selected_products: providerData.selected_products
         }
       ])
       .select()
@@ -51,9 +51,9 @@ export const providerService = {
 
     return providerInserted
   },
-  updateProvider: async (providerData: Provider) => {
-    if (!providerData.id) {
-      console.error('El id de la categoría es obligatorio para actualizar')
+  updateProvider: async (id: number, providerData: ProviderCreateInput) => {
+    if (!id) {
+      console.error('El id del proveedor es obligatorio para actualizar')
       return
     }
     const { data: providerUpdated, error: providerError } = await supabase
@@ -71,9 +71,9 @@ export const providerService = {
         account: providerData.account,
         holder_name: providerData.holder_name,
         rfc: providerData.rfc,
-        products: providerData.selected_products
+        selected_products: providerData.selected_products
       })
-      .eq('id', providerData.id)
+      .eq('id', id)
       .select()
       .single()
 
@@ -81,6 +81,18 @@ export const providerService = {
       console.error('Error updating provider:', providerError)
       return
     }
+
+    setTimeout(() => {
+      addToast({
+        title: 'Proveedor actualizado',
+        description: `El proveedor ${providerUpdated.alias} ha sido actualizado correctamente.`,
+        color: 'primary',
+        variant: 'bordered',
+        shouldShowTimeoutProgress: true,
+        timeout: 4000
+      })
+    }, 1000)
+
     return providerUpdated
   },
   deleteProvider: async (id: number) => {
