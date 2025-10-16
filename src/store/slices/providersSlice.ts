@@ -7,6 +7,9 @@ interface providersState {
   jumpToStep: number | null
   selectedProvider?: Provider | null
   items: Provider[]
+  loading: boolean
+  error: string | null
+  isEditing: boolean
 }
 
 const initialState: providersState = {
@@ -14,7 +17,10 @@ const initialState: providersState = {
   selectedProvider: null,
   previousStep: 0,
   jumpToStep: null,
-  items: []
+  items: [],
+  loading: false,
+  error: null,
+  isEditing: false
 }
 
 const providerSlice = createSlice({
@@ -32,7 +38,9 @@ const providerSlice = createSlice({
     },
 
     setSelectedProvider(state, action) {
-      state.selectedProvider = action.payload
+      state.selectedProvider = state.items.find((item) => item.id === action.payload) || null
+      state.loading = false
+      state.error = null
     },
 
     setPreviousStep(state, action) {

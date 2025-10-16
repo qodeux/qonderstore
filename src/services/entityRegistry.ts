@@ -66,7 +66,7 @@ export const entityRegistry: Record<EntityKind, EntityAdapter<any>> = {
   },
   providers: {
     table: 'providers',
-    getId: (r) => r.key,
+    getId: (r) => r.id,
     fields: { active: 'is_active' },
     update: async (id, patch) => {
       await supabase.from('providers').update(patch).eq('id', id)

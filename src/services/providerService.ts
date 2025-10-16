@@ -89,5 +89,16 @@ export const providerService = {
     if (error) {
       console.error('Error deleting provider:', error)
     }
+
+    setTimeout(() => {
+      addToast({
+        title: 'Proveedor eliminado',
+        description: `El proveedor ha sido eliminado correctamente.`,
+        color: 'primary',
+        variant: 'bordered',
+        shouldShowTimeoutProgress: true,
+        timeout: 4000
+      })
+    }, 1000)
   }
 }
