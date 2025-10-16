@@ -29,7 +29,9 @@ const Confirmation = ({ data }: Props) => {
         <div className='text-sm space-y-1 mt-2 grid grid-cols-2'>
           <p>Nombre: {data.contactData.name}</p>
           <p>Alias: {data.contactData.alias}</p>
-          <p>Teléfono: {data.contactData.phone}</p>
+          <p>
+            Teléfono: <PatternFormat value={data.contactData.phone} displayType='text' format={'### #### ####'} />
+          </p>
 
           {data.contactData.email && <p>Email: {data.contactData.email}</p>}
 
@@ -53,7 +55,7 @@ const Confirmation = ({ data }: Props) => {
         <div className='text-sm space-y-1 mt-2 grid grid-cols-2'>
           <p>Banco: {banks.find((bank) => bank.id == data.bankData.bank)?.short_name}</p>
           <p>
-            {accountTypes.find((type) => type.key === data.bankData.account_type)?.label}:
+            {accountTypes.find((type) => type.key === data.bankData.account_type)?.label}:{' '}
             <PatternFormat
               value={data.bankData.account} // viene sin espacios
               displayType='text' // solo renderiza texto
