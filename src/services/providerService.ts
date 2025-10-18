@@ -1,6 +1,7 @@
 import { addToast } from '@heroui/react'
 import supabase from '../lib/supabase'
 import type { ProviderCreateInput } from '../schemas/providers.schema'
+import type { OrderItem, SupplyOrderInputCreate } from '../types/providers'
 
 export const providerService = {
   fetchProviders: async () => {
@@ -114,5 +115,51 @@ export const providerService = {
         timeout: 4000
       })
     }, 1000)
+  },
+
+  createOrder: async (orderData: SupplyOrderInputCreate) => {
+    const { data: orderInserted, error: orderError } = await supabase.from('supply_orders').insert([orderData]).select().single()
+
+    if (orderError) {
+      console.error('Error inserting order:', orderError)
+      return { error: orderError }
+    }
+
+    setTimeout(() => {
+      addToast({
+        title: 'Pedido creada',
+        description: `El pedido ha sido creado correctamente.`,
+        color: 'success',
+        variant: 'bordered',
+        shouldShowTimeoutProgress: true,
+        timeout: 4000
+      })
+    }, 1000)
+
+    return orderInserted
+  },
+  supplyOrder: async (orderId: number, items: OrderItem[]) => {
+    const { data: orderSupplied, error: orderError } = await supabase
+      .rpc('receive_supply', { p_order_id: orderId, p_items: items })
+      .select()
+      .single()
+
+    if (orderError) {
+      console.error('Error supplying order:', orderError)
+      return { error: orderError }
+    }
+
+    setTimeout(() => {
+      addToast({
+        title: 'Pedido suministrado',
+        description: `El pedido ha sido suministrado correctamente.`,
+        color: 'success',
+        variant: 'bordered',
+        shouldShowTimeoutProgress: true,
+        timeout: 4000
+      })
+    }, 1000)
+
+    return [{ status: 'success', error: orderSupplied }]
   }
 }

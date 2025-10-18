@@ -1,12 +1,14 @@
 import type { Selection, SortDescriptor } from '@heroui/react'
 import { useDisclosure } from '@heroui/react'
 import { useMemo, useState } from 'react'
-import type { PresetKey } from '../../components/common/DataTable'
+import type { FormatPreset, PresetKey } from '../../components/common/DataTable'
 import { DataTable } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 
 import { useDispatch, useSelector } from 'react-redux'
 import ProviderModal from '../../components/modals/admin/ProviderModal'
+import ProviderOrderNewModal from '../../components/modals/admin/ProviderOrderNewModal'
+import ProviderOrderSupplyModal from '../../components/modals/admin/ProviderOrderSupplyModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
 import { useCatalog } from '../../hooks/useCatalog'
 import { setEditMode, setSelectedProvider } from '../../store/slices/providersSlice'
@@ -42,15 +44,19 @@ const Providers = () => {
     {
       key: 'last_order',
       label: 'Último Pedido',
-      // type: 'date',
-      // datePreset: 'relative',
+      preset: 'date' as PresetKey,
+      presetConfig: {
+        format: 'relative' as FormatPreset
+      },
       allowsSorting: true
     },
     {
       key: 'last_payment',
       label: 'Último Pago',
-      // type: 'date' as TypePreset,
-      // datePreset: 'full',
+      preset: 'date' as PresetKey,
+      presetConfig: {
+        format: 'short' as FormatPreset
+      },
       allowsSorting: true
     },
     {
@@ -76,11 +82,15 @@ const Providers = () => {
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'last_order',
-    direction: 'descending'
+    direction: 'ascending'
   })
 
   const { isOpen: isOpenProvider, onOpen: onOpenProvider, onOpenChange: onOpenChangeProvider } = useDisclosure()
   const { isOpen: isOpenDelete, onOpen: onOpenDelete, onOpenChange: onOpenChangeDelete } = useDisclosure()
+
+  //Disclosure para accciones extra
+  const { isOpen: isOpenNewOrder, onOpen: onOpenNewOrder, onOpenChange: onOpenChangeNewOrder } = useDisclosure()
+  const { isOpen: isOpenSupplyOrder, onOpen: onOpenSupplyOrder, onOpenChange: onOpenChangeSupplyOrder } = useDisclosure()
 
   const filteredRows = useMemo(() => {
     return applyToolbarFilters(providers, ['name'], criteria)
@@ -94,11 +104,26 @@ const Providers = () => {
   const handleEditProvider = (id: number) => {
     dispatch(setEditMode(true))
     dispatch(setSelectedProvider(id))
+    setSelectedKeys(new Set([String(id)]))
+
     onOpenProvider()
   }
 
   const testAction = (row: Row) => {
     console.log('Test action on row: ', row)
+  }
+
+  const handleNewOrder = (row: Row) => {
+    console.log('Nuevo pedido', row)
+    dispatch(setSelectedProvider(row.id))
+    setSelectedKeys(new Set([String(row.id)]))
+
+    onOpenNewOrder()
+  }
+  const handleOrderSupply = (row: Row) => {
+    console.log('Nuevo pedido', row)
+    dispatch(setSelectedProvider(row.id))
+    onOpenSupplyOrder()
   }
 
   return (
@@ -123,8 +148,8 @@ const Providers = () => {
               onOpenDelete()
             },
             actions: [
-              { key: 'new-order', label: 'Nuevo pedido', onPress: (row) => testAction(row) },
-              { key: 'supply-order', label: 'Suministrar pedido', onPress: (row) => testAction(row) },
+              { key: 'new-order', label: 'Nuevo pedido', onPress: (row) => handleNewOrder(row) },
+              { key: 'supply-order', label: 'Suministrar pedido', onPress: (row) => handleOrderSupply(row) },
               { key: 'register-payment', label: 'Registrar pago', onPress: (row) => testAction(row) }
             ]
             // rowActions: (row) => [{ key:"share", label:"Compartir", onPress: ... }]
@@ -134,6 +159,7 @@ const Providers = () => {
           selectedKeys={selectedKeys}
           onSelectionChange={setSelectedKeys}
           selectionMode='single'
+          selectionBehavior='replace'
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
           getRowKey={(row) => row.id as number}
@@ -141,6 +167,8 @@ const Providers = () => {
       </section>
 
       <ProviderModal isOpen={isOpenProvider} onOpenChange={onOpenChangeProvider} />
+      <ProviderOrderNewModal isOpen={isOpenNewOrder} onOpenChange={onOpenChangeNewOrder} />
+      <ProviderOrderSupplyModal isOpen={isOpenSupplyOrder} onOpenChange={onOpenChangeSupplyOrder} />
 
       <OnDeleteModal isOpenDelete={isOpenDelete} onOpenChangeDelete={onOpenChangeDelete} deleteType='provider' />
     </>

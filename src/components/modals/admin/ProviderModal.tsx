@@ -2,7 +2,7 @@ import { Modal, ModalBody, ModalContent } from '@heroui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AnimatePresence } from 'framer-motion'
 import { useCallback, useEffect } from 'react'
-import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form'
+import { FormProvider, useForm } from 'react-hook-form'
 import { useDispatch, useSelector } from 'react-redux'
 import { Wizard } from 'react-use-wizard'
 import {
@@ -14,8 +14,9 @@ import {
   type ProviderInputProductSelection
 } from '../../../schemas/providers.schema'
 import { providerService } from '../../../services/providerService'
-import { requestJumpToStep, setPreviousStep } from '../../../store/slices/providersSlice'
+import { requestJumpToStep, setWizardCurrentStep } from '../../../store/slices/uiSlice'
 import type { RootState } from '../../../store/store'
+import type { Step } from '../../../types/ui'
 import AnimatedStep from '../../common/wizard/AnimatedStep'
 import RowSteps from '../../common/wizard/RowSteps'
 import WizardFooter from '../../common/wizard/WizardFooter'
@@ -29,12 +30,6 @@ type Props = {
   onOpenChange: () => void
 }
 
-type Step = {
-  title: string
-  content: React.FC<any> // permitirá pasar props al paso de Confirmación
-  form?: UseFormReturn<any>
-}
-
 // ===== Tipo combinado para Confirmación =====
 type ProviderCombinedData = {
   contactData: ProviderInputContactData
@@ -43,10 +38,11 @@ type ProviderCombinedData = {
 }
 
 const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
-  const { selectedProvider, previousStep, isEditing } = useSelector((state: RootState) => state.providers)
+  const { selectedProvider, isEditing } = useSelector((state: RootState) => state.providers)
+  const { wizardCurrentIndex } = useSelector((state: RootState) => state.ui)
   const dispatch = useDispatch()
 
-  const currentStep = previousStep + 1
+  const currentStep = wizardCurrentIndex + 1
 
   const defaultValues: ProviderCombinedData = {
     contactData: {
@@ -96,13 +92,6 @@ const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
     reValidateMode: 'onChange',
     defaultValues: defaultValues.productSelection
   })
-
-  // Resetea valores cuando abre/cierra o cambia selectedProvider
-  useEffect(() => {
-    contactDataForm.reset(defaultValues.contactData)
-    bankDataForm.reset(defaultValues.bankData)
-    productSelectionForm.reset(defaultValues.productSelection)
-  }, [isOpen, selectedProvider])
 
   const getCombined = useCallback((): ProviderCombinedData => {
     const c = providerInputContactDataSchema.safeParse(contactDataForm.getValues())
@@ -173,7 +162,7 @@ const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
           contactDataForm.setError('email', { message: 'El email ya está en uso' }, { shouldFocus: true })
         }
 
-        dispatch(requestJumpToStep(0)) // Salta a paso 1
+        dispatch(requestJumpToStep(0)) // vuelve al primer paso
 
         return
       }
@@ -181,6 +170,13 @@ const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
 
     onOpenChange()
   }
+
+  // Resetea valores cuando abre/cierra o cambia selectedProvider
+  useEffect(() => {
+    contactDataForm.reset(defaultValues.contactData)
+    bankDataForm.reset(defaultValues.bankData)
+    productSelectionForm.reset(defaultValues.productSelection)
+  }, [isOpen, selectedProvider])
 
   return (
     <Modal
@@ -197,16 +193,15 @@ const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
     >
       <ModalContent>
         <ModalBody>
-          <section className='flex flex-col items-center '>
-            <RowSteps currentStep={previousStep} onStepChange={onStepClick} steps={WizardSteps} allowAllSteps={isEditing} />
-          </section>
+          <section className='flex flex-col items-center '></section>
 
           <Wizard
+            header={<RowSteps currentStep={wizardCurrentIndex} onStepChange={onStepClick} steps={WizardSteps} allowAllSteps={isEditing} />}
             footer={<WizardFooter getStepForm={(idx) => WizardSteps[idx]?.form} onConfirm={onConfirm} />}
             wrapper={<AnimatePresence initial={false} mode='wait' />}
           >
             {WizardSteps.map(({ content: StepContent, form }, index) => (
-              <AnimatedStep key={index} rxStep={setPreviousStep}>
+              <AnimatedStep key={index} rxStep={setWizardCurrentStep}>
                 {form ? (
                   <FormProvider {...form}>
                     <StepContent />
