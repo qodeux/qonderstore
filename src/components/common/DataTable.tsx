@@ -6,6 +6,7 @@ import {
   DropdownMenu,
   DropdownSection,
   DropdownTrigger,
+  Input,
   Switch,
   Table,
   TableBody,
@@ -18,27 +19,40 @@ import {
 } from '@heroui/react'
 import { EllipsisVertical, Star } from 'lucide-react'
 import type { Key, ReactElement } from 'react'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
+import { Controller } from 'react-hook-form'
 import { entityRegistry, type EntityAdapter, type EntityKind, type MenuAction } from '../../services/entityRegistry'
-import { formatDate, toDate } from '../../utils/date'
+import { formatDate, formatRelativeTime, toDate } from '../../utils/date'
 
-export type PresetKey = 'is_active' | 'featured' | 'actions'
-export type DatePreset = 'full' | 'only-date' | 'relative' | 'time'
+export type PresetKey = 'is_active' | 'featured' | 'actions' | 'input' | 'date'
 export type TypePreset = 'date' | 'string' | 'number' | 'money' | undefined
+
+export type FormatPreset = 'full' | 'short' | 'time' | 'date' | 'relative'
+export type AlignPreset = 'start' | 'center' | 'end'
+export type InputConfig = {
+  width?: string
+  type?: 'text' | 'number' | 'date' | 'money'
+  preffix?: string
+  suffix?: string
+}
+
+export type DateConfig = {
+  format?: FormatPreset
+  type?: 'absolute' | 'relative'
+  dateFormatter?: (date: Date) => string
+  locale?: string
+  timeZone?: string
+}
 
 export type ColumnDef<T> = {
   key: keyof T | string
   label: string
   allowsSorting?: boolean
   preset?: PresetKey
+  presetConfig?: InputConfig | DateConfig
   render?: (row: T) => React.ReactNode
   sortAccessor?: (row: T) => string | number
   align?: 'start' | 'center' | 'end'
-  type?: 'date' | 'string' | 'number' | 'money'
-  datePreset?: DatePreset
-  locale?: string
-  timeZone?: string
-  dateFormatter?: (d: Date) => React.ReactNode
 }
 
 type Props<T> = {
@@ -54,6 +68,7 @@ type Props<T> = {
   getRowKey?: (row: T) => Key
   onRowActivate?: (row: T) => void | Promise<void>
   maxHeight?: number | undefined
+  disallowEmptySelection?: boolean
 
   /** modo recomendado: la tabla resuelve todo via registry */
   entity: EntityKind
@@ -87,6 +102,7 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
     selectionBehavior = 'replace',
     sortDescriptor,
     maxHeight = undefined,
+    disallowEmptySelection = false,
     onSortChange,
     bottomContent = (
       <DefaultFooter totalRows={rows.length} selectionCount={selectedKeys === 'all' ? rows.length : (selectedKeys as Set<Key>).size} />
@@ -115,7 +131,7 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
       const vb = col?.sortAccessor ? col.sortAccessor(b) : (b as any)[colKey]
 
       // 1) Si es fecha, comparar por timestamp, con nulos al final (asc)
-      if (col?.type === 'date') {
+      if (col?.preset === 'date') {
         const ta = toDate(va)?.getTime()
         const tb = toDate(vb)?.getTime()
         const nilA = ta == null || Number.isNaN(ta)
@@ -223,8 +239,67 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
     )
   }
 
-  const renderPreset = (preset: PresetKey, row: T): ReactElement | null => {
+  const renderPreset = (preset: PresetKey, row: T, column: Key): ReactElement | null => {
     switch (preset) {
+      case 'date': {
+        // OBTENER config como DateConfig de forma segura
+        const cfg = columns.find((c) => String(c.key) === String(column))?.presetConfig as DateConfig | undefined
+
+        // Valor crudo en la fila (puede ser Date, string ISO, timestamp, etc.)
+        const raw = (row as any)[String(column)]
+
+        // Normaliza a Date (usa tu util existente)
+        const d = toDate(raw)
+        if (!d) return null
+
+        // Defaults/overrides desde la config
+        const type = cfg?.type ?? 'absolute' // 'absolute' | 'relative'
+        const format = cfg?.format ?? 'full' // 'full' | 'short' | 'time' | 'date' | 'relative'
+        const locale = cfg?.locale ?? 'es-MX'
+        const timeZone = cfg?.timeZone // opcional
+
+        if (type === 'relative' || format === 'relative') {
+          // Si te pasan un formateador custom, úsalo; si no, usa uno por defecto
+          const content = cfg?.dateFormatter ? cfg.dateFormatter(d) : formatRelativeTime(d, locale)
+          return <>{content}</>
+        }
+
+        // Absoluto usando tu helper existente
+        const content = formatDate(d, format, locale, timeZone)
+        return <>{content}</>
+      }
+
+      case 'input': {
+        const config = columns.find((c) => String(c.key) === String(column))?.presetConfig as InputConfig | undefined
+        const width = config?.width || null
+        const align = columns.find((c) => c.key === column)?.align || null
+
+        return (
+          <Controller
+            name={`items.p_${row['id']}.${String(column)}`} // items.p_12.qty
+            //control={control}
+            rules={{
+              required: 'Requerido'
+            }}
+            render={({ field, fieldState }) => (
+              <Input
+                //label={columns.find((c) => c.preset === 'input')?.inputLabel || ''}
+                type='text'
+                size='sm'
+                //placeholder={columns.find((c) => c.key === column)?.label || ''}
+                variant='bordered'
+                isInvalid={!!fieldState.error}
+                {...field}
+                classNames={{
+                  inputWrapper: `bg-white ${width ? `${width}` : ''} `,
+                  mainWrapper: `items-${align} pr-4`,
+                  input: `text-${align}`
+                }}
+              />
+            )}
+          />
+        )
+      }
       case 'is_active': {
         const field = adapter.fields?.active ?? ('is_active' as keyof T & string)
         if (!(field in (row as any)) || !adapter.update) return null
@@ -280,13 +355,12 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
               </Button>
             </DropdownTrigger>
             <DropdownMenu aria-label='Acciones'>
+              {renderExtraActions(row)}
               {canEdit ? (
                 <DropdownItem key='__edit' onPress={() => adapter.edit!(row)}>
                   Editar
                 </DropdownItem>
               ) : null}
-
-              {renderExtraActions(row)}
 
               {adapter.onRequestDelete ? (
                 <DropdownItem
@@ -322,6 +396,9 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
   }
 
   const canRowAction = selectionMode === 'single' && selectionBehavior === 'replace' && (!!adapter.edit || !!p.onRowActivate)
+  const tableRef = useRef<HTMLTableElement | null>(null)
+
+  //const isKeySelected = (selectedKeys: Selection, key: Key) => selectedKeys === 'all' || (selectedKeys as Set<Key>).has(key)
 
   const keyToStr = (k: Key) => (typeof k === 'string' ? k : String(k))
 
@@ -354,7 +431,14 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
   return (
     <>
       <section
-        style={maxHeight ? { height: `${maxHeight}px` } : undefined}
+        style={
+          maxHeight
+            ? {
+                maxHeight: `${maxHeight}px`,
+                height: `${(tableRef.current?.offsetHeight ?? 0) > maxHeight ? maxHeight : (tableRef.current?.offsetHeight ?? 0) + 35}px`
+              }
+            : undefined
+        }
         className='border-default-200  rounded-large border shadow-sm bg-white'
       >
         <Table
@@ -367,6 +451,7 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
           onSelectionChange={onSelectionChange}
           sortDescriptor={sortDescriptor}
           onSortChange={onSortChange}
+          disallowEmptySelection={disallowEmptySelection}
           // bottomContent={bottomContent}
           onRowAction={canRowAction ? handleRowAction : undefined}
           // className='max-h-full'
@@ -374,6 +459,7 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
             base: `max-h-full overflow-auto`,
             wrapper: `shadow-none `
           }}
+          ref={tableRef}
         >
           <TableHeader columns={columns}>
             {(column) => (
@@ -383,35 +469,31 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
             )}
           </TableHeader>
           <TableBody items={sortedItems}>
-            {(row) => (
-              <TableRow key={getRowKey(row)}>
-                {(columnKey) => {
-                  const col = columns.find((c) => String(c.key) === String(columnKey))
-                  let content: React.ReactNode
-                  switch (true) {
-                    case !!col?.render:
-                      content = col!.render!(row)
-                      break
-                    case !!col?.preset:
-                      content = renderPreset(col!.preset!, row)
-                      break
-                    case col?.type === 'date': {
-                      const raw = (row as any)[String(col.key)]
-                      if (col.dateFormatter) {
-                        const d = toDate(raw)
-                        content = d ? col.dateFormatter(d) : ''
-                      } else {
-                        content = formatDate(raw, col.datePreset ?? 'full', col.locale ?? 'es-MX', col.timeZone)
-                      }
-                      break
+            {(row) => {
+              // const rowKey = getRowKey(row)
+              // const rowIsSelected = isKeySelected(selectedKeys, rowKey)
+
+              return (
+                <TableRow key={getRowKey(row)}>
+                  {(columnKey) => {
+                    const col = columns.find((c) => String(c.key) === String(columnKey))
+                    let content: React.ReactNode
+                    switch (true) {
+                      case !!col?.render:
+                        content = col!.render!(row)
+                        break
+                      case !!col?.preset:
+                        content = renderPreset(col!.preset!, row, columnKey)
+                        break
+
+                      default:
+                        content = (row as any)[String(col?.key)]
                     }
-                    default:
-                      content = (row as any)[String(col?.key)]
-                  }
-                  return <TableCell>{content}</TableCell>
-                }}
-              </TableRow>
-            )}
+                    return <TableCell>{content}</TableCell>
+                  }}
+                </TableRow>
+              )
+            }}
           </TableBody>
         </Table>
       </section>
