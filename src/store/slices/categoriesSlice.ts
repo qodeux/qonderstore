@@ -2,13 +2,13 @@ import { createSlice } from '@reduxjs/toolkit'
 import type { Category } from '../../schemas/category.schema'
 
 interface categoriesState {
-  editMode: boolean
+  isEditing: boolean
   selectedCategory?: Category | null
   categories: Category[]
 }
 
 const initialState: categoriesState = {
-  editMode: false,
+  isEditing: false,
   selectedCategory: null,
   categories: []
 }
@@ -18,7 +18,7 @@ const categorySlice = createSlice({
   initialState,
   reducers: {
     setEditMode(state, action) {
-      state.editMode = action.payload
+      state.isEditing = action.payload
       if (!action.payload) {
         state.selectedCategory = null
       }

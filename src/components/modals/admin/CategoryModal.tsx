@@ -14,7 +14,7 @@ type Props = {
 }
 
 const CategoryModal = ({ isOpen, onOpenChange }: Props) => {
-  const editMode = useSelector((state: RootState) => state.categories.editMode)
+  const editMode = useSelector((state: RootState) => state.categories.isEditing)
   const selectedCategory = useSelector((state: RootState) => state.categories.selectedCategory)
 
   const categoryForm = useForm({

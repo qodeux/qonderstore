@@ -13,7 +13,7 @@ const colorsOptions = [
 
 const CategoryForm = () => {
   const categories = useSelector((state: RootState) => state.categories.categories) ?? []
-  const editMode = useSelector((state: RootState) => state.categories.editMode)
+  const editMode = useSelector((state: RootState) => state.categories.isEditing)
 
   const {
     control,
@@ -55,7 +55,7 @@ const CategoryForm = () => {
         <Controller
           name='parent'
           control={control}
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <Select
               label='Categoría principal'
               size='sm'
@@ -65,8 +65,8 @@ const CategoryForm = () => {
                 const parsedValue = rawValue ? Number(rawValue) : undefined
                 field.onChange(parsedValue)
               }}
-              isInvalid={!!errors.parent}
-              errorMessage={errors.parent?.message as string}
+              isInvalid={!!fieldState.error}
+              errorMessage={fieldState.error?.message as string}
               disallowEmptySelection
             >
               {categories
