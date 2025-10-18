@@ -2,7 +2,7 @@ import { motion, type Variants } from 'framer-motion'
 import { memo, useEffect, useRef, type PropsWithChildren } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useWizard } from 'react-use-wizard'
-import { clearJumpToStep } from '../../../store/slices/providersSlice'
+import { clearJumpToStep } from '../../../store/slices/uiSlice'
 import type { RootState } from '../../../store/store'
 
 type Props = {
@@ -19,7 +19,7 @@ const AnimatedStep = memo(function AnimatedStep({ children, rxStep }: Props) {
   const { activeStep, goToStep } = useWizard()
   const dispatch = useDispatch()
 
-  const jumpToStep = useSelector((s: RootState) => s.providers.jumpToStep)
+  const jumpToStep = useSelector((s: RootState) => s.ui.wizardJumpToStep)
 
   // Dirección de animación con ref local (no depende del store)
   const lastStepRef = useRef<number>(activeStep)

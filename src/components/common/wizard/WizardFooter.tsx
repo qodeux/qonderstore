@@ -60,7 +60,7 @@ const WizardFooter = ({ getStepForm, onConfirm }: Props) => {
           </Button>
         </Tooltip>
       ) : (
-        <Tooltip content='Guardar' placement='left'>
+        <Tooltip content='Confirmar' placement='left'>
           <Button color='success' onPress={onConfirm} className='pl-4' size='sm' isLoading={checking}>
             <CircleCheckBig className='text-gray-200' />
           </Button>

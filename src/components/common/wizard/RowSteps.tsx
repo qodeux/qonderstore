@@ -162,103 +162,107 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
     }, [color, className])
 
     return (
-      <nav aria-label='Progress' className='-my-4 max-w-fit overflow-x-auto py-4'>
-        <ol className={cn('flex flex-row flex-nowrap ', colors, className)}>
-          {steps?.map((step, stepIdx) => {
-            const status = currentStep === stepIdx ? 'active' : currentStep < stepIdx ? 'inactive' : 'complete'
+      <section className='flex flex-col items-center '>
+        <nav aria-label='Progress' className='-my-4 max-w-fit overflow-x-auto py-4'>
+          <ol className={cn('flex flex-row flex-nowrap ', colors, className)}>
+            {steps?.map((step, stepIdx) => {
+              const status = currentStep === stepIdx ? 'active' : currentStep < stepIdx ? 'inactive' : 'complete'
 
-            return (
-              <li key={stepIdx} className='relative flex w-full items-center pr-12 last:pr-0'>
-                <button
-                  key={stepIdx}
-                  ref={ref}
-                  aria-current={status === 'active' ? 'step' : undefined}
-                  className={cn(
-                    'group rounded-large flex w-full cursor-pointer flex-row items-center justify-center py-2.5',
-                    stepClassName
-                  )}
-                  onClick={() => handleClick(stepIdx, status)}
-                  {...props}
-                >
-                  <div className='h-ful relative flex items-center'>
-                    <LazyMotion features={domAnimation}>
-                      <m.div animate={status} className='relative'>
-                        <m.div
-                          className={cn(
-                            'border-medium text-large text-default-foreground relative flex h-[34px] w-[34px] items-center justify-center rounded-full font-semibold',
-                            {
-                              'shadow-lg': status === 'complete'
-                            }
-                          )}
-                          initial={false}
-                          transition={{ duration: 0.25 }}
-                          variants={{
-                            inactive: {
-                              backgroundColor: 'transparent',
-                              borderColor: 'var(--inactive-border-color)',
-                              color: 'var(--inactive-color)'
-                            },
-                            active: {
-                              backgroundColor: 'transparent',
-                              borderColor: 'var(--active-border-color)',
-                              color: 'var(--active-color)'
-                            },
-                            complete: {
-                              backgroundColor: 'var(--complete-background-color)',
-                              borderColor: 'var(--complete-border-color)'
-                            }
-                          }}
-                        >
-                          <div className='flex items-center justify-center'>
-                            {status === 'complete' ? (
-                              <CheckIcon className='h-6 w-6 text-(--active-fg-color)' />
-                            ) : (
-                              <span>{stepIdx + 1}</span>
+              return (
+                <li key={stepIdx} className='relative flex w-full items-center pr-12 last:pr-0' aria-label={`${step.title}`}>
+                  <button
+                    key={stepIdx}
+                    ref={ref}
+                    aria-current={status === 'active' ? 'step' : undefined}
+                    className={cn(
+                      'group rounded-large flex w-full cursor-pointer flex-row items-center justify-center py-2.5',
+                      stepClassName
+                    )}
+                    onClick={() => handleClick(stepIdx, status)}
+                    {...props}
+                  >
+                    <div className='h-ful relative flex items-center'>
+                      <LazyMotion features={domAnimation}>
+                        <m.div animate={status} className='relative'>
+                          <m.div
+                            className={cn(
+                              'border-medium text-large text-default-foreground relative flex h-[34px] w-[34px] items-center justify-center rounded-full font-semibold',
+                              {
+                                'shadow-lg': status === 'complete'
+                              }
                             )}
-                          </div>
+                            initial={false}
+                            transition={{ duration: 0.25 }}
+                            variants={{
+                              inactive: {
+                                backgroundColor: 'transparent',
+                                borderColor: 'var(--inactive-border-color)',
+                                color: 'var(--inactive-color)'
+                              },
+                              active: {
+                                backgroundColor: 'transparent',
+                                borderColor: 'var(--active-border-color)',
+                                color: 'var(--active-color)'
+                              },
+                              complete: {
+                                backgroundColor: 'var(--complete-background-color)',
+                                borderColor: 'var(--complete-border-color)'
+                              }
+                            }}
+                          >
+                            <div className='flex items-center justify-center'>
+                              {status === 'complete' ? (
+                                <CheckIcon className='h-6 w-6 text-(--active-fg-color)' />
+                              ) : (
+                                <span>{stepIdx + 1}</span>
+                              )}
+                            </div>
+                          </m.div>
                         </m.div>
-                      </m.div>
-                    </LazyMotion>
-                  </div>
-                  <div className='max-w-full flex-1 text-start'>
-                    <div
-                      className={cn(
-                        'text-small text-default-foreground lg:text-medium font-medium transition-[color,opacity] duration-300 group-active:opacity-80',
-                        {
-                          'text-default-500': status === 'inactive'
-                        }
-                      )}
-                    >
-                      {/* {step.title} */}
+                      </LazyMotion>
                     </div>
-                  </div>
-                  {stepIdx < steps.length - 1 && !hideProgressBars && (
-                    <div
-                      aria-hidden='true'
-                      className='pointer-events-none absolute right-0 w-12 flex-none items-center'
-                      style={{
-                        // @ts-expect-error CSS variable
-                        '--idx': stepIdx
-                      }}
-                    >
+                    <div className='max-w-full flex-1 text-start'>
                       <div
                         className={cn(
-                          'relative h-0.5 w-full bg-(--inactive-bar-color) transition-colors duration-300',
-                          "after:absolute after:block after:h-full after:w-0 after:bg-(--active-border-color) after:transition-[width] after:duration-300 after:content-['']",
+                          'text-small text-default-foreground lg:text-medium font-medium transition-[color,opacity] duration-300 group-active:opacity-80',
                           {
-                            'after:w-full': stepIdx < currentStep
+                            'text-default-500': status === 'inactive'
                           }
                         )}
-                      />
+                      >
+                        {/* {step.title} */}
+                      </div>
                     </div>
-                  )}
-                </button>
-              </li>
-            )
-          })}
-        </ol>
-        <footer className={`text-${color} font-bold text-center text-lg`}>{steps[currentStep].title} </footer>
-      </nav>
+                    {stepIdx < steps.length - 1 && !hideProgressBars && (
+                      <div
+                        aria-hidden='true'
+                        className='pointer-events-none absolute right-0 w-12 flex-none items-center'
+                        style={{
+                          // @ts-expect-error CSS variable
+                          '--idx': stepIdx
+                        }}
+                      >
+                        <div
+                          className={cn(
+                            'relative h-0.5 w-full bg-(--inactive-bar-color) transition-colors duration-300',
+                            "after:absolute after:block after:h-full after:w-0 after:bg-(--active-border-color) after:transition-[width] after:duration-300 after:content-['']",
+                            {
+                              'after:w-full': stepIdx < currentStep
+                            }
+                          )}
+                        />
+                      </div>
+                    )}
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
+        </nav>
+        <footer className={`text-${color} font-bold text-center text-lg`}>
+          {steps[currentStep > steps.length - 1 ? 0 : currentStep].title}{' '}
+        </footer>
+      </section>
     )
   }
 )
