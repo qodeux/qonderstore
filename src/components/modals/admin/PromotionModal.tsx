@@ -60,7 +60,8 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
       valid_until: undefined,
       limit: undefined,
       condition: undefined,
-      is_active: true
+      is_active: true,
+      promo_type_target_id: 0
     }
 
     return defaultValues

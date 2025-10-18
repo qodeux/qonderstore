@@ -15,7 +15,7 @@ export const promotionsService = {
       .insert([
         {
           promo_type: promotionsData.promo_type,
-          promo_type_target_id: 1,
+          promo_type_target_id: promotionsData.promo_type_target_id,
           discount_type: promotionsData.discount_type,
           code: promotionsData.code,
           frequency: promotionsData.frequency || 'once',

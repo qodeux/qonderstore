@@ -50,7 +50,7 @@ const Promotions = () => {
       key: 'valid_until',
       label: 'Vigencia',
       type: 'date',
-      datePreset: '',
+      datePreset: 'short',
       allowsSorting: true
     },
     {
@@ -109,7 +109,7 @@ const Promotions = () => {
           discount_type: promotions.discount_type,
           frequency: promotions.frequency,
           mode: promotions.mode,
-          mode_value: promotions.value,
+          mode_value: promotions.mode_value,
           valid_until: promotions.valid_until,
           is_active: promotions.is_active || false
         }))

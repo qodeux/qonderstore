@@ -25,8 +25,8 @@ export const promotionsInputSchema = z.object({
   id: z.string().optional(),
 
   promo_type: z.enum(['category', 'product'], { error: 'Dato requerido.' }),
-  category: z.number().optional(),
-  subcategory: z.number().optional(),
+  category: z.coerce.number().optional(),
+  subcategory: z.coerce.number().optional(),
   product: z.number().optional(),
   discount_type: z.enum(['season', 'code'], { error: 'Dato requerido.' }),
   frequency: z.enum(['once', 'weekly', 'monthly']).optional(),
@@ -52,7 +52,8 @@ export const promotionsInputSchema = z.object({
   limit: z.number().optional().nullable(),
   is_conditioned: z.boolean().optional(),
   condition_type: z.string().optional(),
-  condition: z.string().optional()
+  condition: z.string().optional(),
+  promo_type_target_id: z.coerce.number('Debes seleccionar un elemento')
 })
 
 export type PromotionsFormValues = z.input<typeof promotionsInputSchema> // valid_until: DateValue

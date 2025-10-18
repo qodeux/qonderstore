@@ -1,5 +1,5 @@
 import { Autocomplete, AutocompleteItem, DatePicker, Input, Radio, RadioGroup, Select, SelectItem, Switch } from '@heroui/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { NumericFormat } from 'react-number-format'
 import { useSelector } from 'react-redux'
@@ -12,7 +12,8 @@ const PromotionForm = () => {
     register,
     control,
     formState: { errors },
-    setValue
+    setValue,
+    getFieldState
   } = useFormContext()
 
   const [discountType, setDiscountType] = useState<DiscountType | undefined>(undefined)
@@ -45,7 +46,31 @@ const PromotionForm = () => {
     name: 'category'
   })
 
-  const subcategories = categories.filter((cat) => cat.parent === selectedCategory)
+  const selectedSubCategory = useWatch({
+    control,
+    name: 'subcategory'
+  })
+
+  const selectedProduct = useWatch({
+    control,
+    name: 'product'
+  })
+
+  const targetError = getFieldState('promo_type_target_id')
+
+  const subcategories = categories.filter((cat) => cat.parent?.toString() === selectedCategory?.toString())
+
+  useEffect(() => {
+    if (promoType === 'product') {
+      setValue('promo_type_target_id', selectedProduct)
+    } else if (promoType === 'category') {
+      if (subcategories.length) {
+        setValue('promo_type_target_id', selectedSubCategory)
+      } else {
+        setValue('promo_type_target_id', selectedCategory)
+      }
+    }
+  }, [promoType, selectedProduct, setValue, selectedCategory, selectedSubCategory, subcategories])
 
   return (
     <form className='space-y-2'>
@@ -82,11 +107,10 @@ const PromotionForm = () => {
                 size='sm'
                 selectedKeys={field.value != null ? new Set([String(field.value)]) : new Set()}
                 onSelectionChange={(keys) => {
-                  const k = Array.from(keys).at(0)
-                  const n = k != null ? Number(k) : null
-                  field.onChange(Number.isNaN(n as number) ? null : n)
+                  const rawValue = Array.from(keys)[0]
+                  field.onChange(rawValue)
                 }}
-                isInvalid={!!errors.category}
+                isInvalid={!!errors.category || !!targetError.error}
                 errorMessage={errors.category?.message as string}
                 disallowEmptySelection
               >
@@ -111,7 +135,7 @@ const PromotionForm = () => {
                     const rawValue = Array.from(keys)[0]
                     field.onChange(rawValue)
                   }}
-                  isInvalid={!!errors.subcategory}
+                  isInvalid={!!errors.subcategory || !!targetError.errors}
                   errorMessage={errors.subcategory?.message as string}
                   disallowEmptySelection
                 >
@@ -137,6 +161,7 @@ const PromotionForm = () => {
                 console.log(sel)
                 field.onChange(Number(sel))
               }}
+              isInvalid={!!targetError.error}
             >
               {products.map((product) => (
                 <AutocompleteItem key={product.id}>{product.name}</AutocompleteItem>
@@ -145,6 +170,24 @@ const PromotionForm = () => {
           )}
         />
       )}
+
+      {targetError.error && <p className='text-danger text-xs pl-1'>Debes seleccionar un elemento </p>}
+
+      <Controller
+        name='promo_type_target_id'
+        control={control}
+        render={({ field, fieldState }) => (
+          <Input
+            label='promo type target'
+            type='text'
+            size='sm'
+            isInvalid={!!fieldState.error}
+            errorMessage={fieldState.error?.message as string}
+            {...field}
+            className='hidden'
+          />
+        )}
+      />
       <Controller
         name='discount_type'
         control={control}

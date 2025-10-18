@@ -29,7 +29,7 @@ export function formatRelativeTime(date: Date, locale = 'es') {
 
 export function formatDate(
   value: unknown,
-  preset: 'full' | 'only-date' | 'relative' | 'time' = 'full',
+  preset: 'full' | 'short' | 'relative' | 'time' = 'full',
   locale = 'es-MX',
   timeZone?: string
 ): string {
@@ -41,7 +41,7 @@ export function formatDate(
   }
 
   const opts: Intl.DateTimeFormatOptions =
-    preset === 'only-date'
+    preset === 'short'
       ? { year: '2-digit', month: '2-digit', day: '2-digit', timeZone }
       : preset === 'time'
       ? { hour: '2-digit', minute: '2-digit', hour12: true, timeZone }

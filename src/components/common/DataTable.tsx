@@ -23,7 +23,7 @@ import { entityRegistry, type EntityAdapter, type EntityKind, type MenuAction } 
 import { formatDate, toDate } from '../../utils/date'
 
 export type PresetKey = 'is_active' | 'featured' | 'actions'
-export type DatePreset = 'full' | 'only-date' | 'relative' | 'time'
+export type DatePreset = 'full' | 'short' | 'relative' | 'time'
 
 export type ColumnDef<T> = {
   key: keyof T | string
