@@ -2,8 +2,11 @@ import { Outlet } from 'react-router'
 import AdminFooter from '../components/common/AdminFooter'
 import AdminSidebar from '../components/common/AdminSidebar'
 import Header from '../components/common/Header'
+import { useProviders } from '../hooks/useProviders'
 
 const AdminLayout = () => {
+  useProviders()
+
   return (
     <main className='flex flex-col min-h-screen'>
       <Header />

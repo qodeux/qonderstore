@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { categoryService } from '../../../services/categoryService'
 import { productService } from '../../../services/productService'
+import { providerService } from '../../../services/providerService'
 import type { RootState } from '../../../store/store'
 
 export type ItemType = 'product' | 'category' | 'brand' | 'provider'
@@ -24,8 +25,8 @@ const deleteTypeMap = {
 const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) => {
   const categories = useSelector((state: RootState) => state.categories.categories) ?? []
   const selectedCategory = useSelector((state: RootState) => state.categories.selectedCategory)
-
   const selectedProduct = useSelector((state: RootState) => state.products.selectedProduct)
+  const selectedProvider = useSelector((state: RootState) => state.providers.selectedProvider)
 
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -36,6 +37,9 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
       break
     case 'category':
       itemToDelete = selectedCategory?.name
+      break
+    case 'provider':
+      itemToDelete = selectedProvider?.alias
       break
   }
 
@@ -61,14 +65,16 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
         if (selectedCategory) {
           await categoryService.deleteCategory(selectedCategory.id)
           console.log('Category deleted successfully')
-          //await supabase.from('categories').delete().eq('id', itemId)
         }
         break
       case 'brand':
         //await supabase.from('brands').delete().eq('id', itemId)
         break
       case 'provider':
-        //await supabase.from('providers').delete().eq('id', itemId)
+        console.log('Borrando:', selectedProvider)
+        if (selectedProvider) {
+          await providerService.deleteProvider(selectedProvider.id)
+        }
         break
     }
     onOpenChangeDelete()
@@ -92,6 +98,10 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
       } else {
         return true
       }
+    }
+
+    if (deleteType === 'provider') {
+      return true
     }
   }
 

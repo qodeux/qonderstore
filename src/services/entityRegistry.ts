@@ -66,13 +66,16 @@ export const entityRegistry: Record<EntityKind, EntityAdapter<any>> = {
   },
   providers: {
     table: 'providers',
-    getId: (r) => r.key,
+    getId: (r) => r.id,
     fields: { active: 'is_active' },
     update: async (id, patch) => {
       await supabase.from('providers').update(patch).eq('id', id)
     },
     delete: async (id) => {
       await supabase.from('providers').delete().eq('id', id)
-    }
+    },
+    actions: [
+      // { key: "export", label: "Exportar", onPress: (row) => ... }
+    ]
   }
 }

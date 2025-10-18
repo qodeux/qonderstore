@@ -270,6 +270,7 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
 
     const setDefaults = async () => {
       if (isOpen && !wasOpen) {
+        console.log('Abriendo modal de producto')
         // Al abrir\
         setIsLoading(true)
         const { formData, formDetails } = await buildFormValues()
@@ -298,6 +299,8 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
 
       if (!isOpen && wasOpen) {
         // Al cerrar
+        console.log('Cerrando modal de producto')
+
         dispatch(setSelectedProduct(null))
         setActiveTab('data')
         sessionSkuRef.current = null // forzar nuevo SKU la próxima vez
