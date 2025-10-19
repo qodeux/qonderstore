@@ -15,7 +15,7 @@ const Login = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useDispatch<AppDispatch>()
-  const { isAuthenticated, error, loading } = useSelector((state: RootState) => state.auth)
+  const { isAuthenticated, error, loading, status } = useSelector((state: RootState) => state.auth)
 
   const from = (location.state as { from?: string } | null)?.from || '/admin/'
 
@@ -36,6 +36,10 @@ const Login = () => {
       navigate(from, { replace: true })
     }
   }, [isAuthenticated, navigate, from])
+
+  if (status !== 'unauthenticated') {
+    return <FullScreenLoader open={true} message='Comprobando sesión…' />
+  }
 
   return (
     <section className='flex flex-col h-full w-full items-center justify-center pt-8'>
