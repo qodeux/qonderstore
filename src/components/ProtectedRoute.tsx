@@ -2,18 +2,14 @@
 import { useSelector } from 'react-redux'
 import { Navigate, useLocation } from 'react-router'
 import type { RootState } from '../store/store'
+import { FullScreenLoader } from './FullScreenLoader'
 
-type ProtectedRouteProps = {
-  children: React.ReactNode
-  allowedRoles?: string[]
-}
-
-const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
-  const { status, isAuthenticated, user } = useSelector((s: RootState) => s.auth)
+const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) => {
+  const { status, isAuthenticated, user, logoutInProgress } = useSelector((s: RootState) => s.auth)
   const location = useLocation()
 
-  if (status === 'checking') {
-    return null // o spinner
+  if (status === 'idle' || status === 'checking') {
+    return <FullScreenLoader open message={logoutInProgress ? 'Cerrando sesión…' : 'Restaurando sesión…'} />
   }
 
   if (!isAuthenticated) {
@@ -22,9 +18,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
   if (allowedRoles?.length) {
     const role = user?.role ?? ''
-    if (!allowedRoles.includes(role)) {
-      return <Navigate to='/admin' replace />
-    }
+    if (!allowedRoles.includes(role)) return <Navigate to='/admin' replace />
   }
 
   return <>{children}</>

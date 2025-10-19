@@ -16,7 +16,7 @@ export type OAuthProvider = 'google' | 'github' | 'gitlab' | 'bitbucket' | 'azur
 
 export const authService = {
   // Email/password sign in
-  async signIn({ email, password }: EmailPasswordCredentials): Promise<User | null | { error: AuthError['message'] }> {
+  async signIn({ email, password }: EmailPasswordCredentials): Promise<User | { error: AuthError['message'] }> {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
@@ -38,7 +38,7 @@ export const authService = {
 
       return profileData
     } else {
-      return null
+      return { error: 'User not found' }
     }
   },
 

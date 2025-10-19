@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
+import { FullScreenLoader } from '../../components/FullScreenLoader'
 import { loginSchema } from '../../schemas/auth'
 import { loginUser } from '../../store/slices/authSlice'
 import type { AppDispatch, RootState } from '../../store/store'
@@ -14,7 +15,7 @@ const Login = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useDispatch<AppDispatch>()
-  const { isAuthenticated, error } = useSelector((state: RootState) => state.auth)
+  const { isAuthenticated, error, loading } = useSelector((state: RootState) => state.auth)
 
   const from = (location.state as { from?: string } | null)?.from || '/admin/'
 
@@ -85,6 +86,7 @@ const Login = () => {
           </Link>
         </p>
       </div>
+      {loading && <FullScreenLoader open={loading} message='Iniciando sesión…' />}
     </section>
   )
 }

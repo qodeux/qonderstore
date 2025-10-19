@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronRight, LayoutDashboard, Package, Percent, Users } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
-import { logoutUser } from '../../store/slices/authSlice'
+import { performLogout } from '../../store/slices/authSlice'
 import type { AppDispatch, RootState } from '../../store/store'
 
 interface AdminSidebarProps {
@@ -94,7 +94,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
   }
 
   const handleLogout = () => {
-    dispatch(logoutUser())
+    dispatch(performLogout())
     navigate('/login')
   }
 

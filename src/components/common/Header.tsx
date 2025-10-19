@@ -13,7 +13,7 @@ const Header = () => {
     // Aquí puedes agregar la lógica para manejar el cierre de sesión
     console.log('Cerrando sesión...')
     dispatch(logoutUser())
-    navigate('/')
+    navigate('/login')
   }
 
   return (
