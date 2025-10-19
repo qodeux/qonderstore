@@ -1,24 +1,16 @@
-import { createSlice } from '@reduxjs/toolkit'
-
-export type User = {
-  id: number
-  user_name: string
-  role: string
-  last_activity: string
-  is_active: boolean
-  email: string
-  full_name: string
-  phone?: string
-}
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
+import type { User } from '../../schemas/users.schema'
 
 interface UsersState {
-  editMode: boolean
+  isEditing: boolean
   selectedUser?: User | null
   items: User[]
+  loading?: boolean
+  error?: string | null
 }
 
 const initialState: UsersState = {
-  editMode: false,
+  isEditing: false,
   selectedUser: null,
   items: []
 }
@@ -28,14 +20,16 @@ const usersSlice = createSlice({
   initialState,
   reducers: {
     setEditMode(state, action) {
-      state.editMode = action.payload
+      state.isEditing = action.payload
     },
     setUsers(state, action) {
       state.items = action.payload
     },
 
-    setSelectedUser(state, action) {
-      state.selectedUser = action.payload
+    setSelectedUser(state, action: PayloadAction<string | number | null>) {
+      state.selectedUser = state.items.find((item) => item.id === action.payload) || null
+      state.loading = false
+      state.error = null
     }
   }
 })

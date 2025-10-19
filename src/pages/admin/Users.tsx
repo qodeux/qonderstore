@@ -1,26 +1,28 @@
 import { useDisclosure, type Selection, type SortDescriptor } from '@heroui/react'
 import { useState } from 'react'
-import { useSelector } from 'react-redux'
-import { DataTable, type PresetKey } from '../../components/common/DataTable'
+import { useDispatch, useSelector } from 'react-redux'
+import { DataTable, type FormatPreset, type PresetKey } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import UserModal from '../../components/modals/admin/UserModal'
+import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
 import { useUsers } from '../../hooks/useUsers'
+import { setEditMode, setSelectedUser } from '../../store/slices/usersSlice'
 import type { RootState } from '../../store/store'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const Users = () => {
   useUsers() // carga y realtime
   const users = useSelector((state: RootState) => state.users.items) ?? []
+  const dispatch = useDispatch()
 
   type Row = {
     id: string
     user_name: string
     role: string
-    last_activity: string
     is_active: boolean
-    // email: string
-    // full_name: string
-    // phone: string
+    email: string
+    full_name?: string
+    phone?: string
   }
 
   const columns = [
@@ -37,8 +39,12 @@ const Users = () => {
     {
       key: 'last_activity',
       label: 'Última actividad',
+      preset: 'date' as PresetKey,
+      presetConfig: { format: 'relative' as FormatPreset },
+
       allowsSorting: true
     },
+
     {
       key: 'is_active',
       label: 'Activo',
@@ -46,10 +52,10 @@ const Users = () => {
       preset: 'is_active' as PresetKey
     },
     {
-      key: 'data',
-      label: 'Data',
+      key: 'actions',
+      label: 'Acciones',
       allowsSorting: false,
-      preset: 'is_active' as PresetKey
+      preset: 'actions' as PresetKey
     }
   ]
 
@@ -57,8 +63,6 @@ const Users = () => {
     searchText: '',
     selected: {}
   })
-
-  const [deleteUserId, setDeleteUserId] = useState<string | null>(null)
 
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([])) //si hay error revisar
 
@@ -81,13 +85,24 @@ const Users = () => {
   }
 
   const handleAddUser = () => {
-    // Logic to add a new user
+    dispatch(setEditMode(false))
     onOpenUser()
   }
 
-  const handleEditUser = () => {
-    //dispatch(setEditMode(true))
+  const handleEditUser = (row: Row) => {
+    console.log(row)
+
+    dispatch(setEditMode(true))
+    dispatch(setSelectedUser(row.id))
+    setSelectedKeys(new Set([String(row.id)]))
     onOpenUser()
+  }
+
+  const handleRequestUserDelete = (userId: string | number) => {
+    dispatch(setSelectedUser(userId))
+    setSelectedKeys(new Set([String(userId)]))
+
+    onOpenDelete()
   }
 
   return (
@@ -96,9 +111,7 @@ const Users = () => {
         <ToolbarTable<Row>
           rows={users}
           searchFilter={['user_name']}
-          enableToggleBehavior
-          selectionBehavior={selectionBehavior}
-          onToggleBehavior={toggleSelectionBehavior}
+          filters={[{ label: 'Rol', column: 'role', multiple: true }]}
           buttons={[
             {
               label: 'Agregar usuario',
@@ -114,8 +127,7 @@ const Users = () => {
           adapterOverrides={{
             edit: handleEditUser,
             onRequestDelete: (id) => {
-              setDeleteUserId(String(id))
-              onOpenDelete()
+              handleRequestUserDelete(id)
             }
             // rowActions: (row) => [{ key:"share", label:"Compartir", onPress: ... }]
           }}
@@ -123,14 +135,16 @@ const Users = () => {
           columns={columns}
           selectedKeys={selectedKeys}
           onSelectionChange={setSelectedKeys}
-          selectionMode='multiple'
-          selectionBehavior={selectionBehavior}
+          selectionMode='single'
+          selectionBehavior='replace'
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
-          getRowKey={(row) => row.id as string}
+          getRowKey={(row) => row.id}
         />
       </section>
       <UserModal isOpen={isOpenUser} onOpenChange={onOpenChangeUser} />
+
+      <OnDeleteModal isOpenDelete={isOpenDelete} onOpenChangeDelete={onOpenChangeDelete} deleteType='user' />
     </>
   )
 }
