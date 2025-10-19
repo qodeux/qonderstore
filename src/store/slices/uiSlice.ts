@@ -2,6 +2,7 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 
 interface UIState {
   sidebarOpen: boolean
+  isEditing: boolean
   loading: boolean
   modalOpen: boolean
   wizardCurrentIndex: number
@@ -9,6 +10,7 @@ interface UIState {
 }
 
 const initialState: UIState = {
+  isEditing: false,
   sidebarOpen: false,
   loading: false,
   modalOpen: false,
