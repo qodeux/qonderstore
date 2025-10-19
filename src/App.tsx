@@ -1,5 +1,6 @@
 import { HeroUIProvider, ToastProvider } from '@heroui/react'
 import { useHref, useNavigate } from 'react-router'
+import { SessionBootstrapper } from './components/SessionBootstraper'
 import { useProductBrands } from './hooks/useBrands'
 import { useCategories } from './hooks/useCategories'
 import { useProducts } from './hooks/useProducts'
@@ -13,6 +14,7 @@ function App() {
   useProductBrands()
   return (
     <HeroUIProvider navigate={navigate} useHref={useHref}>
+      <SessionBootstrapper />
       <ToastProvider toastProps={{ classNames: { title: 'font-bold' } }} />
       <AppRoutes />
     </HeroUIProvider>

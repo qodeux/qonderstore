@@ -70,8 +70,10 @@ export const authService = {
     return data
   },
 
-  // Sign out
+  // Sign out idempotente: si no hay sesión, regresa true sin fallar
   async signOut() {
+    const { data } = await supabase.auth.getSession()
+    if (!data?.session) return true
     const { error } = await supabase.auth.signOut()
     if (error) {
       console.error('auth.signOut error:', error)
@@ -79,7 +81,6 @@ export const authService = {
     }
     return true
   },
-
   // Get current session
   async getSession(): Promise<Session | null> {
     const { data, error } = await supabase.auth.getSession()

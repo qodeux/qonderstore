@@ -1,54 +1,45 @@
+// pages/auth/Login.tsx
 import { Button, Checkbox, Form, Input, Link } from '@heroui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { loginSchema } from '../../schemas/auth'
 import { loginUser } from '../../store/slices/authSlice'
 import type { AppDispatch, RootState } from '../../store/store'
-import LoggedUser from './LoggedUser'
 
 const Login = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const dispatch = useDispatch<AppDispatch>()
   const { isAuthenticated, error } = useSelector((state: RootState) => state.auth)
+
+  const from = (location.state as { from?: string } | null)?.from || '/admin/'
 
   const {
     register,
     handleSubmit,
     formState: { errors }
-  } = useForm({
-    resolver: zodResolver(loginSchema)
-  })
+  } = useForm({ resolver: zodResolver(loginSchema) })
 
-  const handleLogin = handleSubmit(
-    async (data) => {
-      const loginData = data
-      dispatch(loginUser({ email: loginData.identifier, password: loginData.password }))
-    },
-    (onerrors) => {
-      console.log('Error en el formulario:')
-      console.log(onerrors)
-    }
-  )
+  const handleLogin = handleSubmit(async (data) => {
+    dispatch(loginUser({ email: data.identifier, password: data.password }))
+  })
 
   const [isVisible, setIsVisible] = useState(false)
 
-  const toggleVisibility = () => setIsVisible(!isVisible)
-
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/admin/')
+      navigate(from, { replace: true })
     }
-  }, [isAuthenticated, navigate])
+  }, [isAuthenticated, navigate, from])
 
   return (
     <section className='flex flex-col h-full w-full items-center justify-center pt-8'>
       <div className='rounded-large flex w-full max-w-sm flex-col gap-4'>
         <div className='flex flex-col items-center pb-6'>
-          {/* <AcmeIcon size={60} /> */}
           <p className='text-xl font-medium'>Bienvenido</p>
           <p className='text-small text-default-500'>Inicia sesión en tu cuenta para continuar</p>
         </div>
@@ -63,13 +54,11 @@ const Login = () => {
           <Input
             {...register('password')}
             endContent={
-              <button type='button' onClick={toggleVisibility}>
+              <button type='button' onClick={() => setIsVisible((v) => !v)}>
                 {isVisible ? <EyeOff /> : <Eye />}
               </button>
             }
             label='Contraseña'
-            name='password'
-            //placeholder='Enter your password'
             type={isVisible ? 'text' : 'password'}
             variant='bordered'
             isInvalid={!!errors.password}
@@ -96,8 +85,6 @@ const Login = () => {
           </Link>
         </p>
       </div>
-
-      <LoggedUser />
     </section>
   )
 }
