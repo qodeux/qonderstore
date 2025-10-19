@@ -186,7 +186,7 @@ const authSlice = createSlice({
       })
       .addCase(logoutUser.rejected, (state, action) => {
         state.logoutInProgress = false
-        state.error = action.payload || 'Logout failed'
+        //state.error = action.payload || 'Logout failed'
         state.isAuthenticated = false
         state.user = null
         state.status = 'unauthenticated'
