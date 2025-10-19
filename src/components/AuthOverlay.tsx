@@ -7,7 +7,6 @@ export const AuthOverlay = () => {
   const { status, logoutInProgress, loading } = useSelector((s: RootState) => s.auth)
 
   const open = logoutInProgress || status === 'checking' || loading
-  const message = logoutInProgress ? 'Cerrando sesión…' : loading ? 'Iniciando sesión…' : status === 'checking' ? 'Cargando…' : 'Cargando…'
-
+  const message = logoutInProgress ? 'Cerrando sesión…' : loading ? 'Iniciando sesión…' : 'Cargando…'
   return <FullScreenLoader open={open} message={message} />
 }
