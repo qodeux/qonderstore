@@ -1,18 +1,18 @@
 import { Button, Link, Navbar, NavbarBrand, NavbarContent, NavbarItem } from '@heroui/react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
-import { logout } from '../../store/slices/authSlice'
-import type { RootState } from '../../store/store'
+import { logoutUser } from '../../store/slices/authSlice'
+import type { AppDispatch, RootState } from '../../store/store'
 
 const Header = () => {
-  const isLoggedIn = useSelector((state: RootState) => state.auth.isAuthenticated)
-  const dispatch = useDispatch()
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth)
+  const dispatch = useDispatch<AppDispatch>()
   const navigate = useNavigate()
 
   const handleLogout = () => {
     // Aquí puedes agregar la lógica para manejar el cierre de sesión
     console.log('Cerrando sesión...')
-    dispatch(logout())
+    dispatch(logoutUser())
     navigate('/')
   }
 
@@ -21,7 +21,7 @@ const Header = () => {
       <NavbarBrand>
         <p className='font-bold text-inherit'>qonderstore</p>
       </NavbarBrand>
-      {isLoggedIn && (
+      {isAuthenticated && (
         <NavbarContent className='hidden sm:flex gap-4' justify='center'>
           <NavbarItem>
             <Link color='foreground' href='/'>
@@ -40,10 +40,13 @@ const Header = () => {
       )}
       <NavbarContent justify='end'>
         <NavbarItem>
-          {isLoggedIn ? (
-            <Button color='danger' onPress={handleLogout}>
-              Logout
-            </Button>
+          {isAuthenticated ? (
+            <>
+              <span className='mr-4'>Hola, {user?.full_name || user?.email}</span>
+              <Button color='danger' onPress={handleLogout}>
+                Logout
+              </Button>
+            </>
           ) : (
             <Button as={Link} color='primary' href='/login' variant='flat'>
               Login

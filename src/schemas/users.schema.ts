@@ -23,3 +23,17 @@ export const userInputUpdateSchema = baseUserInput.extend({
   password: passwordOptional
 })
 export type UserInputUpdate = z.infer<typeof userInputUpdateSchema>
+
+export const User = z.object({
+  id: z.string(),
+  user_name: z.string(),
+  role: z.enum(['admin', 'staff', 'customer']),
+  is_active: z.boolean(),
+  email: z.email(),
+  full_name: z.string().optional(),
+  phone: z.string().optional(),
+  created_at: z.string(),
+  updated_at: z.string().optional()
+})
+
+export type User = z.infer<typeof User>

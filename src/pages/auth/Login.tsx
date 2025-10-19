@@ -1,13 +1,19 @@
-import { Button, Input } from '@heroui/react'
+import { Button, Checkbox, Form, Input, Link } from '@heroui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Eye, EyeOff } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
 import { loginSchema } from '../../schemas/auth'
+import { loginUser } from '../../store/slices/authSlice'
+import type { AppDispatch, RootState } from '../../store/store'
+import LoggedUser from './LoggedUser'
 
 const Login = () => {
   const navigate = useNavigate()
-  const dispatch = useDispatch()
+  const dispatch = useDispatch<AppDispatch>()
+  const { isAuthenticated, error } = useSelector((state: RootState) => state.auth)
 
   const {
     register,
@@ -19,34 +25,8 @@ const Login = () => {
 
   const handleLogin = handleSubmit(
     async (data) => {
-      console.log(data)
-
-      navigate('/admin') // Redirige al usuario a la página de administración después del inicio de sesión exitoso
-
-      // // Aquí puedes agregar la lógica para manejar el inicio de sesión simulado
-      // const loginData = data
-      // console.log('Login data:', loginData)
-
-      // if (loginData.identifier === 'kevin' && loginData.password === '1234') {
-      //   alert('Inicio de sesión exitoso')
-
-      //   dispatch(
-      //     loginSuccess({
-      //       user: {
-      //         id: '1',
-      //         name: 'Kevin',
-      //         email: 'kevin@example.com'
-      //       },
-      //       token: 'fake-jwt-token'
-      //     })
-      //   )
-
-      //   navigate('/admin') // Redirige al usuario a la página de administración después del inicio de sesión exitoso
-
-      //   return
-      // } else {
-      //   alert('Usuario o contraseña incorrectos')
-      // }
+      const loginData = data
+      dispatch(loginUser({ email: loginData.identifier, password: loginData.password }))
     },
     (onerrors) => {
       console.log('Error en el formulario:')
@@ -54,33 +34,70 @@ const Login = () => {
     }
   )
 
-  return (
-    <section className='flex flex-col items-center justify-center min-h-full space-y-8'>
-      <h1 className='text-4xl font-bold'>Login</h1>
+  const [isVisible, setIsVisible] = useState(false)
 
-      <div className=' max-w-md bg-white p-8 rounded shadow-lg'>
-        <form className='space-y-6' onSubmit={handleLogin}>
+  const toggleVisibility = () => setIsVisible(!isVisible)
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/admin/')
+    }
+  }, [isAuthenticated, navigate])
+
+  return (
+    <section className='flex flex-col h-full w-full items-center justify-center pt-8'>
+      <div className='rounded-large flex w-full max-w-sm flex-col gap-4'>
+        <div className='flex flex-col items-center pb-6'>
+          {/* <AcmeIcon size={60} /> */}
+          <p className='text-xl font-medium'>Bienvenido</p>
+          <p className='text-small text-default-500'>Inicia sesión en tu cuenta para continuar</p>
+        </div>
+        <Form className='flex flex-col gap-3' onSubmit={handleLogin}>
           <Input
-            label='Usuario'
-            type='text'
-            fullWidth
-            {...register('identifier', { required: true })}
+            label='Correo electrónico o teléfono'
+            variant='bordered'
+            {...register('identifier')}
             isInvalid={!!errors.identifier}
-            errorMessage={errors.identifier?.message}
+            errorMessage={errors.identifier?.message as string}
           />
           <Input
-            label='Password'
-            type='password'
-            fullWidth
-            {...register('password', { required: true })}
+            {...register('password')}
+            endContent={
+              <button type='button' onClick={toggleVisibility}>
+                {isVisible ? <EyeOff /> : <Eye />}
+              </button>
+            }
+            label='Contraseña'
+            name='password'
+            //placeholder='Enter your password'
+            type={isVisible ? 'text' : 'password'}
+            variant='bordered'
             isInvalid={!!errors.password}
-            errorMessage={errors.password?.message}
+            errorMessage={errors.password?.message as string}
           />
-          <Button type='submit' color='primary' fullWidth>
-            Iniciar sesión
+          {error && <p className='text-danger'>{error}</p>}
+          <div className='flex w-full items-center justify-between px-1 py-2'>
+            <Checkbox name='remember' size='sm'>
+              Recordarme
+            </Checkbox>
+            <Link className='text-default-500' href='#' size='sm'>
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
+          <Button className='w-full' color='primary' type='submit'>
+            Iniciar Sesión
           </Button>
-        </form>
+        </Form>
+
+        <p className='text-small text-center'>
+          ¿Quieres tener una cuenta?&nbsp;
+          <Link href='#' size='sm'>
+            Solicita tu acceso aquí
+          </Link>
+        </p>
       </div>
+
+      <LoggedUser />
     </section>
   )
 }
