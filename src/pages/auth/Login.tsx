@@ -38,7 +38,7 @@ const Login = () => {
   }, [isAuthenticated, navigate, from])
 
   if (status !== 'unauthenticated') {
-    return <FullScreenLoader open={true} message='Comprobando sesión…' />
+    return null
   }
 
   return (

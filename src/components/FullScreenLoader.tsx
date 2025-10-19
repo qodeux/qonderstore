@@ -16,11 +16,12 @@ export const FullScreenLoader = ({ open, message = 'Cargando…' }: Props) => {
   if (!mounted) return null
 
   return createPortal(
-    <AnimatePresence mode='wait'>
+    <AnimatePresence mode='wait' initial={false}>
       {open && (
         <motion.div
           key='overlay'
-          initial={{ opacity: 1 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
           className='fixed inset-0 z-[9999] grid place-items-center bg-white '

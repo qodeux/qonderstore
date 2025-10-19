@@ -2,14 +2,13 @@
 import { useSelector } from 'react-redux'
 import { Navigate, useLocation } from 'react-router'
 import type { RootState } from '../store/store'
-import { FullScreenLoader } from './FullScreenLoader'
 
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) => {
   const { status, isAuthenticated, user, logoutInProgress } = useSelector((s: RootState) => s.auth)
   const location = useLocation()
 
-  if (status === 'idle' || status === 'checking') {
-    return <FullScreenLoader open message={logoutInProgress ? 'Cerrando sesión…' : 'Restaurando sesión…'} />
+  if (status === 'checking' || logoutInProgress) {
+    return <>{children}</>
   }
 
   if (!isAuthenticated) {
