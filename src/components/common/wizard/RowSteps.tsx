@@ -8,51 +8,24 @@ import { useControlledState } from '@react-stately/utils'
 import { LazyMotion, domAnimation, m } from 'framer-motion'
 import React from 'react'
 
+// 👇 NUEVO
+import { flushSync } from 'react-dom'
+import { useDispatch } from 'react-redux'
+import { setWizardNavDir } from '../../../store/slices/uiSlice'
+
 export type RowStepProps = {
   title?: React.ReactNode
   className?: string
 }
 
 export interface RowStepsProps extends React.HTMLAttributes<HTMLButtonElement> {
-  /**
-   * An array of steps.
-   *
-   * @default []
-   */
   steps?: RowStepProps[]
-  /**
-   * The color of the steps.
-   *
-   * @default "primary"
-   */
   color?: ButtonProps['color']
-  /**
-   * The current step index.
-   */
   currentStep?: number
-  /**
-   * The default step index.
-   *
-   * @default 0
-   */
   defaultStep?: number
-  /**
-   * Whether to hide the progress bars.
-   *
-   * @default false
-   */
   hideProgressBars?: boolean
-  /**
-   * The custom class for the steps wrapper.
-   */
   className?: string
-  /**
-   * The custom class for the step.
-   */
   stepClassName?: string
-  /**
-   * Callback function when the step index changes.
-   */
   onStepChange?: (stepIndex: number) => void
   allowAllSteps?: boolean
 }
@@ -66,12 +39,7 @@ function CheckIcon(props: ComponentProps<'svg'>) {
         initial={{ pathLength: 0 }}
         strokeLinecap='round'
         strokeLinejoin='round'
-        transition={{
-          delay: 0.2,
-          type: 'tween',
-          ease: 'easeOut',
-          duration: 0.3
-        }}
+        transition={{ delay: 0.2, type: 'tween', ease: 'easeOut', duration: 0.3 }}
       />
     </svg>
   )
@@ -84,7 +52,6 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
       steps = [],
       defaultStep = 0,
       onStepChange,
-
       currentStep: currentStepProp,
       hideProgressBars = false,
       stepClassName,
@@ -94,18 +61,20 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
     },
     ref
   ) => {
+    const dispatch = useDispatch() // 👈 NUEVO
     const [currentStep, setCurrentStep] = useControlledState(currentStepProp, defaultStep, onStepChange)
 
     const handleClick = (stepIndex: number, status: string) => {
-      //console.log(`Status del paso ${stepIndex}:`, status)
-
       if (status === 'complete' || allowAllSteps) {
-        // Aquí puedes manejar la lógica para pasos inactivos si es necesario
-        //console.log(`El paso ${stepIndex} está completo y se ha hecho clic en él.`)
+        // 👉 calcula dirección relativa al paso actual
+        const dir = Math.sign(stepIndex - currentStep) as -1 | 0 | 1
+        if (dir !== 0) {
+          // marca la intención ANTES del cambio de paso
+          flushSync(() => dispatch(setWizardNavDir(dir)))
+        }
 
-        setCurrentStep(stepIndex)
-
-        onStepChange?.(stepIndex)
+        setCurrentStep(stepIndex) // dispara onStepChange si es controlado
+        onStepChange?.(stepIndex) // por si lo usas como evento aparte
       }
     }
 
@@ -187,9 +156,7 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
                           <m.div
                             className={cn(
                               'border-medium text-large text-default-foreground relative flex h-[34px] w-[34px] items-center justify-center rounded-full font-semibold',
-                              {
-                                'shadow-lg': status === 'complete'
-                              }
+                              { 'shadow-lg': status === 'complete' }
                             )}
                             initial={false}
                             transition={{ duration: 0.25 }}
@@ -221,18 +188,18 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
                         </m.div>
                       </LazyMotion>
                     </div>
+
                     <div className='max-w-full flex-1 text-start'>
                       <div
                         className={cn(
                           'text-small text-default-foreground lg:text-medium font-medium transition-[color,opacity] duration-300 group-active:opacity-80',
-                          {
-                            'text-default-500': status === 'inactive'
-                          }
+                          { 'text-default-500': status === 'inactive' }
                         )}
                       >
                         {/* {step.title} */}
                       </div>
                     </div>
+
                     {stepIdx < steps.length - 1 && !hideProgressBars && (
                       <div
                         aria-hidden='true'
@@ -246,9 +213,7 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
                           className={cn(
                             'relative h-0.5 w-full bg-(--inactive-bar-color) transition-colors duration-300',
                             "after:absolute after:block after:h-full after:w-0 after:bg-(--active-border-color) after:transition-[width] after:duration-300 after:content-['']",
-                            {
-                              'after:w-full': stepIdx < currentStep
-                            }
+                            { 'after:w-full': stepIdx < currentStep }
                           )}
                         />
                       </div>
@@ -259,6 +224,7 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
             })}
           </ol>
         </nav>
+
         <footer className={`text-${color} font-bold text-center text-lg`}>
           {steps[currentStep > steps.length - 1 ? 0 : currentStep].title}{' '}
         </footer>
@@ -268,5 +234,4 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
 )
 
 RowSteps.displayName = 'RowSteps'
-
 export default RowSteps

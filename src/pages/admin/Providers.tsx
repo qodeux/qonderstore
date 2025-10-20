@@ -1,7 +1,7 @@
 import type { Selection, SortDescriptor } from '@heroui/react'
 import { useDisclosure } from '@heroui/react'
 import { useMemo, useState } from 'react'
-import type { FormatPreset, PresetKey } from '../../components/common/DataTable'
+import type { AlignPreset, FormatPreset, PresetKey } from '../../components/common/DataTable'
 import { DataTable } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 
@@ -18,6 +18,7 @@ import { applyToolbarFilters } from '../../utils/toolbarFilters'
 const Providers = () => {
   const dispatch = useDispatch()
   const providers = useSelector((state: RootState) => state.providers.items)
+  const { layoutOutletHeight, layoutToolbarSpace } = useSelector((state: RootState) => state.ui) ?? {}
   useCatalog('banks')
 
   type Row = {
@@ -39,7 +40,8 @@ const Providers = () => {
     {
       key: 'orders',
       label: 'Pedidos',
-      allowsSorting: true
+      allowsSorting: true,
+      align: 'center' as AlignPreset
     },
     {
       key: 'last_order',
@@ -69,7 +71,8 @@ const Providers = () => {
       key: 'actions',
       label: 'Acciones',
       allowsSorting: false,
-      preset: 'actions' as PresetKey
+      preset: 'actions' as PresetKey,
+      align: 'center' as AlignPreset
     }
   ]
 
@@ -128,7 +131,7 @@ const Providers = () => {
 
   return (
     <>
-      <section className='space-y-6'>
+      <section className='space-y-4'>
         <ToolbarTable<Row>
           rows={providers}
           searchFilter={['name']}
@@ -163,6 +166,7 @@ const Providers = () => {
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
           getRowKey={(row) => row.id as number}
+          maxHeight={layoutOutletHeight ? layoutOutletHeight - layoutToolbarSpace : undefined}
         />
       </section>
 

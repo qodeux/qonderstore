@@ -1,7 +1,8 @@
 import type { Selection, SortDescriptor } from '@heroui/react'
 import { useDisclosure } from '@heroui/react'
-import { useMemo, useState } from 'react'
-import type { PresetKey } from '../../components/common/DataTable'
+import type { Key } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { AlignPreset, ColumnDef, PresetKey } from '../../components/common/DataTable'
 import { DataTable } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 
@@ -12,9 +13,12 @@ import { setEditMode, setSelectedProduct } from '../../store/slices/productsSlic
 import type { RootState } from '../../store/store'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
+const selectionCount = (s: Selection, total: number) => (s === 'all' ? total : s.size)
+
 const Products = () => {
   const dispatch = useDispatch()
   const products = useSelector((state: RootState) => state.products.items)
+  const { layoutOutletHeight, layoutToolbarSpace } = useSelector((state: RootState) => state.ui) ?? {}
 
   type Row = {
     id: number
@@ -26,15 +30,10 @@ const Products = () => {
     featured: boolean
   }
 
-  const columns = [
+  const columns: ColumnDef<Row>[] = [
     {
       key: 'name',
       label: 'Producto',
-      allowsSorting: true
-    },
-    {
-      key: 'price',
-      label: 'Precio',
       allowsSorting: true
     },
     {
@@ -43,27 +42,38 @@ const Products = () => {
       allowsSorting: true
     },
     {
+      key: 'price',
+      label: 'Precio',
+      allowsSorting: true,
+      preset: 'money' as PresetKey,
+      align: 'end' as AlignPreset
+    },
+    {
       key: 'stock',
       label: 'Existencias',
-      allowsSorting: true
+      allowsSorting: true,
+      align: 'center' as AlignPreset
     },
     {
       key: 'is_active',
       label: 'Estado',
       allowsSorting: true,
-      preset: 'is_active' as PresetKey
+      preset: 'is_active' as PresetKey,
+      align: 'center' as AlignPreset
     },
     {
       key: 'featured',
       label: '',
       allowsSorting: false,
-      preset: 'featured' as PresetKey
+      preset: 'featured' as PresetKey,
+      align: 'center' as AlignPreset
     },
     {
       key: 'actions',
       label: 'Acciones',
       allowsSorting: false,
-      preset: 'actions' as PresetKey
+      preset: 'actions' as PresetKey,
+      align: 'center' as AlignPreset
     }
   ]
 
@@ -88,14 +98,13 @@ const Products = () => {
     return applyToolbarFilters(products, ['name'], criteria)
   }, [products, criteria])
 
+  // CONSISTENCIA: usa strings como key en tabla y selección
+  const getRowKey = (row: Row) => String(row.id)
+
   const toggleSelectionBehavior = () => {
     setSelectionBehavior((prevMode) => (prevMode === 'replace' ? 'toggle' : 'replace'))
-    setSelectedKeys(new Set()) // Clear selection when mode changes
+    setSelectedKeys(new Set()) // limpiar selección cuando cambia el modo
   }
-
-  // function exportOne(row: Row) {
-  //   console.log('Exportar', row)
-  // }
 
   const handleAddProduct = () => {
     dispatch(setEditMode(false))
@@ -105,12 +114,44 @@ const Products = () => {
   const handleEditProduct = (id: number) => {
     dispatch(setEditMode(true))
     dispatch(setSelectedProduct(id))
+    setSelectedKeys(new Set([String(id)])) // coincide con getRowKey
     onOpenProduct()
   }
 
+  // ¿hay selección múltiple?
+  const count = selectionCount(selectedKeys, filteredRows.length)
+  const isMulti = selectionBehavior === 'toggle' && count > 1
+
+  // Botones de la toolbar derivados del estado actual (evita mutaciones con push)
+  const toolbarButtons = useMemo(() => {
+    const base = [{ label: 'Agregar Producto', onPress: handleAddProduct, color: 'primary' as const }]
+    if (!isMulti) return base
+    return [
+      ...base,
+      {
+        label: 'Crear nuevo pedido ',
+        color: 'secondary' as const,
+        onPress: () => {
+          const keys = selectedKeys === 'all' ? filteredRows.map(getRowKey) : Array.from(selectedKeys as Set<Key>)
+          console.log('Acción masiva en', keys)
+          // tu lógica masiva aquí...
+        }
+      }
+    ]
+  }, [isMulti, selectedKeys, filteredRows])
+
+  // (Opcional) detectar transición 1↔︎múltiple por si necesitas efectos secundarios
+  const prevIsMultiRef = useRef(false)
+  useEffect(() => {
+    if (prevIsMultiRef.current !== isMulti) {
+      // console.log(isMulti ? '➡️ pasó a múltiple' : '⬅️ volvió a uno/ninguno')
+      prevIsMultiRef.current = isMulti
+    }
+  }, [isMulti])
+
   return (
     <>
-      <section className='space-y-6'>
+      <section className='space-y-4'>
         <ToolbarTable<Row>
           rows={products}
           searchFilter={['name']}
@@ -118,7 +159,7 @@ const Products = () => {
           enableToggleBehavior
           selectionBehavior={selectionBehavior}
           onToggleBehavior={toggleSelectionBehavior}
-          buttons={[{ label: 'Agregar Producto', onPress: handleAddProduct, color: 'primary' }]}
+          buttons={toolbarButtons}
           onCriteriaChange={setCriteria}
         />
 
@@ -126,31 +167,25 @@ const Products = () => {
           entity='products'
           adapterOverrides={{
             edit: (row) => handleEditProduct(row.id),
-            onRequestDelete: (id, item) => {
-              console.log(id)
+            onRequestDelete: (_id, item) => {
               dispatch(setSelectedProduct(item.id))
               onOpenDeleteProduct()
             }
-            // actions: [
-            //   { key: 'solicitar', label: 'Solicitar', onPress: (row) => exportOne(row) },
-            //   { key: 'suministrar', label: 'Suministrar', onPress: (row) => exportOne(row) }
-            // ]
-            // rowActions: (row) => [{ key:"share", label:"Compartir", onPress: ... }]
           }}
           rows={filteredRows}
           columns={columns}
           selectedKeys={selectedKeys}
           onSelectionChange={setSelectedKeys}
-          selectionMode='single'
+          selectionMode={selectionBehavior === 'replace' ? 'single' : 'multiple'}
           selectionBehavior={selectionBehavior}
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
-          getRowKey={(row) => row.id as number}
+          getRowKey={getRowKey}
+          maxHeight={layoutOutletHeight ? layoutOutletHeight - (layoutToolbarSpace ?? 0) : undefined}
         />
       </section>
 
       <ProductModal isOpen={isOpenProduct} onOpenChange={onOpenChangeProduct} />
-
       <OnDeleteModal isOpenDelete={isOpenDeleteProduct} onOpenChangeDelete={onOpenChangeDeleteProduct} deleteType='product' />
     </>
   )

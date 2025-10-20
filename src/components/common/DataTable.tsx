@@ -14,6 +14,7 @@ import {
   TableColumn,
   TableHeader,
   TableRow,
+  Tooltip,
   type Selection,
   type SortDescriptor
 } from '@heroui/react'
@@ -24,8 +25,7 @@ import { Controller } from 'react-hook-form'
 import { entityRegistry, type EntityAdapter, type EntityKind, type MenuAction } from '../../services/entityRegistry'
 import { formatDate, formatRelativeTime, toDate } from '../../utils/date'
 
-export type PresetKey = 'is_active' | 'featured' | 'actions' | 'input' | 'date'
-export type TypePreset = 'date' | 'string' | 'number' | 'money' | undefined
+export type PresetKey = 'is_active' | 'featured' | 'actions' | 'input' | 'date' | 'money'
 
 export type FormatPreset = 'full' | 'short' | 'time' | 'date' | 'relative'
 export type AlignPreset = 'start' | 'center' | 'end'
@@ -52,7 +52,7 @@ export type ColumnDef<T> = {
   presetConfig?: InputConfig | DateConfig
   render?: (row: T) => React.ReactNode
   sortAccessor?: (row: T) => string | number
-  align?: 'start' | 'center' | 'end'
+  align?: AlignPreset
 }
 
 type Props<T> = {
@@ -81,7 +81,7 @@ type Props<T> = {
 }
 
 const DefaultFooter = ({ selectionCount, totalRows }: { selectionCount: number; totalRows: number }) => (
-  <section className='flex justify-between items-center m-4 mb-2 text-sm text-default-500'>
+  <section className='flex justify-between items-center m-4 mb-0 text-sm text-default-500'>
     <div>
       <span>
         Mostrando {totalRows} {totalRows > 1 ? 'resultados' : 'resultado'}{' '}
@@ -241,6 +241,14 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
 
   const renderPreset = (preset: PresetKey, row: T, column: Key): ReactElement | null => {
     switch (preset) {
+      case 'money': {
+        const raw = (row as any)[String(column)]
+        if (raw == null || Number.isNaN(Number(raw))) return null
+        const value = Number(raw)
+        const content = value.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+        return <>{content}</>
+      }
+
       case 'date': {
         // OBTENER config como DateConfig de forma segura
         const cfg = columns.find((c) => String(c.key) === String(column))?.presetConfig as DateConfig | undefined
@@ -261,7 +269,11 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
         if (type === 'relative' || format === 'relative') {
           // Si te pasan un formateador custom, úsalo; si no, usa uno por defecto
           const content = cfg?.dateFormatter ? cfg.dateFormatter(d) : formatRelativeTime(d, locale)
-          return <>{content}</>
+          return (
+            <Tooltip content={d.toLocaleString(locale)} placement='top'>
+              <span className='capitalize'>{content}</span>
+            </Tooltip>
+          )
         }
 
         // Absoluto usando tu helper existente
@@ -335,7 +347,7 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
         }
         return (
           <button onClick={click} className='inline-flex items-center'>
-            {value ? <Star fill='#111' /> : <Star />}
+            {value ? <Star fill='#ffde55' stroke='#ce7f00' /> : <Star />}
           </button>
         )
       }

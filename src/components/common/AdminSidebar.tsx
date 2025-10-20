@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronRight, LayoutDashboard, Package, Percent, Users } from 'lucide-react'
+import { Boxes, ChevronRight, CirclePercent, Combine, Layers, LayoutDashboard, Package, Users } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
 import { performLogout } from '../../store/slices/authSlice'
@@ -31,11 +31,11 @@ const menuItems: MenuItem[] = [
   },
   {
     label: 'Catálogo',
-    icon: <Package className='w-5 h-5' />,
+    icon: <Combine className='w-5 h-5' />,
     submenu: [
-      { label: 'Categorías', href: '/admin/categorias' },
-      { label: 'Productos', href: '/admin/productos' },
-      { label: 'Promociones', href: '/admin/promociones', icon: <Percent className='w-4 h-4' /> }
+      { label: 'Categorías', href: '/admin/categorias', icon: <Layers className='w-4 h-4' /> },
+      { label: 'Productos', href: '/admin/productos', icon: <Package className='w-4 h-4' /> },
+      { label: 'Promociones', href: '/admin/promociones', icon: <CirclePercent className='w-4 h-4' /> }
     ]
   },
   //   {
@@ -50,7 +50,7 @@ const menuItems: MenuItem[] = [
   //   },
   {
     label: 'Proveedores',
-    icon: <Users className='w-5 h-5' />,
+    icon: <Boxes className='w-5 h-5' />,
     href: '/admin/proveedores'
   },
   {
@@ -98,18 +98,25 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
     navigate('/login')
   }
 
+  const matchBySegment = (base: string, path: string) => path === base || path.startsWith(base + '/')
+
   const isActive = (href: string) => {
-    return location.pathname === href || location.pathname.startsWith(`${href}/`)
+    return href === '/admin' ? location.pathname === '/admin' : matchBySegment(href, location.pathname)
   }
 
   const isSubmenuActive = (submenu: { href: string }[]) => {
     return submenu.some((item) => isActive(item.href))
   }
 
+  useEffect(() => {
+    const activeParent = menuItems.find((mi) => mi.submenu && isSubmenuActive(mi.submenu))
+    if (activeParent) setExpandedItem(activeParent.label)
+  }, [location.pathname])
+
   return (
     <aside
       className={`
-        sticky top-0 bg-white border-r w-64 
+        sticky top-0 bg-white shadow-sm w-64  h-[calc(100vh-4rem)]
         transition-transform duration-300 z-30
         ${isOpen ? 'translate-x-0' : '-translate-x-64'}
       `}
@@ -127,13 +134,13 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
                       onClick={() => toggleExpand(item.label)}
                       className={`
                       flex items-center w-full gap-2 px-4 py-2 rounded
-                      transition-colors duration-200
-                      ${isSubmenuActive(item.submenu) ? 'bg-green-50 text-green-600' : 'text-gray-700 hover:bg-gray-100'}
+                      transition-colors duration-200 cursor-pointer
+                      ${isSubmenuActive(item.submenu) ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-gray-100'}
                     `}
                     >
                       {item.icon}
                       <span className='flex-1'>{item.label}</span>
-                      <motion.div animate={{ rotate: expandedItem === item.label ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                      <motion.div animate={{ rotate: expandedItem === item.label ? 450 : 0 }} transition={{ duration: 0.2 }}>
                         <ChevronRight className='w-4 h-4' />
                       </motion.div>
                     </button>
@@ -153,8 +160,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
                                 onClick={() => navigate(subItem.href)}
                                 className={`
                                 flex items-center w-full gap-2 px-4 py-2 rounded
-                                transition-colors duration-200
-                                ${isActive(subItem.href) ? 'bg-green-50 text-green-600' : 'text-gray-600 hover:bg-gray-100'}
+                                transition-colors duration-200 cursor-pointer
+                                ${isActive(subItem.href) ? 'bg-blue-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}
                               `}
                               >
                                 {subItem.icon}
@@ -171,8 +178,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
                     onClick={() => navigate(item.href!)}
                     className={`
                     flex items-center w-full gap-2 px-4 py-2 rounded
-                    transition-colors duration-200
-                    ${isActive(item.href!) ? 'bg-green-50 text-green-600' : 'text-gray-700 hover:bg-gray-100'}
+                    transition-colors duration-200 cursor-pointer
+                    ${isActive(item.href!) ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-gray-100'}
                   `}
                   >
                     {item.icon}

@@ -17,22 +17,55 @@ const FrontwebLayout = () => {
     return () => mql.removeEventListener?.('change', update)
   }, [])
 
-  // Ajusta la altura del spacer
+  // Ajusta la altura del spacer (versión idempotente y defensiva)
   useEffect(() => {
-    if (!footerRef.current || !spacerRef.current) return
+    let raf = 0
+    let ro: ResizeObserver | null = null
+
     const apply = () => {
-      const h = footerRef.current!.offsetHeight
-      spacerRef.current!.style.height = underlay ? `${h}px` : '0px'
+      const footerEl = footerRef.current
+      const spacerEl = spacerRef.current
+      if (!footerEl || !spacerEl) return
+
+      // usa getBoundingClientRect para medidas más fiables en fixed/relative
+      const h = footerEl.getBoundingClientRect().height
+      spacerEl.style.height = underlay ? `${h}px` : '0px'
     }
-    const ro = new ResizeObserver(apply)
-    ro.observe(footerRef.current)
-    window.addEventListener('resize', apply)
-    apply()
+
+    // ejecuta en el próximo frame para asegurar DOM actualizado
+    const schedule = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(apply)
+    }
+
+    // observa cambios de tamaño del footer (si existe)
+    if (footerRef.current) {
+      ro = new ResizeObserver(() => {
+        // evitar "ResizeObserver loop limit exceeded" en Safari/Chrome
+        setTimeout(schedule, 0)
+      })
+      ro.observe(footerRef.current)
+    }
+
+    // escucha resize de ventana
+    window.addEventListener('resize', schedule)
+
+    // primera medición (post-mount)
+    schedule()
+
     return () => {
-      ro.disconnect()
-      window.removeEventListener('resize', apply)
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', schedule)
+      if (ro) {
+        try {
+          ro.disconnect()
+        } catch {
+          // noop
+        }
+        ro = null
+      }
     }
-  }, [underlay])
+  }, [underlay]) // 👈 se recalcula solo cuando cambia underlay
 
   return (
     <div className='relative min-h-screen'>
