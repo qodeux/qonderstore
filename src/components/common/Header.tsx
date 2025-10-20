@@ -1,4 +1,5 @@
 import { Button, Link, Navbar, NavbarBrand, NavbarContent, NavbarItem } from '@heroui/react'
+import { Power } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
 import Logo from '../../assets/logo-full.svg?react'
@@ -27,35 +28,32 @@ const Header = () => {
           <Logo className='h-10 text-white max-w-48' />
         </Link>
       </NavbarBrand>
-      {isAuthenticated && (
-        <NavbarContent className='hidden sm:flex gap-4' justify='center'>
+      {/* {isAuthenticated && (
+        <NavbarContent className='hidden sm:flex gap-4 ' justify='center'>
           <NavbarItem>
-            <Link color='foreground' href='/'>
-              Home
-            </Link>
+            <Link href='/'>Home</Link>
           </NavbarItem>
           <NavbarItem>
             <Link href='/tienda'>Tienda</Link>
           </NavbarItem>
           <NavbarItem>
-            <Link color='foreground' href='/admin'>
-              Admin
-            </Link>
+            <Link href='/admin'>Admin</Link>
           </NavbarItem>
         </NavbarContent>
-      )}
+      )} */}
       <NavbarContent justify='end'>
         <NavbarItem>
           {isAuthenticated ? (
             <>
-              <span className='mr-4'>Hola, {user?.full_name || user?.email}</span>
-              <Button color='danger' onPress={handleLogout}>
+              <span className='mr-4'> Hola, {user?.full_name?.split(' ')[0] || user?.email}</span>
+              <Button color='danger' size='sm' onPress={handleLogout}>
                 Logout
+                <Power size={16} />
               </Button>
             </>
           ) : (
             !isLoginPage && (
-              <Button as={Link} color='primary' href='/login' variant='ghost'>
+              <Button size='sm' as={Link} color='primary' href='/login' variant='ghost'>
                 Login
               </Button>
             )
