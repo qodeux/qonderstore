@@ -9,6 +9,7 @@ interface UIState {
   wizardJumpToStep: number | null
   layoutOutletHeight?: number | null
   layoutToolbarSpace: number
+  wizardNavDir: -1 | 0 | 1
 }
 
 const initialState: UIState = {
@@ -19,7 +20,8 @@ const initialState: UIState = {
   wizardCurrentIndex: 0,
   wizardJumpToStep: null,
   layoutOutletHeight: null,
-  layoutToolbarSpace: 140
+  layoutToolbarSpace: 140,
+  wizardNavDir: 0
 }
 
 const uiSlice = createSlice({
@@ -52,6 +54,9 @@ const uiSlice = createSlice({
     },
     setLayoutOutletHeight(state, action: PayloadAction<number | null>) {
       state.layoutOutletHeight = action.payload
+    },
+    setWizardNavDir(state, action: PayloadAction<-1 | 0 | 1>) {
+      state.wizardNavDir = action.payload
     }
   }
 })
@@ -65,7 +70,8 @@ export const {
   setWizardCurrentStep,
   requestJumpToStep,
   clearJumpToStep,
-  setLayoutOutletHeight
+  setLayoutOutletHeight,
+  setWizardNavDir
 } = uiSlice.actions
 
 export default uiSlice.reducer
