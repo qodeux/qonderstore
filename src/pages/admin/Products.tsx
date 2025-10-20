@@ -1,7 +1,7 @@
 import type { Selection, SortDescriptor } from '@heroui/react'
 import { useDisclosure } from '@heroui/react'
 import { useMemo, useState } from 'react'
-import type { PresetKey } from '../../components/common/DataTable'
+import type { AlignPreset, ColumnDef, PresetKey } from '../../components/common/DataTable'
 import { DataTable } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 
@@ -27,15 +27,10 @@ const Products = () => {
     featured: boolean
   }
 
-  const columns = [
+  const columns: ColumnDef<Row>[] = [
     {
       key: 'name',
       label: 'Producto',
-      allowsSorting: true
-    },
-    {
-      key: 'price',
-      label: 'Precio',
       allowsSorting: true
     },
     {
@@ -44,9 +39,17 @@ const Products = () => {
       allowsSorting: true
     },
     {
+      key: 'price',
+      label: 'Precio',
+      allowsSorting: true,
+      preset: 'money' as PresetKey,
+      align: 'end' as AlignPreset
+    },
+    {
       key: 'stock',
       label: 'Existencias',
-      allowsSorting: true
+      allowsSorting: true,
+      align: 'center' as AlignPreset
     },
     {
       key: 'is_active',
@@ -58,13 +61,15 @@ const Products = () => {
       key: 'featured',
       label: '',
       allowsSorting: false,
-      preset: 'featured' as PresetKey
+      preset: 'featured' as PresetKey,
+      align: 'center' as AlignPreset
     },
     {
       key: 'actions',
       label: 'Acciones',
       allowsSorting: false,
-      preset: 'actions' as PresetKey
+      preset: 'actions' as PresetKey,
+      align: 'center' as AlignPreset
     }
   ]
 

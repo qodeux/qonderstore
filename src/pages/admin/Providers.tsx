@@ -1,7 +1,7 @@
 import type { Selection, SortDescriptor } from '@heroui/react'
 import { useDisclosure } from '@heroui/react'
 import { useMemo, useState } from 'react'
-import type { FormatPreset, PresetKey } from '../../components/common/DataTable'
+import type { AlignPreset, FormatPreset, PresetKey } from '../../components/common/DataTable'
 import { DataTable } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 
@@ -40,7 +40,8 @@ const Providers = () => {
     {
       key: 'orders',
       label: 'Pedidos',
-      allowsSorting: true
+      allowsSorting: true,
+      align: 'center' as AlignPreset
     },
     {
       key: 'last_order',
@@ -70,7 +71,8 @@ const Providers = () => {
       key: 'actions',
       label: 'Acciones',
       allowsSorting: false,
-      preset: 'actions' as PresetKey
+      preset: 'actions' as PresetKey,
+      align: 'center' as AlignPreset
     }
   ]
 
