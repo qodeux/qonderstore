@@ -23,7 +23,9 @@ const Header = () => {
   return (
     <Navbar className='bg-black text-white fixed top-0 z-50 h-16' maxWidth={isAuthenticated ? 'full' : '2xl'}>
       <NavbarBrand>
-        <Logo className='h-10 text-white max-w-48' />
+        <Link href='/'>
+          <Logo className='h-10 text-white max-w-48' />
+        </Link>
       </NavbarBrand>
       {isAuthenticated && (
         <NavbarContent className='hidden sm:flex gap-4' justify='center'>
