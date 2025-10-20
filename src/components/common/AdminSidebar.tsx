@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronRight, LayoutDashboard, Package, Percent, Users } from 'lucide-react'
+import { Boxes, ChevronRight, CirclePercent, Combine, Layers, LayoutDashboard, Package, Users } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
 import { performLogout } from '../../store/slices/authSlice'
@@ -31,11 +31,11 @@ const menuItems: MenuItem[] = [
   },
   {
     label: 'Catálogo',
-    icon: <Package className='w-5 h-5' />,
+    icon: <Combine className='w-5 h-5' />,
     submenu: [
-      { label: 'Categorías', href: '/admin/categorias' },
-      { label: 'Productos', href: '/admin/productos' },
-      { label: 'Promociones', href: '/admin/promociones', icon: <Percent className='w-4 h-4' /> }
+      { label: 'Categorías', href: '/admin/categorias', icon: <Layers className='w-4 h-4' /> },
+      { label: 'Productos', href: '/admin/productos', icon: <Package className='w-4 h-4' /> },
+      { label: 'Promociones', href: '/admin/promociones', icon: <CirclePercent className='w-4 h-4' /> }
     ]
   },
   //   {
@@ -50,7 +50,7 @@ const menuItems: MenuItem[] = [
   //   },
   {
     label: 'Proveedores',
-    icon: <Users className='w-5 h-5' />,
+    icon: <Boxes className='w-5 h-5' />,
     href: '/admin/proveedores'
   },
   {
