@@ -15,6 +15,7 @@ import { applyToolbarFilters } from '../../utils/toolbarFilters'
 const Products = () => {
   const dispatch = useDispatch()
   const products = useSelector((state: RootState) => state.products.items)
+  const { layoutOutletHeight, layoutToolbarSpace } = useSelector((state: RootState) => state.ui) ?? {}
 
   type Row = {
     id: number
@@ -110,7 +111,7 @@ const Products = () => {
 
   return (
     <>
-      <section className='space-y-6'>
+      <section className='space-y-4'>
         <ToolbarTable<Row>
           rows={products}
           searchFilter={['name']}
@@ -146,6 +147,7 @@ const Products = () => {
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
           getRowKey={(row) => row.id as number}
+          maxHeight={layoutOutletHeight ? layoutOutletHeight - layoutToolbarSpace : undefined}
         />
       </section>
 

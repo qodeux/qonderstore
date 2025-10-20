@@ -81,7 +81,7 @@ type Props<T> = {
 }
 
 const DefaultFooter = ({ selectionCount, totalRows }: { selectionCount: number; totalRows: number }) => (
-  <section className='flex justify-between items-center m-4 mb-2 text-sm text-default-500'>
+  <section className='flex justify-between items-center m-4 mb-0 text-sm text-default-500'>
     <div>
       <span>
         Mostrando {totalRows} {totalRows > 1 ? 'resultados' : 'resultado'}{' '}

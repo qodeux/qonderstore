@@ -7,6 +7,8 @@ interface UIState {
   modalOpen: boolean
   wizardCurrentIndex: number
   wizardJumpToStep: number | null
+  layoutOutletHeight?: number | null
+  layoutToolbarSpace: number
 }
 
 const initialState: UIState = {
@@ -15,7 +17,9 @@ const initialState: UIState = {
   loading: false,
   modalOpen: false,
   wizardCurrentIndex: 0,
-  wizardJumpToStep: null
+  wizardJumpToStep: null,
+  layoutOutletHeight: null,
+  layoutToolbarSpace: 140
 }
 
 const uiSlice = createSlice({
@@ -45,11 +49,23 @@ const uiSlice = createSlice({
     },
     clearJumpToStep: (state) => {
       state.wizardJumpToStep = null
+    },
+    setLayoutOutletHeight(state, action: PayloadAction<number | null>) {
+      state.layoutOutletHeight = action.payload
     }
   }
 })
 
-export const { openSidebar, closeSidebar, setLoading, openModal, closeModal, setWizardCurrentStep, requestJumpToStep, clearJumpToStep } =
-  uiSlice.actions
+export const {
+  openSidebar,
+  closeSidebar,
+  setLoading,
+  openModal,
+  closeModal,
+  setWizardCurrentStep,
+  requestJumpToStep,
+  clearJumpToStep,
+  setLayoutOutletHeight
+} = uiSlice.actions
 
 export default uiSlice.reducer
