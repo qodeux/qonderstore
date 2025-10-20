@@ -1,5 +1,10 @@
 const AdminFooter = () => {
-  return <div className='bg-black text-white p-4'>AdminFooter</div>
+  return (
+    <footer className='flex justify-between bg-black'>
+      <section></section>
+      <div className=' text-white p-4'>V 1.0.0</div>
+    </footer>
+  )
 }
 
 export default AdminFooter

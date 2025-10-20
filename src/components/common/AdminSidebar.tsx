@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronRight, LayoutDashboard, Package, Percent, Users } from 'lucide-react'
@@ -98,18 +98,25 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
     navigate('/login')
   }
 
+  const matchBySegment = (base: string, path: string) => path === base || path.startsWith(base + '/')
+
   const isActive = (href: string) => {
-    return location.pathname === href || location.pathname.startsWith(`${href}/`)
+    return href === '/admin' ? location.pathname === '/admin' : matchBySegment(href, location.pathname)
   }
 
   const isSubmenuActive = (submenu: { href: string }[]) => {
     return submenu.some((item) => isActive(item.href))
   }
 
+  useEffect(() => {
+    const activeParent = menuItems.find((mi) => mi.submenu && isSubmenuActive(mi.submenu))
+    if (activeParent) setExpandedItem(activeParent.label)
+  }, [location.pathname])
+
   return (
     <aside
       className={`
-        sticky top-0 bg-white border-r w-64 
+        sticky top-0 bg-white shadow-sm w-64  h-[calc(100vh-4rem)]
         transition-transform duration-300 z-30
         ${isOpen ? 'translate-x-0' : '-translate-x-64'}
       `}
@@ -128,7 +135,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
                       className={`
                       flex items-center w-full gap-2 px-4 py-2 rounded
                       transition-colors duration-200
-                      ${isSubmenuActive(item.submenu) ? 'bg-green-50 text-green-600' : 'text-gray-700 hover:bg-gray-100'}
+                      ${isSubmenuActive(item.submenu) ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-gray-100'}
                     `}
                     >
                       {item.icon}
@@ -154,7 +161,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
                                 className={`
                                 flex items-center w-full gap-2 px-4 py-2 rounded
                                 transition-colors duration-200
-                                ${isActive(subItem.href) ? 'bg-green-50 text-green-600' : 'text-gray-600 hover:bg-gray-100'}
+                                ${isActive(subItem.href) ? 'bg-blue-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}
                               `}
                               >
                                 {subItem.icon}
@@ -172,7 +179,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
                     className={`
                     flex items-center w-full gap-2 px-4 py-2 rounded
                     transition-colors duration-200
-                    ${isActive(item.href!) ? 'bg-green-50 text-green-600' : 'text-gray-700 hover:bg-gray-100'}
+                    ${isActive(item.href!) ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-gray-100'}
                   `}
                   >
                     {item.icon}

@@ -8,14 +8,22 @@ const AdminLayout = () => {
   useProviders()
 
   return (
-    <main className='flex flex-col min-h-screen'>
+    <main className='flex min-h-screen flex-col'>
       <Header />
-      <section className='flex-grow bg-amber-100 flex flex-row overflow-hidden'>
-        <AdminSidebar isOpen={true} />
-        <div className='relative flex min-h-0 flex-1 flex-col '>
-          <div className='p-6 flex-grow overflow-auto pb-20'>
+      {/* Área de trabajo exacta: alto del viewport menos el header (pt-16 = 64px) */}
+      <section className='flex h-[calc(100vh)] flex-row bg-gray-100 pt-16 overflow-hidden'>
+        {/* Sidebar fijo a toda la altura */}
+        <div className='flex-shrink-0'>
+          <AdminSidebar isOpen={true} />
+        </div>
+
+        {/* Contenedor principal: sin scroll aquí */}
+        <div className='relative flex min-h-0 flex-1 flex-col overflow-hidden'>
+          {/* Aquí sí hay scroll interno */}
+          <div className='flex-1 overflow-auto p-6 '>
             <Outlet />
           </div>
+
           <AdminFooter />
         </div>
       </section>
