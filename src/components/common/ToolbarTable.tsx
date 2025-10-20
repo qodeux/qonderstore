@@ -141,7 +141,7 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
           return (
             <Select
               key={key}
-              className='max-w-xs'
+              className='max-w-60'
               label={f.label}
               selectionMode={f.multiple === false ? 'single' : 'multiple'}
               isClearable

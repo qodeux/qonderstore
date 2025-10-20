@@ -14,6 +14,7 @@ import {
   TableColumn,
   TableHeader,
   TableRow,
+  Tooltip,
   type Selection,
   type SortDescriptor
 } from '@heroui/react'
@@ -268,7 +269,11 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
         if (type === 'relative' || format === 'relative') {
           // Si te pasan un formateador custom, úsalo; si no, usa uno por defecto
           const content = cfg?.dateFormatter ? cfg.dateFormatter(d) : formatRelativeTime(d, locale)
-          return <>{content}</>
+          return (
+            <Tooltip content={d.toLocaleString(locale)} placement='top'>
+              <span className='capitalize'>{content}</span>
+            </Tooltip>
+          )
         }
 
         // Absoluto usando tu helper existente

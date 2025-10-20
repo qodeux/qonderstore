@@ -2,7 +2,7 @@ import { Button, Link, Navbar, NavbarBrand, NavbarContent, NavbarItem } from '@h
 import { Power } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
-import Logo from '../../assets/logo-full.svg?react'
+import Logo from '../../assets/logo-full-Q.svg?react'
 import { logoutUser } from '../../store/slices/authSlice'
 import type { AppDispatch, RootState } from '../../store/store'
 

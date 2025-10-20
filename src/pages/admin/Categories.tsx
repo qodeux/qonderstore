@@ -68,7 +68,6 @@ const Categories = () => {
   })
 
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]))
-  const [selectionBehavior, setSelectionBehavior] = useState<'replace' | 'toggle'>('replace')
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'parent_name',
@@ -81,11 +80,6 @@ const Categories = () => {
 
   const filteredRows = applyToolbarFilters(categories, ['name'], criteria)
 
-  const toggleSelectionBehavior = () => {
-    setSelectionBehavior((prevMode) => (prevMode === 'replace' ? 'toggle' : 'replace'))
-    setSelectedKeys(new Set()) // Clear selection when mode changes
-  }
-
   const handleAddCategory = () => {
     dispatch(setEditMode(false))
     onOpenCategory()
@@ -94,6 +88,7 @@ const Categories = () => {
   const handleEditCategory = (row: Row) => {
     dispatch(setEditMode(true))
     dispatch(setSelectedCategory(row))
+    setSelectedKeys(new Set([String(row.id)]))
     onOpenCategory()
   }
 
@@ -104,9 +99,7 @@ const Categories = () => {
           rows={categories}
           searchFilter={['name']}
           // filters={[{ label: 'Categoría', column: 'category', multiple: true }]}
-          enableToggleBehavior
-          selectionBehavior={selectionBehavior}
-          onToggleBehavior={toggleSelectionBehavior}
+
           buttons={[
             {
               label: 'Agregar categoría',
@@ -135,8 +128,7 @@ const Categories = () => {
           columns={columns}
           selectedKeys={selectedKeys}
           onSelectionChange={setSelectedKeys}
-          selectionMode={selectionBehavior === 'replace' ? 'single' : 'multiple'}
-          selectionBehavior={selectionBehavior}
+          selectionMode='single'
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
           getRowKey={(row) => row.id as number}

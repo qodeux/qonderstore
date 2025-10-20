@@ -134,7 +134,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
                       onClick={() => toggleExpand(item.label)}
                       className={`
                       flex items-center w-full gap-2 px-4 py-2 rounded
-                      transition-colors duration-200
+                      transition-colors duration-200 cursor-pointer
                       ${isSubmenuActive(item.submenu) ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-gray-100'}
                     `}
                     >
@@ -160,7 +160,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
                                 onClick={() => navigate(subItem.href)}
                                 className={`
                                 flex items-center w-full gap-2 px-4 py-2 rounded
-                                transition-colors duration-200
+                                transition-colors duration-200 cursor-pointer
                                 ${isActive(subItem.href) ? 'bg-blue-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}
                               `}
                               >
@@ -178,7 +178,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
                     onClick={() => navigate(item.href!)}
                     className={`
                     flex items-center w-full gap-2 px-4 py-2 rounded
-                    transition-colors duration-200
+                    transition-colors duration-200 cursor-pointer
                     ${isActive(item.href!) ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-gray-100'}
                   `}
                   >
