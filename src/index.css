@@ -7,3 +7,17 @@
 
 /* Activa las clases `dark:*` cuando <html> tenga la clase .dark */
 @custom-variant dark (&:where(.dark, .dark *));
+
+@keyframes route-fade {
+    from {
+        opacity: 0
+    }
+
+    to {
+        opacity: 1
+    }
+}
+
+.route-fade {
+    animation: route-fade .40s ease-out both;
+}

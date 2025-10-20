@@ -25,27 +25,6 @@ const AdminLayout = () => {
     return () => window.removeEventListener('resize', updateSize)
   }, [dispatch])
 
-  // Animar cuando cambie la ruta
-  useEffect(() => {
-    if (!contentRef.current) return
-
-    const el = contentRef.current
-    // Reset opacity a 0
-    el.style.opacity = '0'
-    el.style.transition = 'none'
-
-    // Fuerza reflow para aplicar el opacity 0
-    void el.offsetHeight
-
-    // Trigger animation
-    el.style.transition = 'opacity 0.400s ease-out'
-    el.style.opacity = '1'
-
-    return () => {
-      el.style.transition = 'none'
-    }
-  }, [location.pathname, location.search])
-
   return (
     <main className='flex min-h-screen flex-col'>
       <Header />
@@ -55,7 +34,9 @@ const AdminLayout = () => {
         </div>
         <div className='relative flex min-h-0 flex-1 flex-col overflow-hidden'>
           <div ref={contentRef} className='flex-1 overflow-auto p-5'>
-            <Outlet />
+            <div key={location.pathname + location.search} className='route-fade'>
+              <Outlet />
+            </div>
           </div>
           <AdminFooter />
         </div>
