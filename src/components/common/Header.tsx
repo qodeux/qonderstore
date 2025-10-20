@@ -24,7 +24,7 @@ const Header = () => {
   return (
     <Navbar className='bg-black text-white fixed top-0 z-50 h-16' maxWidth={isAuthenticated ? 'full' : '2xl'}>
       <NavbarBrand>
-        <Link href='/'>
+        <Link href={isAuthenticated ? '/admin' : '/'}>
           <Logo className='h-10 text-white max-w-48' />
         </Link>
       </NavbarBrand>

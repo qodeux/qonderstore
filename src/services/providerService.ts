@@ -127,7 +127,7 @@ export const providerService = {
 
     setTimeout(() => {
       addToast({
-        title: 'Pedido creada',
+        title: 'Pedido creado',
         description: `El pedido ha sido creado correctamente.`,
         color: 'success',
         variant: 'bordered',
