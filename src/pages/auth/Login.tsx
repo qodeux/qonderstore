@@ -42,7 +42,7 @@ const Login = () => {
   }
 
   return (
-    <section className='flex flex-col h-full w-full items-center justify-center pt-8'>
+    <section className='flex flex-col h-full w-full items-center justify-center '>
       <div className='rounded-large flex w-full max-w-sm flex-col gap-4'>
         <div className='flex flex-col items-center pb-6'>
           <p className='text-xl font-medium'>Bienvenido</p>
@@ -55,6 +55,7 @@ const Login = () => {
             {...register('identifier')}
             isInvalid={!!errors.identifier}
             errorMessage={errors.identifier?.message as string}
+            classNames={{ inputWrapper: 'bg-white' }}
           />
           <Input
             {...register('password')}
@@ -68,6 +69,7 @@ const Login = () => {
             variant='bordered'
             isInvalid={!!errors.password}
             errorMessage={errors.password?.message as string}
+            classNames={{ inputWrapper: 'bg-white' }}
           />
           {error && <p className='text-danger'>{error}</p>}
           <div className='flex w-full items-center justify-between px-1 py-2'>
@@ -85,7 +87,7 @@ const Login = () => {
 
         <p className='text-small text-center'>
           ¿Quieres tener una cuenta?&nbsp;
-          <Link href='#' size='sm'>
+          <Link href='/' size='sm'>
             Solicita tu acceso aquí
           </Link>
         </p>
