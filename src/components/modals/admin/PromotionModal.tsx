@@ -7,7 +7,7 @@ import { promotionsInputSchema } from '../../../schemas/promotions.schema'
 import { promotionService } from '../../../services/promotionService'
 import type { RootState } from '../../../store/store'
 import { fromDbToDateValue } from '../../../utils/date'
-import PromotionForm from '../../forms/admin/PromotionFormA'
+import PromotionForm from '../../forms/admin/PromotionForm'
 
 type Props = {
   isOpen: boolean
