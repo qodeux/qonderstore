@@ -1,11 +1,11 @@
 import { Autocomplete, AutocompleteItem, DatePicker, Input, Radio, RadioGroup, Select, SelectItem, Switch } from '@heroui/react'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { NumericFormat } from 'react-number-format'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../../store/store'
 import { week_days } from '../../../types/dates'
-import { discount_types, isDiscountType, promo_frequencies, promo_mode, promo_types, type DiscountType } from '../../../types/promos'
+import { discount_types, isDiscountType, promo_frequencies, promo_mode, promo_types } from '../../../types/promos'
 
 const PromotionForm = () => {
   const {
@@ -13,14 +13,15 @@ const PromotionForm = () => {
     control,
     formState: { errors },
     setValue,
+    getValues,
     getFieldState
   } = useFormContext()
 
-  const [discountType, setDiscountType] = useState<DiscountType | undefined>(undefined)
+  const discountType = useWatch({ control, name: 'discount_type' })
 
-  const [isLimited, setIsLimited] = useState(false)
+  const isLimited = useWatch({ control, name: 'is_limited' })
 
-  const [isConditioned, setIsConditioned] = useState(false)
+  const isConditioned = useWatch({ control, name: 'is_conditioned' })
 
   const categories = useSelector((state: RootState) => state.categories.categories)
 
@@ -170,9 +171,7 @@ const PromotionForm = () => {
           )}
         />
       )}
-
       {targetError.error && <p className='text-danger text-xs pl-1'>Debes seleccionar un elemento </p>}
-
       <Controller
         name='promo_type_target_id'
         control={control}
@@ -201,7 +200,6 @@ const PromotionForm = () => {
                 const first = keys.values().next().value as string | number | undefined
                 const val = typeof first === 'number' ? String(first) : first
                 if (val && isDiscountType(val)) {
-                  setDiscountType(val) // <- aquí actualizas usando el key
                   field.onChange(val)
                 }
               }
@@ -252,7 +250,10 @@ const PromotionForm = () => {
                     {...field}
                     label='Fecha'
                     size='sm'
-                    onChange={(date) => field.onChange(date)} // muy importante
+                    onChange={(date) => {
+                      field.onChange(date)
+                      setValue('frequency_value', { date: date?.toString() })
+                    }} // muy importante
                     value={field.value}
                   />
                 </div>
@@ -304,6 +305,22 @@ const PromotionForm = () => {
           )}
         </>
       )}
+      <Controller
+        name='frequency_value'
+        control={control}
+        render={({ field, fieldState }) => (
+          <Input
+            label='frequency value'
+            type='text'
+            size='sm'
+            isInvalid={!!fieldState.error}
+            errorMessage={fieldState.error?.message as string}
+            {...field}
+            //className='hidden'
+          />
+        )}
+      />
+      Valor del campo {JSON.stringify(getValues('frequency_value'))}
       {discountType === 'code' && (
         <Input
           label='Código'
@@ -336,75 +353,40 @@ const PromotionForm = () => {
           </Select>
         )}
       />
-      {promoMode === 'fixed' && (
-        <Controller
-          name='mode_value'
-          control={control}
-          render={({ field, fieldState }) => (
-            <NumericFormat
-              // 1) Controlado por RHF: si no hay valor, muestra vacío
-              value={field.value ?? ''}
-              // 2) Siempre manda undefined cuando está vacío
-              onValueChange={(v) => {
-                const num = v.floatValue === undefined ? undefined : v.floatValue
-                setValue('mode_value', num, {
-                  shouldValidate: true
-                })
-              }}
-              thousandSeparator
-              decimalScale={2}
-              fixedDecimalScale
-              allowNegative={false}
-              prefix='$ '
-              inputMode='decimal'
-              customInput={Input}
-              label='Valor'
-              size='sm'
-              isInvalid={!!fieldState.error}
-              errorMessage={fieldState.error?.message}
-              isClearable
-              onClear={() => {
-                setValue('mode_value', undefined, {
-                  shouldValidate: true
-                })
-                // opcional: clearErrors('public_price')
-              }}
-            />
-          )}
-        />
-      )}
-      {promoMode === 'percentage' && (
-        <Controller
-          name='mode_value'
-          control={control}
-          render={({ field, fieldState }) => (
-            <NumericFormat
-              value={field.value ?? ''}
-              onValueChange={(v) => {
-                const num = v.floatValue === undefined ? undefined : v.floatValue
-                setValue('mode_value', num, {
-                  shouldValidate: true
-                })
-              }}
-              decimalScale={0}
-              maxLength={4}
-              customInput={Input}
-              label='Valor'
-              size='sm'
-              suffix=' %'
-              isInvalid={!!fieldState.error}
-              errorMessage={fieldState.error?.message}
-              isClearable
-              onClear={() => {
-                setValue('mode_value', undefined, {
-                  shouldValidate: true
-                })
-                // opcional: clearErrors('public_price')
-              }}
-            />
-          )}
-        />
-      )}
+      <Controller
+        name='mode_value'
+        control={control}
+        render={({ field, fieldState }) => (
+          <NumericFormat
+            value={field.value ?? ''}
+            onValueChange={(v) => {
+              const num = v.floatValue === undefined ? undefined : v.floatValue
+              setValue('mode_value', num, {
+                shouldValidate: true
+              })
+            }}
+            thousandSeparator={promoMode === 'fixed'}
+            decimalScale={promoMode === 'fixed' ? 2 : 0}
+            fixedDecimalScale={promoMode === 'fixed'}
+            allowNegative={false}
+            prefix={promoMode === 'fixed' ? '$' : undefined}
+            suffix={promoMode === 'percentage' ? '%' : undefined}
+            inputMode={promoMode === 'fixed' ? 'decimal' : 'numeric'}
+            customInput={Input}
+            maxLength={promoMode === 'percentage' ? 3 : undefined}
+            label='Valor'
+            size='sm'
+            isInvalid={!!fieldState.error}
+            errorMessage={fieldState.error?.message}
+            isClearable
+            onClear={() => {
+              setValue('mode_value', undefined, {
+                shouldValidate: true
+              })
+            }}
+          />
+        )}
+      />
       <Controller
         name='valid_until'
         control={control}
@@ -428,16 +410,27 @@ const PromotionForm = () => {
       </Switch>
       <div className='flex items-center justify-between'>
         <label>Limites</label>
-        <Switch size='sm' {...register('is_limited')} onChange={() => setIsLimited(!isLimited)} defaultSelected={isLimited}>
-          Activo
-        </Switch>
+        <Controller
+          name='is_limited'
+          render={({ field }) => (
+            <Switch size='sm' isSelected={!!field.value} onValueChange={field.onChange} onBlur={field.onBlur} ref={field.ref}>
+              Activo
+            </Switch>
+          )}
+        />
       </div>
       {isLimited && (
         <>
-          <RadioGroup orientation='horizontal' size='sm' {...register('limit_type')}>
-            <Radio value='user'>Por usuario</Radio>
-            <Radio value='global'>Global</Radio>
-          </RadioGroup>
+          <Controller
+            name='limit_type'
+            render={({ field }) => (
+              <RadioGroup orientation='horizontal' size='sm' onValueChange={field.onChange} value={field.value}>
+                <Radio value='user'>Por usuario</Radio>
+                <Radio value='global'>Global</Radio>
+              </RadioGroup>
+            )}
+          />
+
           <Input
             label='Total'
             type='text'
@@ -450,16 +443,27 @@ const PromotionForm = () => {
       )}
       <div className='flex items-center justify-between'>
         <label>Condiciones</label>
-        <Switch size='sm' {...register('is_conditioned')} onChange={() => setIsConditioned(!isConditioned)} defaultSelected={isConditioned}>
-          Activo
-        </Switch>
+        <Controller
+          name='is_conditioned'
+          render={({ field }) => (
+            <Switch size='sm' isSelected={!!field.value} onValueChange={field.onChange} onBlur={field.onBlur} ref={field.ref}>
+              Activo
+            </Switch>
+          )}
+        />
       </div>
       {isConditioned && (
         <>
-          <RadioGroup orientation='horizontal' size='sm' {...register('condition_type')}>
-            <Radio value='min_sale'>Compra mínima</Radio>
-            <Radio value='quantity'>Cantidad</Radio>
-          </RadioGroup>
+          <Controller
+            name='condition_type'
+            render={({ field }) => (
+              <RadioGroup orientation='horizontal' size='sm' onValueChange={field.onChange} value={field.value}>
+                <Radio value='min_sale'>Compra mínima</Radio>
+                <Radio value='quantity'>Cantidad</Radio>
+              </RadioGroup>
+            )}
+          />
+
           <Input
             label='Cantidad'
             type='text'

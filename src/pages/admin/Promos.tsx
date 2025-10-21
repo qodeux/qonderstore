@@ -5,7 +5,7 @@ import { DataTable, type PresetKey } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import PromotionModal from '../../components/modals/admin/PromotionModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
-import { setSelectedPromotion } from '../../store/slices/promoSlice'
+import { setIsEditing, setSelectedPromotion } from '../../store/slices/promoSlice'
 import type { RootState } from '../../store/store'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
@@ -87,7 +87,7 @@ const Promotions = () => {
 
   // const { isOpen: isOpenProduct, onOpen: onOpenProduct, onOpenChange: onOpenChangeProduct } = useDisclosure()
   const { isOpen: isOpenDelete, onOpen: onOpenDelete, onOpenChange: onOpenChangeDelete } = useDisclosure()
-  const { isOpen: isOpenCategory, onOpen: onOpenCategory, onOpenChange: onOpenChangeCategory } = useDisclosure()
+  const { isOpen: isOpenPromotion, onOpen: onOpenPromotion, onOpenChange: onOpenChangePromotion } = useDisclosure()
 
   const filteredRows = useMemo(() => {
     return applyToolbarFilters(promotions, ['promo_type'], criteria)
@@ -99,13 +99,16 @@ const Promotions = () => {
   }
 
   const handleAddPromotion = () => {
-    // dispatch(setEditMode(false))
-    onOpenCategory()
+    dispatch(setIsEditing(false))
+    onOpenPromotion()
   }
 
-  const handleEditCategory = () => {
-    //dispatch(setEditMode(true))
-    onOpenCategory()
+  const handleEditPromotion = (id: number) => {
+    console.log(id)
+    dispatch(setIsEditing(true))
+    dispatch(setSelectedPromotion(id))
+
+    onOpenPromotion()
   }
 
   return (
@@ -114,7 +117,7 @@ const Promotions = () => {
         <ToolbarTable<Row>
           rows={filteredRows}
           searchFilter={['promo_type']}
-          // filters={[{ label: 'Categoría', column: 'category', multiple: true }]}
+          // filters={[{ label: 'Categoría', column: 'promotion', multiple: true }]}
           enableToggleBehavior
           selectionBehavior={selectionBehavior}
           onToggleBehavior={toggleSelectionBehavior}
@@ -131,7 +134,7 @@ const Promotions = () => {
         <DataTable<Row>
           entity='promotions'
           adapterOverrides={{
-            edit: handleEditCategory,
+            edit: (row) => handleEditPromotion(row.id),
             onRequestDelete: (id) => {
               dispatch(setSelectedPromotion(Number(id)))
               onOpenDelete()
@@ -142,14 +145,14 @@ const Promotions = () => {
           columns={columns}
           selectedKeys={selectedKeys}
           onSelectionChange={setSelectedKeys}
-          selectionMode='multiple'
+          selectionMode='single'
           selectionBehavior={selectionBehavior}
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
           getRowKey={(row) => row.id as number}
         />
       </section>
-      <PromotionModal isOpen={isOpenCategory} onOpenChange={onOpenChangeCategory} />
+      <PromotionModal isOpen={isOpenPromotion} onOpenChange={onOpenChangePromotion} />
 
       <OnDeleteModal isOpenDelete={isOpenDelete} onOpenChangeDelete={onOpenChangeDelete} deleteType='promotion' />
     </>

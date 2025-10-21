@@ -145,8 +145,7 @@ const Providers = () => {
           entity='providers'
           adapterOverrides={{
             edit: (row) => handleEditProvider(row.id),
-            onRequestDelete: (id, item) => {
-              console.log(id)
+            onRequestDelete: (_id, item) => {
               dispatch(setSelectedProvider(item.id))
               onOpenDelete()
             },

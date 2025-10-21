@@ -1,3 +1,5 @@
+import type { DateValue } from '@heroui/react'
+import { parseAbsoluteToLocal } from '@internationalized/date'
 import type { FormatPreset } from '../components/common/DataTable'
 
 export function toDate(v: unknown) {
@@ -46,4 +48,16 @@ export function formatDate(value: unknown, preset: FormatPreset = 'full', locale
 
   // En es-MX, obtendrás algo tipo "01/10/25 11:45 p. m." (puede variar por navegador)
   return new Intl.DateTimeFormat(locale, opts).format(d).replace(',', '')
+}
+
+export const fromDbToDateValue = (iso?: string | null): DateValue | null => {
+  if (!iso) return null
+  try {
+    return parseAbsoluteToLocal(iso)
+  } catch {
+    console.warn('Fecha no válida, se intenta normalizar:', iso)
+    // fallback para formatos no estrictos
+    const fixed = iso.replace(' ', 'T').replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
+    return parseAbsoluteToLocal(fixed + (fixed.endsWith('Z') ? '' : 'Z'))
+  }
 }

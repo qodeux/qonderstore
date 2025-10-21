@@ -21,7 +21,7 @@ const promotionSlice = createSlice({
   name: 'promotions',
   initialState,
   reducers: {
-    setIsEditing(state, action) {
+    setIsEditing(state, action: PayloadAction<boolean>) {
       state.isEditing = action.payload
     },
     setPromotions(state, action) {
