@@ -23,15 +23,22 @@ const promotionSlice = createSlice({
   reducers: {
     setIsEditing(state, action: PayloadAction<boolean>) {
       state.isEditing = action.payload
+      if (action.payload === false) {
+        state.selectedPromotion = null
+      }
     },
     setPromotions(state, action) {
       state.items = action.payload
     },
     setSelectedPromotion(state, action: PayloadAction<number>) {
       state.selectedPromotion = state.items.find((item) => item.id === action.payload) || null
+    },
+    clearSelectedPromotion(state) {
+      state.selectedPromotion = null
+      state.isEditing = false
     }
   }
 })
-export const { setIsEditing, setPromotions, setSelectedPromotion } = promotionSlice.actions
+export const { setIsEditing, setPromotions, setSelectedPromotion, clearSelectedPromotion } = promotionSlice.actions
 
 export default promotionSlice.reducer

@@ -1,5 +1,5 @@
 import { Autocomplete, AutocompleteItem, DatePicker, Input, Radio, RadioGroup, Select, SelectItem, Switch } from '@heroui/react'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { NumericFormat } from 'react-number-format'
 import { useSelector } from 'react-redux'
@@ -32,7 +32,7 @@ const PromotionForm = () => {
     name: 'promo_type'
   })
 
-  const frecuency = useWatch({
+  const selectedFrequency = useWatch({
     control,
     name: 'frequency'
   })
@@ -59,19 +59,61 @@ const PromotionForm = () => {
 
   const targetError = getFieldState('promo_type_target_id')
 
-  const subcategories = categories.filter((cat) => cat.parent?.toString() === selectedCategory?.toString())
+  //const subcategories = useMemo(() => categories.filter((c) => c.parent === (selectedCategory ?? -1)), [categories, selectedCategory])
 
+  // 🧱 Normaliza a number para evitar "[]" por string vs number
+  const selectedCategoryNum = selectedCategory == null ? null : Number(selectedCategory)
+
+  const subcategories = useMemo(() => {
+    if (!categories?.length || selectedCategoryNum == null) return []
+    return categories.filter((c) => Number(c.parent) === selectedCategoryNum)
+  }, [categories, selectedCategoryNum])
+
+  // Agrega este useEffect para resetear subcategoría cuando cambia la categoría
   useEffect(() => {
-    if (promoType === 'product') {
-      setValue('promo_type_target_id', selectedProduct)
-    } else if (promoType === 'category') {
-      if (subcategories.length) {
-        setValue('promo_type_target_id', selectedSubCategory)
-      } else {
-        setValue('promo_type_target_id', selectedCategory)
+    // Si cambió la categoría y hay subcategorías disponibles
+    if (selectedCategoryNum != null && subcategories.length > 0) {
+      const currentSubcat = getValues('subcategory')
+      // Verifica si la subcategoría actual es válida para las nuevas opciones
+      const isValidSubcat = subcategories.some((sc) => sc.id === currentSubcat)
+
+      if (!isValidSubcat && currentSubcat != null) {
+        // Si no es válida, resetea
+        setValue('subcategory', undefined, { shouldDirty: false })
       }
     }
-  }, [promoType, selectedProduct, setValue, selectedCategory, selectedSubCategory, subcategories])
+    // Si no hay subcategorías, limpia el campo
+    if (subcategories.length === 0) {
+      setValue('subcategory', undefined, { shouldDirty: false })
+    }
+  }, [selectedCategoryNum, subcategories.length, setValue, getValues])
+
+  // Modifica el useEffect existente para manejar mejor el caso inicial
+  useEffect(() => {
+    if (promoType === 'product') {
+      setValue('promo_type_target_id', selectedProduct, { shouldDirty: false, shouldValidate: true })
+      return
+    }
+
+    if (promoType === 'category') {
+      // Espera a que subcategories esté listo antes de decidir
+      if (selectedSubCategory != null && subcategories.some((sc) => sc.id === selectedSubCategory)) {
+        setValue('promo_type_target_id', selectedSubCategory, { shouldDirty: false, shouldValidate: true })
+      } else if (selectedCategoryNum != null) {
+        setValue('promo_type_target_id', selectedCategoryNum, { shouldDirty: false, shouldValidate: true })
+      }
+    }
+  }, [promoType, selectedProduct, selectedCategoryNum, selectedSubCategory, subcategories, setValue])
+
+  useEffect(() => {
+    console.log('🔍 Debug:', {
+      selectedCategory: selectedCategoryNum,
+      selectedSubCategory,
+      subcategoriesLength: subcategories.length,
+      subcategoriesIds: subcategories.map((s) => s.id),
+      defaultValues: control._defaultValues
+    })
+  }, [selectedCategoryNum, selectedSubCategory, subcategories])
 
   return (
     <form className='space-y-2'>
@@ -108,40 +150,40 @@ const PromotionForm = () => {
                 size='sm'
                 selectedKeys={field.value != null ? new Set([String(field.value)]) : new Set()}
                 onSelectionChange={(keys) => {
-                  const rawValue = Array.from(keys)[0]
-                  field.onChange(rawValue)
+                  const raw = Array.from(keys as Set<React.Key>)[0]
+                  field.onChange(raw != null ? Number(raw) : undefined)
                 }}
-                isInvalid={!!errors.category || !!targetError.error}
-                errorMessage={errors.category?.message as string}
                 disallowEmptySelection
               >
                 {categories
-                  .filter((cat) => cat.parent === null)
-                  .map((type) => (
-                    <SelectItem key={type.id}>{type.name}</SelectItem>
+                  .filter((c) => c.parent === null)
+                  .map((c) => (
+                    <SelectItem key={c.id}>{c.name}</SelectItem>
                   ))}
               </Select>
             )}
           />
+
+          <p>Categoria: {selectedCategory}</p>
+
           {subcategories.length > 0 && (
             <Controller
               name='subcategory'
               control={control}
               render={({ field }) => (
                 <Select
+                  key={`subcat-${selectedCategory}-${field.value}`} // Mejor key para forzar re-render
                   label='Subcategoría'
                   size='sm'
-                  selectedKeys={field.value ? [String(field.value)] : []}
+                  selectedKeys={field.value != null ? new Set([String(field.value)]) : new Set()}
                   onSelectionChange={(keys) => {
-                    const rawValue = Array.from(keys)[0]
-                    field.onChange(rawValue)
+                    const raw = Array.from(keys as Set<React.Key>)[0]
+                    field.onChange(raw != null ? Number(raw) : undefined)
                   }}
-                  isInvalid={!!errors.subcategory || !!targetError.errors}
-                  errorMessage={errors.subcategory?.message as string}
                   disallowEmptySelection
                 >
-                  {subcategories.map((type) => (
-                    <SelectItem key={type.id}>{type.name}</SelectItem>
+                  {subcategories.map((sc) => (
+                    <SelectItem key={sc.id}>{sc.name}</SelectItem>
                   ))}
                 </Select>
               )}
@@ -239,7 +281,7 @@ const PromotionForm = () => {
               </Select>
             )}
           />
-          {frecuency === 'once' && (
+          {selectedFrequency === 'once' && (
             <Controller
               name='date'
               control={control}
@@ -260,7 +302,7 @@ const PromotionForm = () => {
               )}
             />
           )}
-          {frecuency === 'weekly' && (
+          {selectedFrequency === 'weekly' && (
             <Controller
               name='week_days'
               control={control}
@@ -285,7 +327,7 @@ const PromotionForm = () => {
               )}
             />
           )}
-          {frecuency === 'monthly' && (
+          {selectedFrequency === 'monthly' && (
             <Controller
               name='day_month'
               control={control}

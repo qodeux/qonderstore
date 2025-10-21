@@ -5,7 +5,7 @@ import { DataTable, type PresetKey } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import PromotionModal from '../../components/modals/admin/PromotionModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
-import { setIsEditing, setSelectedPromotion } from '../../store/slices/promoSlice'
+import { clearSelectedPromotion, setIsEditing, setSelectedPromotion } from '../../store/slices/promoSlice'
 import type { RootState } from '../../store/store'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
@@ -99,7 +99,7 @@ const Promotions = () => {
   }
 
   const handleAddPromotion = () => {
-    dispatch(setIsEditing(false))
+    dispatch(clearSelectedPromotion())
     onOpenPromotion()
   }
 
