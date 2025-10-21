@@ -6,6 +6,7 @@ import { SessionBootstrapper } from './components/SessionBootstraper'
 import { useProductBrands } from './hooks/useBrands'
 import { useCategories } from './hooks/useCategories'
 import { useProducts } from './hooks/useProducts'
+import { usePromotions } from './hooks/usePromotions'
 import AppRoutes from './routes/routes'
 
 function App() {
@@ -14,6 +15,8 @@ function App() {
   useCategories()
   useProducts()
   useProductBrands()
+  usePromotions()
+
   return (
     <HeroUIProvider navigate={navigate} useHref={useHref}>
       <ScrollToTop />

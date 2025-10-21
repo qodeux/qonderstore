@@ -58,3 +58,27 @@ export const promotionsInputSchema = z.object({
 
 export type PromotionsFormValues = z.input<typeof promotionsInputSchema> // valid_until: DateValue
 export type PromotionsInput = z.output<typeof promotionsInputSchema> // valid_until: Date
+
+export const promotionSchema = z.object({
+  id: z.number(),
+  promo_type: z.enum(['category', 'product']),
+  promo_type_target_id: z.coerce.number(),
+  discount_type: z.enum(['season', 'code']),
+  code: z.string().optional(),
+  frequency: z.enum(['once', 'weekly', 'monthly', 'select']),
+  frequency_value: z.object().optional(),
+  mode: z.enum(['percentage', 'fixed', 'free']),
+  mode_value: z.number(),
+  valid_until: z.string().optional(),
+  is_active: z.boolean(),
+  is_limited: z.boolean(),
+  limit_type: z.enum(['user', 'global']).optional(),
+  limit: z.number().optional(),
+  is_conditioned: z.boolean(),
+  condition_type: z.enum(['min_sale', 'quantity']).optional(),
+  condition: z.number().optional(),
+  condition_product: z.number().optional(),
+  created_at: z.string()
+})
+
+export type Promotion = z.infer<typeof promotionSchema>

@@ -1,20 +1,25 @@
 import { useDisclosure, type Selection, type SortDescriptor } from '@heroui/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { DataTable, type PresetKey } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import PromotionModal from '../../components/modals/admin/PromotionModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
-import { promotionsService } from '../../services/promotionService'
+import { setSelectedPromotion } from '../../store/slices/promoSlice'
+import type { RootState } from '../../store/store'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const Promotions = () => {
-  //const dispatch = useDispatch()
+  const dispatch = useDispatch()
+
+  const promotions = useSelector((state: RootState) => state.promotions.items)
+
   type Row = {
-    key: string
+    id: number
     promo_type: string
     discount_type: string
     frequency: string
-    mode_value: string
+    mode_value: number
     valid_until?: string
     is_active: boolean
   }
@@ -49,8 +54,8 @@ const Promotions = () => {
     {
       key: 'valid_until',
       label: 'Vigencia',
-      type: 'date',
-      datePreset: 'short',
+      preset: 'date',
+      presetConfig: { format: 'short' },
       allowsSorting: true
     },
     {
@@ -67,14 +72,10 @@ const Promotions = () => {
     }
   ]
 
-  const [rowsDB, setRowsDB] = useState<Row[]>([])
-
   const [criteria, setCriteria] = useState<ToolbarCriteria<Row>>({
     searchText: '',
     selected: {}
   })
-
-  const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null)
 
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]))
   const [selectionBehavior, setSelectionBehavior] = useState<'replace' | 'toggle'>('replace')
@@ -89,32 +90,12 @@ const Promotions = () => {
   const { isOpen: isOpenCategory, onOpen: onOpenCategory, onOpenChange: onOpenChangeCategory } = useDisclosure()
 
   const filteredRows = useMemo(() => {
-    return applyToolbarFilters(rowsDB, ['promo_type'], criteria)
-  }, [rowsDB, criteria])
+    return applyToolbarFilters(promotions, ['promo_type'], criteria)
+  }, [promotions, criteria])
 
   const toggleSelectionBehavior = () => {
     setSelectionBehavior((prevMode) => (prevMode === 'replace' ? 'toggle' : 'replace'))
     setSelectedKeys(new Set()) // Clear selection when mode changes
-  }
-
-  async function fetchData() {
-    const promotionsDB = await promotionsService.fetchPromotion()
-    console.log(promotionsDB)
-
-    if (promotionsDB) {
-      setRowsDB(
-        promotionsDB.map((promotions) => ({
-          key: promotions.id.toString(),
-          promo_type: promotions.promo_type,
-          discount_type: promotions.discount_type,
-          frequency: promotions.frequency,
-          mode: promotions.mode,
-          mode_value: promotions.mode_value,
-          valid_until: promotions.valid_until,
-          is_active: promotions.is_active || false
-        }))
-      )
-    }
   }
 
   const handleAddPromotion = () => {
@@ -127,16 +108,11 @@ const Promotions = () => {
     onOpenCategory()
   }
 
-  // carga inicial
-  useEffect(() => {
-    fetchData()
-  }, [])
-
   return (
     <>
       <section className='space-y-6'>
         <ToolbarTable<Row>
-          rows={rowsDB}
+          rows={filteredRows}
           searchFilter={['promo_type']}
           // filters={[{ label: 'Categoría', column: 'category', multiple: true }]}
           enableToggleBehavior
@@ -157,10 +133,9 @@ const Promotions = () => {
           adapterOverrides={{
             edit: handleEditCategory,
             onRequestDelete: (id) => {
-              setDeleteCategoryId(String(id))
+              dispatch(setSelectedPromotion(Number(id)))
               onOpenDelete()
-            },
-            afterChange: fetchData
+            }
             // rowActions: (row) => [{ key:"share", label:"Compartir", onPress: ... }]
           }}
           rows={filteredRows}
@@ -171,11 +146,12 @@ const Promotions = () => {
           selectionBehavior={selectionBehavior}
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
+          getRowKey={(row) => row.id as number}
         />
       </section>
       <PromotionModal isOpen={isOpenCategory} onOpenChange={onOpenChangeCategory} />
 
-      <OnDeleteModal isOpenDelete={isOpenDelete} onOpenChangeDelete={onOpenChangeDelete} deleteType='category' />
+      <OnDeleteModal isOpenDelete={isOpenDelete} onOpenChangeDelete={onOpenChangeDelete} deleteType='promotion' />
     </>
   )
 }

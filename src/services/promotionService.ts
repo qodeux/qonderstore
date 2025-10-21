@@ -1,7 +1,7 @@
 import supabase from '../lib/supabase'
 import type { PromotionsInput } from '../schemas/promotions.schema'
 
-export const promotionsService = {
+export const promotionService = {
   fetchPromotion: async () => {
     const { data: promotions, error } = await supabase.from('promos').select('*')
     if (error) {
@@ -9,27 +9,27 @@ export const promotionsService = {
     }
     return promotions
   },
-  createPromotion: async (promotionsData: PromotionsInput) => {
+  createPromotion: async (promotionData: PromotionsInput) => {
     const { data: promotionInserted, error: promotionError } = await supabase
       .from('promos')
       .insert([
         {
-          promo_type: promotionsData.promo_type,
-          promo_type_target_id: promotionsData.promo_type_target_id,
-          discount_type: promotionsData.discount_type,
-          code: promotionsData.code,
-          frequency: promotionsData.frequency || 'once',
+          promo_type: promotionData.promo_type,
+          promo_type_target_id: promotionData.promo_type_target_id,
+          discount_type: promotionData.discount_type,
+          code: promotionData.code,
+          frequency: promotionData.frequency || 'once',
           frequency_value: {},
-          mode: promotionsData.mode,
-          mode_value: promotionsData.mode_value,
-          valid_until: promotionsData.valid_until,
+          mode: promotionData.mode,
+          mode_value: promotionData.mode_value,
+          valid_until: promotionData.valid_until,
           is_active: true,
           is_limited: false,
-          limit_type: promotionsData.limit_type,
-          limit: promotionsData.limit,
-          is_conditioned: promotionsData.is_conditioned,
-          condition_type: promotionsData.condition_type,
-          condition: promotionsData.condition,
+          limit_type: promotionData.limit_type,
+          limit: promotionData.limit,
+          is_conditioned: promotionData.is_conditioned,
+          condition_type: promotionData.condition_type,
+          condition: promotionData.condition,
           condition_product: null
         }
       ])
@@ -42,9 +42,9 @@ export const promotionsService = {
     }
     return promotionInserted
   },
-  deletePromotion: async (promoID: string) => {
-    console.log('Deleting promotion with ID:', promoID)
-    const { error } = await supabase.from('promos').delete().eq('id', promoID)
+  deletePromotion: async (id: number) => {
+    console.log('Deleting promotion with ID:', id)
+    const { error } = await supabase.from('promos').delete().eq('id', id)
     if (error) {
       console.error('Error deleting promotion:', error)
     }

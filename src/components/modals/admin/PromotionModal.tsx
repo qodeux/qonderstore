@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useSelector } from 'react-redux'
 import { promotionsInputSchema } from '../../../schemas/promotions.schema'
-import { promotionsService } from '../../../services/promotionService'
+import { promotionService } from '../../../services/promotionService'
 import type { RootState } from '../../../store/store'
 import PromotionForm from '../../forms/admin/PromotionForm'
 
@@ -33,7 +33,7 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
 
     const formData = promotionForm.getValues()
 
-    const promotionCreated = await promotionsService.createPromotion(promotionsInputSchema.parse(formData))
+    const promotionCreated = await promotionService.createPromotion(promotionsInputSchema.parse(formData))
 
     console.log(promotionCreated)
 
