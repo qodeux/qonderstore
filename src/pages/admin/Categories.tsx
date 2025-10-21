@@ -1,7 +1,7 @@
 import { useDisclosure, type Selection, type SortDescriptor } from '@heroui/react'
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { DataTable, type ColumnDef, type PresetKey } from '../../components/common/DataTable'
+import { DataTable, type AlignPreset, type ColumnDef, type PresetKey } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import CategoryModal from '../../components/modals/admin/CategoryModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
@@ -12,6 +12,7 @@ import { applyToolbarFilters } from '../../utils/toolbarFilters'
 const Categories = () => {
   const dispatch = useDispatch()
   const categories = useSelector((state: RootState) => state.categories.categories) ?? []
+  const { layoutOutletHeight, layoutToolbarSpace } = useSelector((state: RootState) => state.ui) ?? {}
 
   type Row = {
     id: number
@@ -32,12 +33,14 @@ const Categories = () => {
     {
       key: 'total_products',
       label: 'Productos',
-      allowsSorting: true
+      allowsSorting: true,
+      align: 'center' as AlignPreset
     },
     {
       key: 'slug_id',
       label: 'Clave',
-      allowsSorting: true
+      allowsSorting: true,
+      align: 'center' as AlignPreset
     },
     {
       key: 'parent_name',
@@ -65,7 +68,6 @@ const Categories = () => {
   })
 
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]))
-  const [selectionBehavior, setSelectionBehavior] = useState<'replace' | 'toggle'>('replace')
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'parent_name',
@@ -78,11 +80,6 @@ const Categories = () => {
 
   const filteredRows = applyToolbarFilters(categories, ['name'], criteria)
 
-  const toggleSelectionBehavior = () => {
-    setSelectionBehavior((prevMode) => (prevMode === 'replace' ? 'toggle' : 'replace'))
-    setSelectedKeys(new Set()) // Clear selection when mode changes
-  }
-
   const handleAddCategory = () => {
     dispatch(setEditMode(false))
     onOpenCategory()
@@ -91,19 +88,18 @@ const Categories = () => {
   const handleEditCategory = (row: Row) => {
     dispatch(setEditMode(true))
     dispatch(setSelectedCategory(row))
+    setSelectedKeys(new Set([String(row.id)]))
     onOpenCategory()
   }
 
   return (
     <>
-      <section className='space-y-6'>
+      <section className='space-y-4'>
         <ToolbarTable<Row>
           rows={categories}
           searchFilter={['name']}
           // filters={[{ label: 'Categoría', column: 'category', multiple: true }]}
-          enableToggleBehavior
-          selectionBehavior={selectionBehavior}
-          onToggleBehavior={toggleSelectionBehavior}
+
           buttons={[
             {
               label: 'Agregar categoría',
@@ -127,12 +123,12 @@ const Categories = () => {
             }
             // rowActions: (row) => [{ key:"share", label:"Compartir", onPress: ... }]
           }}
+          maxHeight={layoutOutletHeight ? layoutOutletHeight - layoutToolbarSpace : undefined}
           rows={filteredRows}
           columns={columns}
           selectedKeys={selectedKeys}
           onSelectionChange={setSelectedKeys}
-          selectionMode={selectionBehavior === 'replace' ? 'single' : 'multiple'}
-          selectionBehavior={selectionBehavior}
+          selectionMode='single'
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
           getRowKey={(row) => row.id as number}

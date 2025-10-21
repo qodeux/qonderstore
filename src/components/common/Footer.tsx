@@ -11,14 +11,14 @@ const Footer = () => {
     window.open('https://wa.me/34900123456', '_blank')
   }
   return (
-    <footer className='bg-zinc-900 text-white py-8'>
+    <footer className='bg-zinc-900 text-white py-8 '>
       <div className='container mx-auto px-4'>
         <div className='grid grid-cols-1   md:grid-cols-2 gap-8'>
           {/* Company Info */}
           <div className='max-w-xs mx-auto md:mx-0 text-center md:text-left'>
             {/* <img src={logo} alt='' className='h-20' /> */}
-            <p className='text-gray-300 my-2'>
-              Somos tu club privado de confianza para productos recreativos, semillas y artículos de alta calidad.
+            <p className='text-gray-300 my-2 text-balance md:text-left'>
+              Somos tu club privado de confianza con los mejores productos recreativos y artículos de alta calidad.
             </p>
             {/* Social Media */}
             <div className='text-center md:text-left'>
@@ -93,12 +93,6 @@ const Footer = () => {
                 </>
               ) : (
                 <>
-                  <Link href='/login' className='block text-gray-300 hover:text-white transition-colors'>
-                    Iniciar Sesión
-                  </Link>
-                  <Link href='/' className='block text-gray-300 hover:text-white transition-colors'>
-                    Registrarse
-                  </Link>
                   <Link href='/privacidad' className='block text-gray-300 hover:text-white transition-colors'>
                     Aviso de Privacidad
                   </Link>
@@ -115,7 +109,7 @@ const Footer = () => {
         </div>
 
         <div className='mt-8 pt-8 border-t border-zinc-700 text-center text-gray-300'>
-          <p>&copy; {year} qondestore. Todos los derechos reservados.</p>
+          <p>&copy; {year} qondestore.</p>
         </div>
       </div>
     </footer>

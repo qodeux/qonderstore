@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { categoryService } from '../../../services/categoryService'
 import { productService } from '../../../services/productService'
+import { providerService } from '../../../services/providerService'
+import { userService } from '../../../services/userService'
 import type { RootState } from '../../../store/store'
 
-export type ItemType = 'product' | 'category' | 'brand' | 'provider'
+export type ItemType = 'product' | 'category' | 'brand' | 'provider' | 'user'
 
 type Props = {
   isOpenDelete: boolean
@@ -18,30 +20,38 @@ const deleteTypeMap = {
   product: { name: 'producto', article: 'el' },
   category: { name: 'categoría', article: 'la' },
   brand: { name: 'marca', article: 'la' },
-  provider: { name: 'proveedor', article: 'el' }
+  provider: { name: 'proveedor', article: 'el' },
+  user: { name: 'usuario', article: 'el' }
 }
 
 const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) => {
   const categories = useSelector((state: RootState) => state.categories.categories) ?? []
   const selectedCategory = useSelector((state: RootState) => state.categories.selectedCategory)
-
   const selectedProduct = useSelector((state: RootState) => state.products.selectedProduct)
+  const selectedProvider = useSelector((state: RootState) => state.providers.selectedProvider)
+  const selectedUser = useSelector((state: RootState) => state.users.selectedUser)
 
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   let itemToDelete: string | undefined
-  switch (deleteType) {
+  switch (deleteType as ItemType) {
     case 'product':
       itemToDelete = selectedProduct?.name
       break
     case 'category':
       itemToDelete = selectedCategory?.name
       break
+    case 'provider':
+      itemToDelete = selectedProvider?.alias
+      break
+    case 'user':
+      itemToDelete = selectedUser?.user_name
+      break
   }
 
   async function deleteItem() {
     if (!itemToDelete) return
-    switch (deleteType) {
+    switch (deleteType as ItemType) {
       case 'product':
         if (selectedProduct) {
           await productService.deleteProduct(String(selectedProduct.id))
@@ -61,14 +71,21 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
         if (selectedCategory) {
           await categoryService.deleteCategory(selectedCategory.id)
           console.log('Category deleted successfully')
-          //await supabase.from('categories').delete().eq('id', itemId)
         }
         break
       case 'brand':
         //await supabase.from('brands').delete().eq('id', itemId)
         break
       case 'provider':
-        //await supabase.from('providers').delete().eq('id', itemId)
+        console.log('Borrando:', selectedProvider)
+        if (selectedProvider) {
+          await providerService.deleteProvider(selectedProvider.id)
+        }
+        break
+      case 'user':
+        if (selectedUser) {
+          await userService.deleteUser(selectedUser.id)
+        }
         break
     }
     onOpenChangeDelete()
@@ -92,6 +109,24 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
       } else {
         return true
       }
+    }
+
+    if (deleteType === 'provider') {
+      return true
+    }
+
+    if (deleteType === 'user') {
+      if (!selectedUser) return false
+
+      if (selectedUser.role === 'admin') {
+        return false
+      }
+
+      if (selectedUser.is_active === true) {
+        return false
+      }
+
+      return true
     }
   }
 
@@ -145,6 +180,40 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
                         )}
                         {confirmDelete && <span className='text-sm'>¡Listo! Ya puedes eliminar.</span>}
                       </div>
+                    </>
+                  }
+                  title='Advertencia'
+                />
+              )}
+
+              {deleteType === 'user' && (selectedUser?.is_active ?? false) && (
+                <Alert
+                  color='primary'
+                  icon={<ShieldAlert />}
+                  hideIconWrapper
+                  className='mt-4'
+                  classNames={{ title: 'font-bold', description: 'text-xs', alertIcon: 'fill-none', iconWrapper: 'bg-blue-100' }}
+                  description={
+                    <>
+                      EL usuario esta <strong>activo</strong>, para poder eliminarlo, debes desactivarlo primero. Al eliminarlo, el usuario
+                      ya no podrá iniciar sesión. <strong>Esto no se puede deshacer. </strong>
+                    </>
+                  }
+                  title='Advertencia'
+                />
+              )}
+
+              {deleteType === 'user' && !selectedUser?.is_active && (
+                <Alert
+                  color='danger'
+                  icon={<ShieldAlert />}
+                  hideIconWrapper
+                  className='mt-4'
+                  classNames={{ title: 'font-bold', description: 'text-xs', alertIcon: 'fill-none', iconWrapper: 'bg-blue-100' }}
+                  description={
+                    <>
+                      Al eliminar, un usuario ya no podrá iniciar sesión. todos sus registros quedaran guardados.{' '}
+                      <strong>Esto no se puede deshacer. </strong>
                     </>
                   }
                   title='Advertencia'

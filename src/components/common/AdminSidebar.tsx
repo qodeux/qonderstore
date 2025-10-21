@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronRight, LayoutDashboard, Package, Percent, Users } from 'lucide-react'
-import { useDispatch } from 'react-redux'
+import { Boxes, ChevronRight, CirclePercent, Combine, Layers, LayoutDashboard, Package, Users } from 'lucide-react'
+import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
-import { logout } from '../../store/slices/authSlice'
+import { performLogout } from '../../store/slices/authSlice'
+import type { AppDispatch, RootState } from '../../store/store'
 
 interface AdminSidebarProps {
   isOpen: boolean
@@ -19,6 +20,7 @@ interface MenuItem {
     href: string
     icon?: React.ReactNode
   }[]
+  allowedRoles?: string[]
 }
 
 const menuItems: MenuItem[] = [
@@ -29,11 +31,11 @@ const menuItems: MenuItem[] = [
   },
   {
     label: 'Catálogo',
-    icon: <Package className='w-5 h-5' />,
+    icon: <Combine className='w-5 h-5' />,
     submenu: [
-      { label: 'Categorías', href: '/admin/categorias' },
-      { label: 'Productos', href: '/admin/productos' },
-      { label: 'Promociones', href: '/admin/promociones', icon: <Percent className='w-4 h-4' /> }
+      { label: 'Categorías', href: '/admin/categorias', icon: <Layers className='w-4 h-4' /> },
+      { label: 'Productos', href: '/admin/productos', icon: <Package className='w-4 h-4' /> },
+      { label: 'Promociones', href: '/admin/promociones', icon: <CirclePercent className='w-4 h-4' /> }
     ]
   },
   //   {
@@ -48,13 +50,14 @@ const menuItems: MenuItem[] = [
   //   },
   {
     label: 'Proveedores',
-    icon: <Users className='w-5 h-5' />,
+    icon: <Boxes className='w-5 h-5' />,
     href: '/admin/proveedores'
   },
   {
     label: 'Usuarios',
     icon: <Users className='w-5 h-5' />,
-    href: '/admin/usuarios'
+    href: '/admin/usuarios',
+    allowedRoles: ['admin']
   }
   //   {
   //     label: 'Mensajes',
@@ -82,98 +85,109 @@ const menuItems: MenuItem[] = [
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const dispatch = useDispatch()
+  const dispatch = useDispatch<AppDispatch>()
   const [expandedItem, setExpandedItem] = useState<string | null>(null)
+  const { user } = useSelector((state: RootState) => state.auth)
 
   const toggleExpand = (label: string) => {
     setExpandedItem(expandedItem === label ? null : label)
   }
 
   const handleLogout = () => {
-    dispatch(logout())
+    dispatch(performLogout())
     navigate('/login')
   }
 
+  const matchBySegment = (base: string, path: string) => path === base || path.startsWith(base + '/')
+
   const isActive = (href: string) => {
-    return location.pathname === href || location.pathname.startsWith(`${href}/`)
+    return href === '/admin' ? location.pathname === '/admin' : matchBySegment(href, location.pathname)
   }
 
   const isSubmenuActive = (submenu: { href: string }[]) => {
     return submenu.some((item) => isActive(item.href))
   }
 
+  useEffect(() => {
+    const activeParent = menuItems.find((mi) => mi.submenu && isSubmenuActive(mi.submenu))
+    if (activeParent) setExpandedItem(activeParent.label)
+  }, [location.pathname])
+
   return (
     <aside
       className={`
-        sticky top-0 bg-white border-r w-64 
+        sticky top-0 bg-white shadow-sm w-64  h-[calc(100vh-4rem)]
         transition-transform duration-300 z-30
         ${isOpen ? 'translate-x-0' : '-translate-x-64'}
       `}
     >
       <nav className='p-4'>
         <ul className='space-y-2'>
-          {menuItems.map((item, index) => (
-            <li key={index}>
-              {item.submenu ? (
-                <div>
-                  <button
-                    onClick={() => toggleExpand(item.label)}
-                    className={`
+          {/* Solo mostrar items permitidos por rol */}
+          {menuItems
+            //.filter((item) => !item.allowedRoles || item.allowedRoles.includes(user?.role))
+            .map((item, index) => (
+              <li key={index}>
+                {item.submenu ? (
+                  <div>
+                    <button
+                      onClick={() => toggleExpand(item.label)}
+                      className={`
                       flex items-center w-full gap-2 px-4 py-2 rounded
-                      transition-colors duration-200
-                      ${isSubmenuActive(item.submenu) ? 'bg-green-50 text-green-600' : 'text-gray-700 hover:bg-gray-100'}
+                      transition-colors duration-200 cursor-pointer
+                      ${isSubmenuActive(item.submenu) ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-gray-100'}
                     `}
+                    >
+                      {item.icon}
+                      <span className='flex-1'>{item.label}</span>
+                      <motion.div animate={{ rotate: expandedItem === item.label ? 450 : 0 }} transition={{ duration: 0.2 }}>
+                        <ChevronRight className='w-4 h-4' />
+                      </motion.div>
+                    </button>
+                    <AnimatePresence>
+                      {expandedItem === item.label && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className='overflow-hidden'
+                        >
+                          <div className='ml-4 mt-2 space-y-1'>
+                            {item.submenu.map((subItem, subIndex) => (
+                              <button
+                                key={subIndex}
+                                onClick={() => navigate(subItem.href)}
+                                className={`
+                                flex items-center w-full gap-2 px-4 py-2 rounded
+                                transition-colors duration-200 cursor-pointer
+                                ${isActive(subItem.href) ? 'bg-blue-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}
+                              `}
+                              >
+                                {subItem.icon}
+                                <span>{subItem.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => navigate(item.href!)}
+                    className={`
+                    flex items-center w-full gap-2 px-4 py-2 rounded
+                    transition-colors duration-200 cursor-pointer
+                    ${isActive(item.href!) ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-gray-100'}
+                  `}
                   >
                     {item.icon}
-                    <span className='flex-1'>{item.label}</span>
-                    <motion.div animate={{ rotate: expandedItem === item.label ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                      <ChevronRight className='w-4 h-4' />
-                    </motion.div>
+                    <span>{item.label}</span>
                   </button>
-                  <AnimatePresence>
-                    {expandedItem === item.label && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className='overflow-hidden'
-                      >
-                        <div className='ml-4 mt-2 space-y-1'>
-                          {item.submenu.map((subItem, subIndex) => (
-                            <button
-                              key={subIndex}
-                              onClick={() => navigate(subItem.href)}
-                              className={`
-                                flex items-center w-full gap-2 px-4 py-2 rounded
-                                transition-colors duration-200
-                                ${isActive(subItem.href) ? 'bg-green-50 text-green-600' : 'text-gray-600 hover:bg-gray-100'}
-                              `}
-                            >
-                              {subItem.icon}
-                              <span>{subItem.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ) : (
-                <button
-                  onClick={() => navigate(item.href!)}
-                  className={`
-                    flex items-center w-full gap-2 px-4 py-2 rounded
-                    transition-colors duration-200
-                    ${isActive(item.href!) ? 'bg-green-50 text-green-600' : 'text-gray-700 hover:bg-gray-100'}
-                  `}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </button>
-              )}
-            </li>
-          ))}
+                )}
+              </li>
+            ))}
           {/* <li>
             <button
               onClick={handleLogout}

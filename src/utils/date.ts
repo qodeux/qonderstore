@@ -1,3 +1,5 @@
+import type { FormatPreset } from '../components/common/DataTable'
+
 export function toDate(v: unknown) {
   if (v == null) return null
   if (v instanceof Date) return isNaN(v.getTime()) ? null : v
@@ -27,12 +29,7 @@ export function formatRelativeTime(date: Date, locale = 'es') {
   return rtf.format(Math.round(diffMs / 31_557_600_000), 'year') // ~365.25d
 }
 
-export function formatDate(
-  value: unknown,
-  preset: 'full' | 'short' | 'relative' | 'time' = 'full',
-  locale = 'es-MX',
-  timeZone?: string
-): string {
+export function formatDate(value: unknown, preset: FormatPreset = 'full', locale = 'es-MX', timeZone?: string): string {
   const d = toDate(value)
   if (!d) return ''
 

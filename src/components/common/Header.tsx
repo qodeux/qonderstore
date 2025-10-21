@@ -1,53 +1,62 @@
 import { Button, Link, Navbar, NavbarBrand, NavbarContent, NavbarItem } from '@heroui/react'
+import { Power } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router'
-import { logout } from '../../store/slices/authSlice'
-import type { RootState } from '../../store/store'
+import { useLocation, useNavigate } from 'react-router'
+import Logo from '../../assets/logo-full-Q.svg?react'
+import { logoutUser } from '../../store/slices/authSlice'
+import type { AppDispatch, RootState } from '../../store/store'
 
 const Header = () => {
-  const isLoggedIn = useSelector((state: RootState) => state.auth.isAuthenticated)
-  const dispatch = useDispatch()
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth)
+  const dispatch = useDispatch<AppDispatch>()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const isLoginPage = location.pathname === '/login'
 
   const handleLogout = () => {
     // Aquí puedes agregar la lógica para manejar el cierre de sesión
     console.log('Cerrando sesión...')
-    dispatch(logout())
-    navigate('/')
+    dispatch(logoutUser())
+    navigate('/login')
   }
 
   return (
-    <Navbar className='bg-black text-white'>
+    <Navbar className='bg-black text-white fixed top-0 z-50 h-16' maxWidth={isAuthenticated ? 'full' : '2xl'}>
       <NavbarBrand>
-        <p className='font-bold text-inherit'>qonderstore</p>
+        <Link href={isAuthenticated ? '/admin' : '/'}>
+          <Logo className='h-10 text-white max-w-48' />
+        </Link>
       </NavbarBrand>
-      {isLoggedIn && (
-        <NavbarContent className='hidden sm:flex gap-4' justify='center'>
+      {/* {isAuthenticated && (
+        <NavbarContent className='hidden sm:flex gap-4 ' justify='center'>
           <NavbarItem>
-            <Link color='foreground' href='/'>
-              Home
-            </Link>
+            <Link href='/'>Home</Link>
           </NavbarItem>
           <NavbarItem>
             <Link href='/tienda'>Tienda</Link>
           </NavbarItem>
           <NavbarItem>
-            <Link color='foreground' href='/admin'>
-              Admin
-            </Link>
+            <Link href='/admin'>Admin</Link>
           </NavbarItem>
         </NavbarContent>
-      )}
+      )} */}
       <NavbarContent justify='end'>
         <NavbarItem>
-          {isLoggedIn ? (
-            <Button color='danger' onPress={handleLogout}>
-              Logout
-            </Button>
+          {isAuthenticated ? (
+            <>
+              <span className='mr-4'> Hola, {user?.full_name?.split(' ')[0] || user?.email}</span>
+              <Button color='danger' size='sm' onPress={handleLogout}>
+                Logout
+                <Power size={16} />
+              </Button>
+            </>
           ) : (
-            <Button as={Link} color='primary' href='/login' variant='flat'>
-              Login
-            </Button>
+            !isLoginPage && (
+              <Button size='sm' as={Link} color='primary' href='/login' variant='ghost'>
+                Login
+              </Button>
+            )
           )}
         </NavbarItem>
       </NavbarContent>

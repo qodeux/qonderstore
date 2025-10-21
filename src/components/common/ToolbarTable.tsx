@@ -120,7 +120,10 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
           <Input
             label='Buscar...'
             type='text'
-            size='md'
+            size='sm'
+            variant='bordered'
+            className='max-w-60'
+            classNames={{ inputWrapper: 'bg-white' }}
             value={searchText}
             onClear={() => setSearchText('')}
             onValueChange={(v) => setSearchText(v ?? '')}
@@ -138,12 +141,14 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
           return (
             <Select
               key={key}
-              className='max-w-xs'
+              className='max-w-60'
               label={f.label}
               selectionMode={f.multiple === false ? 'single' : 'multiple'}
               isClearable
               size='sm'
               selectedKeys={current}
+              variant='bordered'
+              classNames={{ trigger: 'bg-white' }}
               onSelectionChange={(keys) => {
                 // keys puede ser Set<Key> o string cuando es single
                 const setVals = typeof keys === 'string' ? new Set([keys]) : new Set(Array.from(keys).map((k) => String(k)))
