@@ -1,3 +1,4 @@
+import { I18nProvider } from '@react-aria/i18n'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'
@@ -10,7 +11,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Provider store={store}>
       <BrowserRouter>
-        <App />
+        <I18nProvider locale='es-MX'>
+          <App />
+        </I18nProvider>
       </BrowserRouter>
     </Provider>
   </StrictMode>

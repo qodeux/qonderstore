@@ -3,7 +3,9 @@ import authReducer from './slices/authSlice'
 import catalogsReducer from './slices/catalogsSlice'
 import categoriesReducer from './slices/categoriesSlice'
 import productsReducer from './slices/productsSlice'
+import promotionReducer from './slices/promoSlice'
 import providersReducer from './slices/providersSlice'
+
 import uiReducer from './slices/uiSlice'
 import usersReducer from './slices/usersSlice'
 
@@ -15,7 +17,8 @@ const store = configureStore({
     categories: categoriesReducer,
     products: productsReducer,
     providers: providersReducer,
-    users: usersReducer
+    users: usersReducer,
+    promotions: promotionReducer
   }
 })
 

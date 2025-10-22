@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { categoryService } from '../../../services/categoryService'
 import { productService } from '../../../services/productService'
+import { promotionService } from '../../../services/promotionService'
 import { providerService } from '../../../services/providerService'
 import { userService } from '../../../services/userService'
 import type { RootState } from '../../../store/store'
 
-export type ItemType = 'product' | 'category' | 'brand' | 'provider' | 'user'
+export type ItemType = 'product' | 'category' | 'brand' | 'provider' | 'user' | 'promotion'
 
 type Props = {
   isOpenDelete: boolean
@@ -21,7 +22,8 @@ const deleteTypeMap = {
   category: { name: 'categoría', article: 'la' },
   brand: { name: 'marca', article: 'la' },
   provider: { name: 'proveedor', article: 'el' },
-  user: { name: 'usuario', article: 'el' }
+  user: { name: 'usuario', article: 'el' },
+  promotion: { name: 'promoción', article: 'la' }
 }
 
 const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) => {
@@ -30,6 +32,7 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
   const selectedProduct = useSelector((state: RootState) => state.products.selectedProduct)
   const selectedProvider = useSelector((state: RootState) => state.providers.selectedProvider)
   const selectedUser = useSelector((state: RootState) => state.users.selectedUser)
+  const selectedPromotion = useSelector((state: RootState) => state.promotions.selectedPromotion)
 
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -46,6 +49,9 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
       break
     case 'user':
       itemToDelete = selectedUser?.user_name
+      break
+    case 'promotion':
+      itemToDelete = 'la promoción seleccionada'
       break
   }
 
@@ -87,6 +93,10 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
           await userService.deleteUser(selectedUser.id)
         }
         break
+      case 'promotion':
+        if (selectedPromotion) {
+          await promotionService.deletePromotion(selectedPromotion.id)
+        }
     }
     onOpenChangeDelete()
   }
@@ -97,38 +107,51 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
   }
 
   const canBeDeleted = () => {
-    if (deleteType === 'category') {
-      // if ((selectedCategory?.total_products ?? 0) > 0) return false
-      // if (subcategories > 0) return false
-      return true
-    }
-
-    if (deleteType === 'product') {
-      if ((selectedProduct?.stock ?? 0) > 0) {
-        return confirmDelete
-      } else {
+    switch (deleteType) {
+      case 'category':
+        // if ((selectedCategory?.total_products ?? 0) > 0) return false
+        // if (subcategories > 0) return false
         return true
-      }
-    }
+        break
+      case 'product':
+        if ((selectedProduct?.stock ?? 0) > 0) {
+          return confirmDelete
+        } else {
+          return true
+        }
+        break
+      case 'provider':
+        return true
+        break
+      case 'user':
+        if (!selectedUser) return false
 
-    if (deleteType === 'provider') {
-      return true
-    }
-
-    if (deleteType === 'user') {
-      if (!selectedUser) return false
-
-      if (selectedUser.role === 'admin') {
-        return false
-      }
-
-      if (selectedUser.is_active === true) {
-        return false
-      }
-
-      return true
+        if (selectedUser.role === 'admin') {
+          return false
+        }
+        if (selectedUser.is_active === true) {
+          return false
+        }
+        return true
+        break
+      case 'promotion':
+        if (!selectedPromotion) return false
+        return confirmDelete
+        break
+      default:
+        return true
     }
   }
+
+  const isPromotionActive = (() => {
+    if (deleteType !== 'promotion') return false
+    const promoValidUntil = selectedPromotion?.valid_until
+    if (!promoValidUntil) return false
+
+    const today = new Date()
+    const validUntil = new Date(promoValidUntil)
+    return today <= validUntil
+  })()
 
   useEffect(() => {
     if (!isOpenDelete) {
@@ -214,6 +237,31 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
                     <>
                       Al eliminar, un usuario ya no podrá iniciar sesión. todos sus registros quedaran guardados.{' '}
                       <strong>Esto no se puede deshacer. </strong>
+                    </>
+                  }
+                  title='Advertencia'
+                />
+              )}
+
+              {isPromotionActive && (
+                <Alert
+                  color='danger'
+                  icon={<ShieldAlert />}
+                  hideIconWrapper
+                  className='mt-4'
+                  classNames={{ title: 'font-bold', description: 'text-xs', alertIcon: 'fill-none', iconWrapper: 'bg-blue-100' }}
+                  description={
+                    <>
+                      Esta promoción esta vigente, si la eliminas ya no podrá ser utilizada, puedes desactivarla si quieres conservar los
+                      datos, <strong>esto no se puede deshacer</strong>
+                      <div className='flex items-center gap-1 mt-3'>
+                        {!confirmDelete && (
+                          <Button color='danger' className=' shadow-small' size='sm' variant='solid' onPress={() => setConfirmDelete(true)}>
+                            Confirmar eliminación
+                          </Button>
+                        )}
+                        {confirmDelete && <span className='text-sm'>¡Listo! Ya puedes eliminar.</span>}
+                      </div>
                     </>
                   }
                   title='Advertencia'

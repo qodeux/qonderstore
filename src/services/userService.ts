@@ -112,8 +112,8 @@ export const userService = {
       .update({
         user_name: userData.user_name,
         role: userData.role,
-        last_activity: userData.last_activity,
-        is_active: true,
+        //last_activity: userData.last_activity,
+        is_active: userData.is_active,
         email: userData.email,
         full_name: userData.full_name,
         phone: userData.phone
