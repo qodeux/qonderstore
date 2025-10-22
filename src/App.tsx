@@ -1,4 +1,5 @@
 import { HeroUIProvider, ToastProvider } from '@heroui/react'
+import { I18nProvider } from '@react-aria/i18n'
 import { useHref, useNavigate } from 'react-router'
 import { AuthOverlay } from './components/AuthOverlay'
 import ScrollToTop from './components/common/ScrollToTop'
@@ -23,7 +24,9 @@ function App() {
       <SessionBootstrapper />
       <ToastProvider toastProps={{ classNames: { title: 'font-bold' } }} />
       <AuthOverlay />
-      <AppRoutes />
+      <I18nProvider locale='es-MX'>
+        <AppRoutes />
+      </I18nProvider>
     </HeroUIProvider>
   )
 }
