@@ -27,7 +27,7 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
       return {
         name: '',
         promo_type: undefined,
-        promo_type_target_id: '',
+        promo_type_target_id: undefined,
         category: undefined,
         subcategory: undefined,
         products: undefined,
@@ -36,12 +36,12 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
         date: undefined,
         week_days: undefined,
         day_month: undefined,
-        code: '',
+        code: undefined,
         mode: undefined,
-        mode_value: '',
+        mode_value: undefined,
         valid_until: undefined,
         is_limited: false,
-        limit: '',
+        limit: undefined,
         is_conditioned: false,
         condition_type: undefined,
         condition: undefined,
@@ -49,33 +49,9 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
       }
     }
 
-    // Si llegamos aquí, isEditing es TRUE y debe haber un selectedPromotion
     if (!selectedPromotion) {
       console.error('⚠️ isEditing es true pero no hay selectedPromotion!')
-      // Fallback a valores vacíos
-      return {
-        name: '',
-        promo_type: undefined,
-        promo_type_target_id: '',
-        category: undefined,
-        subcategory: undefined,
-        products: undefined,
-        discount_type: undefined,
-        frequency: undefined,
-        date: undefined,
-        week_days: undefined,
-        day_month: undefined,
-        code: '',
-        mode: undefined,
-        mode_value: undefined,
-        valid_until: undefined,
-        is_limited: false,
-        limit: '',
-        is_conditioned: false,
-        condition_type: undefined,
-        condition: undefined,
-        is_active: true
-      }
+      return
     }
 
     const categoryTarget =
@@ -116,7 +92,7 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
       condition: selectedPromotion.condition,
       is_active: selectedPromotion.is_active
     }
-  }, [isEditing, selectedPromotion?.id, categories])
+  }, [isEditing, categories, selectedPromotion])
   // ☝️ Usa selectedPromotion?.id en vez del objeto completo para evitar recálculos innecesarios
 
   // Ahora el form se crea CON los defaultValues
@@ -138,7 +114,7 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
           ? defaultValues
           : {
               promo_type: undefined,
-              promo_type_target_id: '',
+              promo_type_target_id: undefined,
               category: undefined,
               subcategory: undefined,
               products: undefined,
