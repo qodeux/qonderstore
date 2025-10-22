@@ -7,7 +7,7 @@ import { promotionsInputSchema } from '../../../schemas/promotions.schema'
 import { promotionService } from '../../../services/promotionService'
 import type { RootState } from '../../../store/store'
 import { fromDbToDateValue } from '../../../utils/date'
-import PromotionForm from '../../forms/admin/PromotionForm'
+import PromotionForm from '../../forms/admin/PromoForm'
 
 type Props = {
   isOpen: boolean
@@ -25,6 +25,7 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
     // ⚠️ CRÍTICO: Solo usar selectedPromotion si isEditing es TRUE
     if (!isEditing) {
       return {
+        name: '',
         promo_type: undefined,
         promo_type_target_id: '',
         category: undefined,
@@ -53,6 +54,7 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
       console.error('⚠️ isEditing es true pero no hay selectedPromotion!')
       // Fallback a valores vacíos
       return {
+        name: '',
         promo_type: undefined,
         promo_type_target_id: '',
         category: undefined,
@@ -89,6 +91,7 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
     })
 
     return {
+      name: selectedPromotion.name,
       promo_type: selectedPromotion.promo_type,
       promo_type_target_id: selectedPromotion.promo_type_target_id,
       category: selectedPromotion.promo_type === 'category' && hasParentCat ? categoryTarget.parent : categoryTarget?.id,
@@ -96,6 +99,11 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
       product: selectedPromotion.promo_type === 'product' ? selectedPromotion.promo_type_target_id : undefined,
       discount_type: selectedPromotion.discount_type,
       frequency: selectedPromotion.frequency,
+      frequency_value: selectedPromotion.frequency_value,
+      date: selectedPromotion.frequency === 'once' && fromDbToDateValue(selectedPromotion.frequency_value?.date ?? null),
+      week_days: selectedPromotion.frequency === 'weekly' ? selectedPromotion.frequency_value : undefined,
+      day_month: selectedPromotion.frequency === 'monthly' ? selectedPromotion.frequency_value?.day : undefined,
+
       code: selectedPromotion.code ?? '',
       mode: selectedPromotion.mode,
       mode_value: selectedPromotion.mode_value,
