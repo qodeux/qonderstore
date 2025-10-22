@@ -51,7 +51,7 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
       itemToDelete = selectedUser?.user_name
       break
     case 'promotion':
-      itemToDelete = 'la promoción seleccionada'
+      itemToDelete = selectedPromotion?.name
       break
   }
 

@@ -42,7 +42,7 @@ export const promotionsInputSchema = z
     // week_days: z.array(z.string()).optional(),
     // day_month: z.array(z.string()).optional(),
 
-    code: z.string().optional(),
+    code: z.string().min(2, 'El código debe tener al menos 4 caracteres.').optional(),
     mode: z.enum(['fixed', 'percentage', 'free'], { error: 'Dato requerido.' }),
     mode_value: z.number('Dato requerido.'),
 

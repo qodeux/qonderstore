@@ -390,13 +390,20 @@ const PromotionForm = () => {
         )}
       />
       {discountType === 'code' && (
-        <Input
-          label='Código'
-          type='text'
-          size='sm'
-          isInvalid={!!errors.code}
-          errorMessage={errors.code?.message as string}
-          {...register('code')}
+        <Controller
+          name='code'
+          control={control}
+          render={({ field, fieldState }) => (
+            <Input
+              label='Código'
+              type='text'
+              size='sm'
+              isInvalid={!!fieldState.error}
+              errorMessage={fieldState.error?.message as string}
+              value={field.value?.toUpperCase()}
+              onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+            />
+          )}
         />
       )}
       <div className='grid grid-cols-2 gap-2  '>
