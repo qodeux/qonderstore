@@ -14,6 +14,7 @@ export const promotionService = {
       .from('promos')
       .insert([
         {
+          name: promotionData.name,
           promo_type: promotionData.promo_type,
           promo_type_target_id: promotionData.promo_type_target_id,
           discount_type: promotionData.discount_type,
@@ -48,6 +49,7 @@ export const promotionService = {
     const { data: promoUpdated, error: promotionError } = await supabase
       .from('promos')
       .update({
+        name: promotionData.name,
         promo_type: promotionData.promo_type,
         promo_type_target_id: promotionData.promo_type_target_id,
         discount_type: promotionData.discount_type,

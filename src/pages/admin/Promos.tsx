@@ -16,6 +16,7 @@ const Promotions = () => {
 
   type Row = {
     id: number
+    name: string
     promo_type: string
     discount_type: string
     frequency: string
@@ -25,6 +26,11 @@ const Promotions = () => {
   }
 
   const columns = [
+    {
+      key: 'name',
+      label: 'Nombre',
+      allowsSorting: true
+    },
     {
       key: 'promo_type',
       label: 'Tipo',
@@ -36,11 +42,7 @@ const Promotions = () => {
       //type: 'discount_type',
       allowsSorting: true
     },
-    {
-      key: 'frequency',
-      label: 'Frecuencia',
-      allowsSorting: true
-    },
+
     {
       key: 'mode',
       label: 'Modalidad',
@@ -116,8 +118,8 @@ const Promotions = () => {
       <section className='space-y-6'>
         <ToolbarTable<Row>
           rows={filteredRows}
-          searchFilter={['promo_type']}
-          // filters={[{ label: 'Categoría', column: 'promotion', multiple: true }]}
+          searchFilter={['name']}
+          filters={[{ label: 'Tipo de promoción', column: 'promo_type', multiple: true }]}
           enableToggleBehavior
           selectionBehavior={selectionBehavior}
           onToggleBehavior={toggleSelectionBehavior}
