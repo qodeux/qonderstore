@@ -1,3 +1,4 @@
+import { addToast } from '@heroui/react'
 import supabase from '../lib/supabase'
 import type { PromotionsInput } from '../schemas/promotions.schema'
 
@@ -41,6 +42,18 @@ export const promotionService = {
       console.error('Error inserting promotion:', promotionError)
       return { error: promotionError }
     }
+
+    setTimeout(() => {
+      addToast({
+        title: 'Promoción agregada',
+        description: `La promoción ${promotionInserted.name} ha sido agregada correctamente.`,
+        color: 'success',
+        variant: 'bordered',
+        shouldShowTimeoutProgress: true,
+        timeout: 4000
+      })
+    }, 1000)
+
     return promotionInserted
   },
   updatePromotion: async (id: number, promotionData: PromotionsInput) => {
@@ -77,6 +90,17 @@ export const promotionService = {
       return { error: promotionError }
     }
 
+    setTimeout(() => {
+      addToast({
+        title: 'Promoción actualizada',
+        description: `La promoción ${promoUpdated.name} ha sido actualizada correctamente.`,
+        color: 'primary',
+        variant: 'bordered',
+        shouldShowTimeoutProgress: true,
+        timeout: 4000
+      })
+    }, 1000)
+
     return promoUpdated
   },
   deletePromotion: async (id: number) => {
@@ -85,5 +109,16 @@ export const promotionService = {
     if (error) {
       console.error('Error deleting promotion:', error)
     }
+
+    setTimeout(() => {
+      addToast({
+        title: 'Promoción eliminada',
+        description: `La promoción ha sido eliminada correctamente.`,
+        color: 'danger',
+        variant: 'bordered',
+        shouldShowTimeoutProgress: true,
+        timeout: 4000
+      })
+    }, 1000)
   }
 }
