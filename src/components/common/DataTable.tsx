@@ -25,7 +25,7 @@ import { Controller } from 'react-hook-form'
 import { entityRegistry, type EntityAdapter, type EntityKind, type MenuAction } from '../../services/entityRegistry'
 import { formatDate, formatRelativeTime, toDate } from '../../utils/date'
 
-export type PresetKey = 'is_active' | 'featured' | 'actions' | 'input' | 'date' | 'money'
+export type PresetKey = 'is_active' | 'featured' | 'actions' | 'input' | 'date' | 'money' | 'type'
 
 export type FormatPreset = 'full' | 'short' | 'time' | 'date' | 'relative'
 export type AlignPreset = 'start' | 'center' | 'end'
@@ -44,16 +44,32 @@ export type DateConfig = {
   timeZone?: string
 }
 
-export type ColumnDef<T> = {
+export type TypeConfig<K extends PropertyKey = string, V = React.ReactNode> = {
+  map: Record<K, V>
+  fallback?: V | ((raw: unknown, row: any) => V)
+  keyTransform?: (raw: unknown) => K
+}
+
+type ColumnBase<T> = {
   key: keyof T | string
   label: string
   allowsSorting?: boolean
-  preset?: PresetKey
-  presetConfig?: InputConfig | DateConfig
   render?: (row: T) => React.ReactNode
   sortAccessor?: (row: T) => string | number
   align?: AlignPreset
 }
+
+type ColumnDate<T> = ColumnBase<T> & { preset: 'date'; presetConfig?: DateConfig }
+type ColumnInput<T> = ColumnBase<T> & { preset: 'input'; presetConfig?: InputConfig }
+type ColumnType<T> = ColumnBase<T> & { preset: 'type'; presetConfig: TypeConfig }
+type ColumnActive<T> = ColumnBase<T> & { preset: 'is_active' }
+type ColumnActions<T> = ColumnBase<T> & { preset: 'actions' }
+type ColumnPlain<T> = ColumnBase<T> & {
+  preset?: Exclude<PresetKey, 'date' | 'input' | 'type' | 'is_active' | 'actions'>
+  presetConfig?: never
+}
+
+export type ColumnDef<T> = ColumnDate<T> | ColumnInput<T> | ColumnType<T> | ColumnActive<T> | ColumnActions<T> | ColumnPlain<T>
 
 type Props<T> = {
   columns: ColumnDef<T>[]
@@ -241,6 +257,33 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
 
   const renderPreset = (preset: PresetKey, row: T, column: Key): ReactElement | null => {
     switch (preset) {
+      case 'type': {
+        // 1) Encuentra la columna y estrecha por preset
+        const col = columns.find((c) => String(c.key) === String(column))
+        if (!col || col.preset !== 'type') {
+          // Si no la encuentra o no coincide el preset, muestra el valor crudo
+          const raw = (row as any)[String(column)]
+          return <>{raw ?? ''}</>
+        }
+
+        // 2) Ya es ColumnType<T>; presetConfig es TypeConfig
+        const cfg = col.presetConfig
+
+        // 3) Obtén el valor crudo
+        const raw = (row as any)[String(col.key)]
+
+        // 4) Normaliza la clave si te pasaron keyTransform
+        const k = cfg.keyTransform ? cfg.keyTransform(raw) : (raw as PropertyKey)
+
+        // 5) Busca el label en el map tipado
+        const label = (cfg.map as any)[k as any]
+
+        // 6) Resuelve label o fallback
+        if (label != null) return <>{label}</>
+        if (typeof cfg.fallback === 'function') return <>{cfg.fallback(raw, row)}</>
+        return <>{cfg.fallback ?? ''}</>
+      }
+
       case 'money': {
         const raw = (row as any)[String(column)]
         if (raw == null || Number.isNaN(Number(raw))) return null
@@ -250,24 +293,28 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
       }
 
       case 'date': {
-        // OBTENER config como DateConfig de forma segura
-        const cfg = columns.find((c) => String(c.key) === String(column))?.presetConfig as DateConfig | undefined
+        const col = columns.find((c) => String(c.key) === String(column))
+        if (!col) return null
 
-        // Valor crudo en la fila (puede ser Date, string ISO, timestamp, etc.)
-        const raw = (row as any)[String(column)]
+        // estrechar a ColumnDate<T>
+        if (col.preset !== 'date') {
+          // si por alguna razón no coincide, muestra el valor crudo
+          const raw = (row as any)[String(column)]
+          return <>{raw ?? ''}</>
+        }
 
-        // Normaliza a Date (usa tu util existente)
+        const cfg = col.presetConfig // DateConfig | undefined
+        const raw = (row as any)[String(col.key)]
+
         const d = toDate(raw)
         if (!d) return null
 
-        // Defaults/overrides desde la config
         const type = cfg?.type ?? 'absolute' // 'absolute' | 'relative'
         const format = cfg?.format ?? 'full' // 'full' | 'short' | 'time' | 'date' | 'relative'
         const locale = cfg?.locale ?? 'es-MX'
-        const timeZone = cfg?.timeZone // opcional
+        const timeZone = cfg?.timeZone
 
         if (type === 'relative' || format === 'relative') {
-          // Si te pasan un formateador custom, úsalo; si no, usa uno por defecto
           const content = cfg?.dateFormatter ? cfg.dateFormatter(d) : formatRelativeTime(d, locale)
           return (
             <Tooltip content={d.toLocaleString(locale)} placement='top'>
@@ -276,34 +323,38 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
           )
         }
 
-        // Absoluto usando tu helper existente
         const content = formatDate(d, format, locale, timeZone)
         return <>{content}</>
       }
 
       case 'input': {
-        const config = columns.find((c) => String(c.key) === String(column))?.presetConfig as InputConfig | undefined
-        const width = config?.width || null
-        const align = columns.find((c) => c.key === column)?.align || null
+        const col = columns.find((c) => String(c.key) === String(column))
+        if (!col) return null
+
+        // estrechar a ColumnInput<T>
+        if (col.preset !== 'input') {
+          const raw = (row as any)[String(column)]
+          return <>{raw ?? ''}</>
+        }
+
+        const cfg = col.presetConfig // InputConfig | undefined
+        const width = cfg?.width ?? ''
+        const align = col.align ?? 'start' // 'start' | 'center' | 'end'
 
         return (
           <Controller
-            name={`items.p_${row['id']}.${String(column)}`} // items.p_12.qty
-            //control={control}
-            rules={{
-              required: 'Requerido'
-            }}
+            name={`items.p_${(row as any)['id']}.${String(col.key)}`} // ej: items.p_12.qty
+            // control={control}   <-- recuerda pasar control desde arriba si lo usas
+            rules={{ required: 'Requerido' }}
             render={({ field, fieldState }) => (
               <Input
-                //label={columns.find((c) => c.preset === 'input')?.inputLabel || ''}
-                type='text'
+                type={cfg?.type === 'number' ? 'number' : 'text'}
                 size='sm'
-                //placeholder={columns.find((c) => c.key === column)?.label || ''}
                 variant='bordered'
                 isInvalid={!!fieldState.error}
                 {...field}
                 classNames={{
-                  inputWrapper: `bg-white ${width ? `${width}` : ''} `,
+                  inputWrapper: `bg-white ${width}`,
                   mainWrapper: `items-${align} pr-4`,
                   input: `text-${align}`
                 }}

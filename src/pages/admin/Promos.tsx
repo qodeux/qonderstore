@@ -1,12 +1,13 @@
 import { useDisclosure, type Selection, type SortDescriptor } from '@heroui/react'
 import { useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { DataTable, type PresetKey } from '../../components/common/DataTable'
+import { DataTable, type ColumnDef } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import PromotionModal from '../../components/modals/admin/PromotionModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
 import { clearSelectedPromotion, setIsEditing, setSelectedPromotion } from '../../store/slices/promoSlice'
 import type { RootState } from '../../store/store'
+import { discountTypeMap, promoModeMap, promoTypeMap } from '../../types/promos'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const Promotions = () => {
@@ -19,13 +20,13 @@ const Promotions = () => {
     name: string
     promo_type: string
     discount_type: string
-    frequency: string
+    mode: string
     mode_value: number
     valid_until?: string
     is_active: boolean
   }
 
-  const columns = [
+  const columns: ColumnDef<Row>[] = [
     {
       key: 'name',
       label: 'Nombre',
@@ -34,24 +35,36 @@ const Promotions = () => {
     {
       key: 'promo_type',
       label: 'Tipo',
-      allowsSorting: true
+      allowsSorting: true,
+      preset: 'type',
+      presetConfig: {
+        map: promoTypeMap
+      }
     },
     {
       key: 'discount_type',
       label: 'Descuento',
-      //type: 'discount_type',
-      allowsSorting: true
+      allowsSorting: true,
+      preset: 'type',
+      presetConfig: {
+        map: discountTypeMap
+      }
     },
 
     {
       key: 'mode',
       label: 'Modalidad',
-      allowsSorting: true
+      allowsSorting: true,
+      preset: 'type',
+      presetConfig: {
+        map: promoModeMap
+      }
     },
     {
       key: 'mode_value',
       label: 'Valor',
-      allowsSorting: true
+      allowsSorting: true,
+      align: 'end'
     },
     {
       key: 'valid_until',
@@ -64,13 +77,14 @@ const Promotions = () => {
       key: 'is_active',
       label: 'Estado',
       allowsSorting: true,
-      preset: 'is_active' as PresetKey
+      preset: 'is_active'
     },
     {
       key: 'actions',
       label: 'Acciones',
       allowsSorting: false,
-      preset: 'actions' as PresetKey
+      preset: 'actions',
+      align: 'center'
     }
   ]
 

@@ -1,7 +1,7 @@
 import type { Selection, SortDescriptor } from '@heroui/react'
 import { useDisclosure } from '@heroui/react'
 import { useMemo, useState } from 'react'
-import type { AlignPreset, FormatPreset, PresetKey } from '../../components/common/DataTable'
+import type { ColumnDef } from '../../components/common/DataTable'
 import { DataTable } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 
@@ -31,7 +31,7 @@ const Providers = () => {
     is_active: boolean
   }
 
-  const columns = [
+  const columns: ColumnDef<Row>[] = [
     {
       key: 'alias',
       label: 'Alias',
@@ -41,23 +41,23 @@ const Providers = () => {
       key: 'orders',
       label: 'Pedidos',
       allowsSorting: true,
-      align: 'center' as AlignPreset
+      align: 'center'
     },
     {
       key: 'last_order',
       label: 'Último Pedido',
-      preset: 'date' as PresetKey,
+      preset: 'date',
       presetConfig: {
-        format: 'relative' as FormatPreset
+        format: 'relative'
       },
       allowsSorting: true
     },
     {
       key: 'last_payment',
       label: 'Último Pago',
-      preset: 'date' as PresetKey,
+      preset: 'date',
       presetConfig: {
-        format: 'short' as FormatPreset
+        format: 'short'
       },
       allowsSorting: true
     },
@@ -65,14 +65,14 @@ const Providers = () => {
       key: 'is_active',
       label: 'Estado',
       allowsSorting: true,
-      preset: 'is_active' as PresetKey
+      preset: 'is_active'
     },
     {
       key: 'actions',
       label: 'Acciones',
       allowsSorting: false,
-      preset: 'actions' as PresetKey,
-      align: 'center' as AlignPreset
+      preset: 'actions',
+      align: 'center'
     }
   ]
 
