@@ -1,9 +1,9 @@
 import { toRecord } from './helpers'
 
-export const userProfiles = [
+export const userRoles = [
   { key: 'admin', label: 'Administrador' },
   { key: 'staff', label: 'Staff' },
   { key: 'customer', label: 'Cliente' }
 ]
-export type UserProfile = (typeof userProfiles)[number]['key']
-export const userProfileMap = toRecord(userProfiles)
+export type UserRole = (typeof userRoles)[number]['key']
+export const userRoleMap = toRecord(userRoles)
