@@ -2,7 +2,7 @@ import { toRecord } from './helpers'
 
 export const promo_types = [
   { key: 'product', label: 'Producto' },
-  { key: 'category', label: 'Categoria' }
+  { key: 'category', label: 'Categoría' }
 ] as const
 
 export type PromoType = (typeof promo_types)[number]['key']
