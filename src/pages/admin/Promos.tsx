@@ -20,7 +20,7 @@ const Promotions = () => {
     name: string
     promo_type: string
     discount_type: string
-    frequency: string
+    mode: string
     mode_value: number
     valid_until?: string
     is_active: boolean
@@ -63,7 +63,8 @@ const Promotions = () => {
     {
       key: 'mode_value',
       label: 'Valor',
-      allowsSorting: true
+      allowsSorting: true,
+      align: 'end'
     },
     {
       key: 'valid_until',
