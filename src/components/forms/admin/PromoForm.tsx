@@ -148,7 +148,7 @@ const PromotionForm = () => {
             disallowEmptySelection
           >
             {promo_types.map((type) => (
-              <SelectItem key={type.key}>{type.name}</SelectItem>
+              <SelectItem key={type.key}>{type.label}</SelectItem>
             ))}
           </Select>
         )}
@@ -267,7 +267,7 @@ const PromotionForm = () => {
             disallowEmptySelection
           >
             {discount_types.map((type) => (
-              <SelectItem key={type.key}>{type.name}</SelectItem>
+              <SelectItem key={type.key}>{type.label}</SelectItem>
             ))}
           </Select>
         )}
@@ -291,7 +291,7 @@ const PromotionForm = () => {
                 disallowEmptySelection
               >
                 {promo_frequencies.map((type) => (
-                  <SelectItem key={type.key}>{type.name}</SelectItem>
+                  <SelectItem key={type.key}>{type.label}</SelectItem>
                 ))}
               </Select>
             )}
@@ -339,7 +339,7 @@ const PromotionForm = () => {
                   disallowEmptySelection
                 >
                   {week_days.map((type) => (
-                    <SelectItem key={type.key}>{type.name}</SelectItem>
+                    <SelectItem key={type.key}>{type.label}</SelectItem>
                   ))}
                 </Select>
               )}
@@ -424,7 +424,7 @@ const PromotionForm = () => {
               disallowEmptySelection
             >
               {promo_mode.map((type) => (
-                <SelectItem key={type.key}>{type.name}</SelectItem>
+                <SelectItem key={type.key}>{type.label}</SelectItem>
               ))}
             </Select>
           )}
