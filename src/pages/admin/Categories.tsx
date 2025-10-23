@@ -1,7 +1,7 @@
 import { useDisclosure, type Selection, type SortDescriptor } from '@heroui/react'
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { DataTable, type AlignPreset, type ColumnDef, type PresetKey } from '../../components/common/DataTable'
+import { DataTable, type ColumnDef } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import CategoryModal from '../../components/modals/admin/CategoryModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
@@ -34,13 +34,13 @@ const Categories = () => {
       key: 'total_products',
       label: 'Productos',
       allowsSorting: true,
-      align: 'center' as AlignPreset
+      align: 'center'
     },
     {
       key: 'slug_id',
       label: 'Clave',
       allowsSorting: true,
-      align: 'center' as AlignPreset
+      align: 'center'
     },
     {
       key: 'parent_name',
@@ -51,14 +51,14 @@ const Categories = () => {
       key: 'is_active',
       label: 'Estado',
       allowsSorting: true,
-      preset: 'is_active' as PresetKey
+      preset: 'is_active'
     },
     {
       key: 'actions',
       label: 'Acciones',
       allowsSorting: false,
-      preset: 'actions' as PresetKey,
-      align: 'center' as const
+      preset: 'actions',
+      align: 'center'
     }
   ]
 

@@ -5,7 +5,7 @@ import { Controller, useFormContext } from 'react-hook-form'
 import { PatternFormat } from 'react-number-format'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../../store/store'
-import { userProfiles } from '../../../types/users'
+import { userRoles } from '../../../types/users'
 
 const UserForm = () => {
   const {
@@ -101,10 +101,10 @@ const UserForm = () => {
             disallowEmptySelection
             classNames={{ base: 'bg-white' }}
           >
-            {userProfiles
+            {userRoles
               .filter((profile) => profile.key !== 'customer')
               .map((profile) => (
-                <SelectItem key={profile.key}>{profile.name}</SelectItem>
+                <SelectItem key={profile.key}>{profile.label}</SelectItem>
               ))}
           </Select>
         )}

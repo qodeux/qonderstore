@@ -1,13 +1,14 @@
 import { useDisclosure, type Selection, type SortDescriptor } from '@heroui/react'
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { DataTable, type FormatPreset, type PresetKey } from '../../components/common/DataTable'
+import { DataTable, type ColumnDef } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import UserModal from '../../components/modals/admin/UserModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
 import { useUsers } from '../../hooks/useUsers'
 import { setEditMode, setSelectedUser } from '../../store/slices/usersSlice'
 import type { RootState } from '../../store/store'
+import { userRoleMap } from '../../types/users'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const Users = () => {
@@ -26,7 +27,7 @@ const Users = () => {
     phone?: string
   }
 
-  const columns = [
+  const columns: ColumnDef<Row>[] = [
     {
       key: 'user_name',
       label: 'Usuario',
@@ -35,13 +36,15 @@ const Users = () => {
     {
       key: 'role',
       label: 'Rol',
-      allowsSorting: true
+      allowsSorting: true,
+      preset: 'type',
+      presetConfig: { map: userRoleMap }
     },
     {
       key: 'last_activity',
       label: 'Última actividad',
-      preset: 'date' as PresetKey,
-      presetConfig: { format: 'relative' as FormatPreset },
+      preset: 'date',
+      presetConfig: { format: 'relative' },
 
       allowsSorting: true
     },
@@ -50,13 +53,13 @@ const Users = () => {
       key: 'is_active',
       label: 'Activo',
       allowsSorting: true,
-      preset: 'is_active' as PresetKey
+      preset: 'is_active'
     },
     {
       key: 'actions',
       label: 'Acciones',
       allowsSorting: false,
-      preset: 'actions' as PresetKey
+      preset: 'actions'
     }
   ]
 
@@ -66,8 +69,6 @@ const Users = () => {
   })
 
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([])) //si hay error revisar
-
-  const [selectionBehavior, setSelectionBehavior] = useState<'replace' | 'toggle'>('replace')
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'user_name',
@@ -79,11 +80,6 @@ const Users = () => {
   const { isOpen: isOpenUser, onOpenChange: onOpenChangeUser, onOpen: onOpenUser } = useDisclosure()
 
   const filteredRows = applyToolbarFilters(users, ['user_name'], criteria)
-
-  const toggleSelectionBehavior = () => {
-    setSelectionBehavior((prevMode) => (prevMode === 'replace' ? 'toggle' : 'replace'))
-    //setSelectedKeys(new Set()) // Clear selection when mode changes
-  }
 
   const handleAddUser = () => {
     dispatch(setEditMode(false))
