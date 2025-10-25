@@ -10,6 +10,7 @@ import Dashboard from '../pages/admin/Dashboard'
 import Products from '../pages/admin/Products'
 import Promos from '../pages/admin/Promos'
 import Providers from '../pages/admin/Providers'
+import Requests from '../pages/admin/Requests'
 import Users from '../pages/admin/Users'
 import Login from '../pages/auth/Login'
 import Home from '../pages/Home'
@@ -49,6 +50,7 @@ const AppRoutes: React.FC = () => (
       <Route path='productos' element={<Products />} />
       <Route path='promociones' element={<Promos />} />
       <Route path='proveedores' element={<Providers />} />
+      <Route path='solicitudes-acceso' element={<Requests />} />
       <Route
         path='usuarios'
         element={
