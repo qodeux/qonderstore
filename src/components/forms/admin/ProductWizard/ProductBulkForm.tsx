@@ -2,7 +2,7 @@ import { Checkbox, CheckboxGroup, Input, NumberInput, Select, SelectItem, Switch
 import { useEffect, useRef } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
 import { NumericFormat } from 'react-number-format'
-import { bulkUnitsAvailable } from '../../../types/products'
+import { bulkUnitsAvailable } from '../../../../types/products'
 
 const ProductBulkForm = () => {
   const {

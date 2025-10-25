@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
 import { NumericFormat } from 'react-number-format'
 import { useSelector } from 'react-redux'
-import type { RootState } from '../../../store/store'
+import type { RootState } from '../../../../store/store'
 
 export type WholeSalePrice = {
   min: number | undefined
