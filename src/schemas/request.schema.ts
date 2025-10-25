@@ -36,3 +36,4 @@ export const requestSchema = z.object({
   invite_code: z.string().optional(),
   status: z.enum(['pending', 'accepted', 'rejected']).optional()
 })
+export type Request = z.infer<typeof requestSchema>

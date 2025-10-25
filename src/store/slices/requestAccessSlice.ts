@@ -1,18 +1,20 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
-import type { RequestDraftPartial } from '../../schemas/request.schema'
+import type { Request, RequestDraftPartial } from '../../schemas/request.schema'
 
 interface RequestAccessState {
   requestData: RequestDraftPartial | null
   loading: boolean
   error: string | null
   currentStep: number
+  items: Request[]
 }
 
 const initialState: RequestAccessState = {
   requestData: null,
   loading: false,
   error: null,
-  currentStep: 0
+  currentStep: 0,
+  items: []
 }
 
 const requestAccessSlice = createSlice({
