@@ -8,7 +8,6 @@ import { PatternFormat } from 'react-number-format'
 import { useDispatch, useSelector } from 'react-redux'
 import { setSaleType } from '../../../../store/slices/productsSlice'
 import type { RootState } from '../../../../store/store'
-import type { SaleType } from '../../../../types/products'
 
 function slugify(text: string) {
   return text
@@ -74,6 +73,10 @@ const ProductDataForm = () => {
     skuDigitsRef.current = next
     setValue('sku', next, { shouldDirty: true, shouldValidate: true })
   }, [setValue])
+
+  useEffect(() => {
+    dispatch(setSaleType(saleTypeWatch))
+  }, [saleTypeWatch, dispatch])
 
   return (
     <form name='product-data-form'>
@@ -229,7 +232,6 @@ const ProductDataForm = () => {
                 onSelectionChange={(keys) => {
                   const value = Array.from(keys)[0]
                   field.onChange(value) // 'unit' | 'bulk'
-                  dispatch(setSaleType(value as SaleType))
                 }}
                 selectionMode='single'
                 isInvalid={!!errors.sale_type}

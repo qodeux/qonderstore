@@ -1,18 +1,32 @@
-import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Spinner, Tab, Tabs } from '@heroui/react'
+import { Modal, ModalBody, ModalContent, Spinner } from '@heroui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AnimatePresence, motion } from 'framer-motion'
 import { customAlphabet } from 'nanoid'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FormProvider, useForm, type FieldErrors } from 'react-hook-form'
 import { useDispatch, useSelector } from 'react-redux'
-import { productBulkInputSchema, productDataInputSchema, productUnitInputSchema } from '../../../schemas/products.schema'
+import { Wizard } from 'react-use-wizard'
+import {
+  productBulkInputSchema,
+  productDataInputSchema,
+  productUnitInputSchema,
+  productUploadedImageSchema,
+  type ProductUploadedImageInput
+} from '../../../schemas/products.schema'
 import { productService } from '../../../services/productService'
 import { setSelectedProduct } from '../../../store/slices/productsSlice'
+import { requestJumpToStep, setWizardCurrentStep } from '../../../store/slices/uiSlice'
 import type { RootState } from '../../../store/store'
 import type { ProductBulkFormValues, ProductDataFormValues, ProductDetails, ProductUnitFormValues } from '../../../types/products'
-import ProductBulkForm from '../../forms/admin/ProductBulkForm'
-import ProductDataForm from '../../forms/admin/ProductDataForm'
-import ProductUnitForm from '../../forms/admin/ProductUnitForm'
+import type { Step } from '../../../types/ui'
+import AnimatedStep from '../../common/wizard/AnimatedStep'
+import RowSteps from '../../common/wizard/RowSteps'
+import WizardFooter from '../../common/wizard/WizardFooter'
+import Confirmation from '../../forms/admin/ProductWizard/Confirmation'
+import ProductBulkForm from '../../forms/admin/ProductWizard/ProductBulkForm'
+import ProductDataForm from '../../forms/admin/ProductWizard/ProductDataForm'
+import ProductUnitForm from '../../forms/admin/ProductWizard/ProductUnitForm'
+import ProductUploadImagesForm from '../../forms/admin/ProductWizard/ProductUploadImagesForm'
 
 // ========================
 // Default helpers
@@ -61,7 +75,10 @@ type Props = {
 
 const ProductModal = ({ isOpen, onOpenChange }: Props) => {
   const dispatch = useDispatch()
-  const { isEditing, selectedProduct } = useSelector((state: RootState) => state.products)
+  const { isEditing, selectedProduct, saleType } = useSelector((state: RootState) => state.products)
+  const { wizardCurrentIndex } = useSelector((state: RootState) => state.ui)
+  const currentStep = wizardCurrentIndex + 1
+
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -108,8 +125,54 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
     formState: { isDirty: isBulkDirty, errors: bulkErrors }
   } = bulkForm
 
-  // Controla qué tabs mostrar
-  const selectedTypeUnit = productForm.watch('sale_type')
+  const uploadImagesForm = useForm<ProductUploadedImageInput>({
+    resolver: zodResolver(productUploadedImageSchema),
+    shouldUnregister: false,
+    mode: 'all',
+    reValidateMode: 'onChange'
+  })
+
+  const WizardSteps: Step[] = [
+    {
+      title: 'Datos principales',
+      content: ProductDataForm,
+      form: productForm
+    },
+    {
+      title: 'Detalles de tipo de venta',
+      content: saleType === 'unit' ? ProductUnitForm : ProductBulkForm,
+      form: saleType === 'unit' ? unitForm : bulkForm
+    },
+    {
+      title: 'Carga de imágenes',
+      content: ProductUploadImagesForm,
+      form: uploadImagesForm
+    },
+
+    // En Confirmación pasamos los datos combinados como prop
+    {
+      title: 'Confirma los datos',
+      content: Confirmation
+    }
+  ]
+
+  const onStepClick = (stepIndex: number) => {
+    if (stepIndex < currentStep || isEditing) {
+      dispatch(requestJumpToStep(stepIndex))
+    }
+  }
+
+  const getCombined = useCallback(() => {
+    const data = productForm.getValues()
+    const details = saleType === 'unit' ? unitForm.getValues() : bulkForm.getValues()
+    const images = uploadImagesForm.getValues()
+
+    return { ...data, ...details, ...images }
+  }, [productForm, unitForm, bulkForm, saleType, uploadImagesForm])
+
+  const onConfirm = () => {
+    // Aquí podrías manejar la confirmación del wizard si es necesario
+  }
 
   // Construye valores iniciales según edición/nuevo
   const buildFormValues = useCallback(async () => {
@@ -328,67 +391,47 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
     <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      size='xl'
+      size={currentStep <= 1 ? 'sm' : 'xl'}
       backdrop='blur'
       classNames={{
-        closeButton: 'focus:outline-none focus:ring-0 data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-0'
+        base: ' overflow-hidden pt-4 bg-gray-50',
+        closeButton:
+          'focus:outline-none focus:ring-0 data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-0 cursor-pointer'
       }}
+      isDismissable={false}
     >
       <ModalContent>
-        {(onClose) => (
-          <>
-            <AnimatePresence>
-              {isLoading && isEditing && (
-                <motion.div
-                  initial={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className='w-full h-full absolute flex items-center justify-center z-20 bg-white  '
-                >
-                  <Spinner label={isSaving ? 'Guardando...' : 'Cargando...'} />
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <ModalHeader className='flex flex-col gap-1 pb-0'>{isEditing ? 'Editar' : 'Agregar'} producto</ModalHeader>
-            <ModalBody>
-              <Tabs
-                aria-label='Nuevo producto'
-                color='primary'
-                variant='solid'
-                disableAnimation
-                selectedKey={activeTab}
-                onSelectionChange={(key) => setActiveTab(key as 'data' | 'unit' | 'bulk')}
-                classNames={{ base: 'justify-end' }}
-              >
-                <Tab key='data' title='Datos'>
-                  <FormProvider {...productForm}>
-                    <ProductDataForm />
-                  </FormProvider>
-                </Tab>
+        <AnimatePresence>
+          {isLoading && isEditing && (
+            <motion.div
+              initial={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className='w-full h-full absolute flex items-center justify-center z-20 bg-white  '
+            >
+              <Spinner label={isSaving ? 'Guardando...' : 'Cargando...'} />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-                <Tab key='unit' title='Unidad' className={selectedTypeUnit === 'unit' ? '' : 'hidden'}>
-                  <FormProvider {...unitForm}>
-                    <ProductUnitForm />
+        <ModalBody>
+          <Wizard
+            header={<RowSteps currentStep={wizardCurrentIndex} onStepChange={onStepClick} steps={WizardSteps} allowAllSteps={isEditing} />}
+            footer={<WizardFooter getStepForm={(idx) => WizardSteps[idx]?.form} onConfirm={onConfirm} />}
+            wrapper={<AnimatePresence initial={false} mode='wait' />}
+          >
+            {WizardSteps.map(({ content: StepContent, form }, index) => (
+              <AnimatedStep key={index} rxStep={setWizardCurrentStep}>
+                {form ? (
+                  <FormProvider {...form}>
+                    <StepContent />
                   </FormProvider>
-                </Tab>
-
-                <Tab key='bulk' title='Granel' className={selectedTypeUnit === 'bulk' ? '' : 'hidden'}>
-                  <FormProvider {...bulkForm}>
-                    <ProductBulkForm />
-                  </FormProvider>
-                </Tab>
-              </Tabs>
-            </ModalBody>
-            <ModalFooter className='pt-0'>
-              <Button color='danger' variant='light' onPress={onClose} tabIndex={-1}>
-                Cancelar
-              </Button>
-
-              <Button color='primary' className='ml-2' onPress={handleSubmitProduct} isDisabled={totalErrorCount > 0}>
-                {isEditing ? 'Guardar' : 'Agregar'}
-              </Button>
-            </ModalFooter>
-          </>
-        )}
+                ) : (
+                  <StepContent data={getCombined()} />
+                )}
+              </AnimatedStep>
+            ))}
+          </Wizard>
+        </ModalBody>
       </ModalContent>
     </Modal>
   )

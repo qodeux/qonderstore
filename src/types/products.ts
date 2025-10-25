@@ -15,5 +15,19 @@ export const bulkUnitsAvailable = [
   { label: 'Gramo', key: 'gr', value: 1 },
   { label: 'Onza', key: 'oz', value: 28.3495 },
   { label: 'Libra', key: 'lb', value: 453.592 }
-]
+] as const
 export type BulkUnit = (typeof bulkUnitsAvailable)[number]['key']
+
+export const saleTypes = [
+  { label: 'Unidad', key: 'unit' },
+  { label: 'Granel', key: 'bulk' }
+]
+export type SaleType = (typeof saleTypes)[number]['key']
+
+export const saleUnitsAvailable = [
+  { label: 'Pieza', key: 'pz' },
+  { label: 'Paquete', key: 'pk' },
+  { label: 'Caja', key: 'box' }
+]
+
+export type SaleUnit = (typeof saleUnitsAvailable)[number]['key']

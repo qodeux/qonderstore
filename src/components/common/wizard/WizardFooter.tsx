@@ -20,6 +20,8 @@ const WizardFooter = ({ getStepForm, onConfirm }: Props) => {
 
   const currentForm = getStepForm?.(activeStep)
 
+  const { formState, getValues } = currentForm || {}
+
   const handlePrev = async () => {
     // Marca intención de navegación SINCRÓNICAMENTE antes de cambiar de paso
     flushSync(() => dispatch(setWizardNavDir(-1)))
@@ -27,12 +29,17 @@ const WizardFooter = ({ getStepForm, onConfirm }: Props) => {
   }
 
   const handleNext = async () => {
+    console.log(formState?.errors)
+    console.log('Valores:', getValues() ? JSON.stringify(getValues()) : 'N/A')
+
     if (currentForm) {
       setChecking(true)
       const ok = await currentForm.trigger(undefined, { shouldFocus: true })
       setChecking(false)
+
       if (!ok) return
     }
+
     // Marca intención de navegación SINCRÓNICAMENTE antes de cambiar de paso
     flushSync(() => dispatch(setWizardNavDir(1)))
     await nextStep()

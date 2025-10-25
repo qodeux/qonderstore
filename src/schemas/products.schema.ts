@@ -1,7 +1,7 @@
 import z from 'zod'
-import type { WholeSaleRow } from '../components/forms/admin/ProductUnitForm'
+import type { WholeSaleRow } from '../components/forms/admin/ProductWizard/ProductUnitForm'
 
-const emptyToUndefined = z.literal('').transform(() => undefined)
+const emptyToUndefined = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v)
 
 const toNullIfEmptyJson = (v: unknown) => {
   if (v == null) return null
@@ -37,7 +37,7 @@ export const productDataInputSchema = z
       )
     ),
 
-    sale_type: z.enum(['unit', 'bulk'], { error: 'La unidad de venta es obligatoria' }),
+    sale_type: z.enum(['unit', 'bulk'], { error: 'Requerido' }),
 
     description: z.string().optional(),
     // tags: z.string().optional(),
@@ -68,7 +68,7 @@ export const productUnitInputSchema = z
       message: 'La unidad de venta es obligatoria'
     }),
 
-    base_cost: z.coerce.number('Dato requerido').min(0, 'El costo base no puede ser negativo'),
+    base_cost: z.coerce.number().optional(),
     public_price: z.coerce.number('Dato requerido').min(0, 'El precio no puede ser negativo'),
     // switches: si no vienen de la DB, blíndalos a false
     lowStockSwitch: z.preprocess((v) => v ?? false, z.coerce.boolean()).catch(false),
@@ -269,6 +269,54 @@ export const productBulkInputSchema = z
   })
 
 export type ProductBulkInput = z.infer<typeof productBulkInputSchema>
+
+export const productUploadedImageSchema = z
+  .object({
+    main_image: z.preprocess(emptyToUndefined, z.string().min(1, 'Selecciona la imagen principal').optional()),
+    images: z.array(z.string().min(1, 'Ruta inválida')).optional().default([])
+  })
+  .superRefine((val, ctx) => {
+    const images = val.images ?? []
+    const hasImages = images.length > 0
+
+    // Duplicados
+    if (images.length !== new Set(images).size) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'No repitas imágenes.',
+        path: ['images']
+      })
+    }
+
+    if (hasImages) {
+      // main_image obligatoria
+      if (!val.main_image) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Selecciona la imagen principal.',
+          path: ['main_image']
+        })
+      } else if (!images.includes(val.main_image)) {
+        // main_image debe estar dentro de images
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'La imagen principal debe estar dentro de "images".',
+          path: ['main_image']
+        })
+      }
+    } else {
+      // Sin imágenes: no debe venir main_image
+      // if (val.main_image) {
+      //   ctx.addIssue({
+      //     code: 'custom',
+      //     message: 'No puedes elegir imagen principal si no has subido imágenes.',
+      //     path: ['main_image']
+      //   })
+      // }
+    }
+  })
+
+export type ProductUploadedImageInput = z.infer<typeof productUploadedImageSchema>
 
 export const productSchema = z.object({
   id: z.number(),
