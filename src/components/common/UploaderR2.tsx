@@ -1,3 +1,4 @@
+import { Button } from '@heroui/react'
 import { CircleX } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
@@ -156,7 +157,7 @@ export default function RHF_R2Uploader({
   }
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-2'>
       {/* Dropzone */}
       <div
         {...getRootProps()}
@@ -170,8 +171,9 @@ export default function RHF_R2Uploader({
         ) : (
           <>
             <p className='font-medium'>Arrastra y suelta, o haz clic para seleccionar</p>
+            <p className='text-xs text-gray-500'> Para mejores resultados, utiliza imágenes cuadradas de mínimo 800px </p>
             <p className='text-xs text-gray-500 mt-1'>
-              {Object.keys(accept).join(', ')} · máx. {(maxSize / (1024 * 1024)).toFixed(0)}MB · hasta {maxFiles} archivos
+              Hasta {maxFiles} imágenes de máximo {(maxSize / (1024 * 1024)).toFixed(0)}MB cada una.
             </p>
           </>
         )}
@@ -192,7 +194,7 @@ export default function RHF_R2Uploader({
 
       {/* Selección local + progreso */}
       {hasFiles && (
-        <ul className='grid grid-cols-2 md:grid-cols-4 gap-3'>
+        <ul className='grid grid-cols-2 md:grid-cols-4 gap-3 '>
           {files.map((file, idx) => {
             const preview = URL.createObjectURL(file)
             const pctAny = Object.values(progress)[0] // indicativo visual mientras firmamos
@@ -237,16 +239,17 @@ export default function RHF_R2Uploader({
       {errorMsg && <p className='text-sm text-red-600'>{errorMsg}</p>}
 
       {/* Botón subir */}
-      <div className='flex gap-2'>
+      <div className='flex justify-center'>
         {hasFiles && (
-          <button
-            type='button'
-            onClick={handleUpload}
-            disabled={!hasFiles || uploading || disabled}
-            className='rounded-xl border px-4 py-2'
+          <Button
+            onPress={handleUpload}
+            isDisabled={!hasFiles || uploading || disabled}
+            isLoading={uploading}
+            variant='ghost'
+            color='primary'
           >
             {uploading ? 'Subiendo…' : uploadLabel}
-          </button>
+          </Button>
         )}
       </div>
       {/* Galería de lo que YA quedó en el formulario */}

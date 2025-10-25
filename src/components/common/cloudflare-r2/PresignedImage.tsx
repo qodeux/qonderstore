@@ -38,12 +38,14 @@ const PresignedImage = ({ keyPath, expires = 60 }: Props) => {
   }, [keyPath, expires])
 
   if (loading) {
-    return <div className='h-32 w-full animate-pulse rounded-xl bg-gray-200' />
+    return <div className=' w-full animate-pulse rounded-xl bg-gray-200 aspect-square' />
   }
   if (error) {
-    return <div className='h-32 w-full rounded-xl bg-red-50 text-red-600 text-xs flex items-center justify-center p-2'>{error}</div>
+    return (
+      <div className='w-full rounded-xl bg-red-50 text-red-600 text-xs flex items-center justify-center p-2 aspect-square'>{error}</div>
+    )
   }
-  return <img src={url} alt='' className='h-32 w-full object-cover rounded-xl' />
+  return <img src={url} alt='' className='w-full object-cover rounded-xl aspect-square border-1 border-gray-300' />
 }
 
 export default PresignedImage
