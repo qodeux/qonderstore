@@ -44,6 +44,7 @@
     "react-use-wizard": "^2.3.0",
     "tailwindcss": "^4.1.13",
     "uuid": "^13.0.0",
+    "yet-another-react-lightbox": "^3.25.0",
     "zod": "^4.1.5"
   },
   "devDependencies": {
