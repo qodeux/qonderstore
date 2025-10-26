@@ -3,6 +3,7 @@ import { Controller, useFormContext } from 'react-hook-form'
 import { PatternFormat } from 'react-number-format'
 import { useDispatch } from 'react-redux'
 import { useWizard } from 'react-use-wizard'
+import { requestAccessService } from '../../../services/requestAccessService'
 import { patchRequest } from '../../../store/slices/requestAccessSlice'
 
 const MobilePhone = () => {
@@ -15,48 +16,50 @@ const MobilePhone = () => {
       console.log(data)
 
       const isValid = await trigger()
+
       if (isValid) {
+        dispatch(patchRequest(data))
+
         //Si estamos en desarrollo saltamos el envío del OTP y la validación de Twilio
         if (import.meta.env.VITE_DEV_MODE === 'true') {
+          //Validamos que no exista ya el teléfono en la base de datos
+          const existingUser = await requestAccessService.verifyPhoneExists(data.phone)
+
+          if (existingUser.exists) {
+            setError('phone', { type: 'manual', message: existingUser.msg })
+            return
+          }
+
           nextStep()
           return
         }
 
-        //Despues de pasar la validación, hacemos el lookup en twilio
-        const response = await fetch('/.netlify/functions/twilio-lookup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: data.phone })
-        })
+        //Despues de pasar la validación RHF, hacemos la validacion en el servicio
+        const validateResponse = await requestAccessService.validatePhone(data.phone)
 
-        const lookupData = await response.json()
-
-        if (!response.ok) {
-          alert(lookupData?.error || 'Error verificando el número de teléfono')
+        if (!validateResponse.ok) {
+          if (validateResponse?.error) {
+            setError('phone', { type: 'manual', message: validateResponse.error })
+          }
           return
         }
 
-        if (!lookupData.isValid) {
+        if (!validateResponse.isValid) {
           setError('phone', { type: 'manual', message: 'Número de teléfono inválido' })
           return
         }
 
-        if (!lookupData.isMobile) {
+        if (!validateResponse.isMobile) {
           setError('phone', { type: 'manual', message: 'No es un número de teléfono móvil' })
           return
         }
 
-        console.log(lookupData)
+        const otpSendResponse = await requestAccessService.sendOTP(data.phone)
 
-        dispatch(patchRequest(data))
-
-        const otpSendResponse = await fetch('/.netlify/functions/twilio-otp-send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: data.phone, channel: 'sms', locale: 'es' })
-        }).then((r) => r.json())
-
-        console.log(otpSendResponse)
+        if (otpSendResponse?.error) {
+          setError('phone', { type: 'manual', message: 'Error enviando el código OTP. Intenta de nuevo.' })
+          return
+        }
 
         nextStep()
       }
