@@ -1,11 +1,18 @@
-// netlify/functions/twilio-lookup.ts
 import type { Handler } from '@netlify/functions'
-import twilio from 'twilio'
+import twilio, { type Twilio } from 'twilio'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
+}
+
+type LookupResult = {
+  phoneNumber?: string
+  valid?: boolean
+  countryCode?: string
+  carrier?: { name?: string }
+  lineTypeIntelligence?: { type?: string }
 }
 
 export const handler: Handler = async (event) => {
@@ -18,8 +25,8 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const body = event.body ? JSON.parse(event.body) : {}
-    const phone: string | undefined = body.phone
+    const body = event.body ? (JSON.parse(event.body) as { phone?: string }) : {}
+    const phone = body.phone
 
     if (!phone) {
       return {
@@ -39,15 +46,16 @@ export const handler: Handler = async (event) => {
       }
     }
 
-    const client = twilio(accountSid, authToken)
-    // Normaliza a MX (+52) si no viene con prefijo. Además, limpia no-dígitos.
+    const client: Twilio = twilio(accountSid, authToken)
+
+    // Normaliza a formato E.164 (México por defecto)
     const digits = phone.replace(/\D/g, '')
     const formattedPhone = phone.startsWith('+') ? phone : `+52${digits}`
 
-    const lookupResult = await client.lookups.v2.phoneNumbers(formattedPhone).fetch({ fields: ['line_type_intelligence'] })
+    const lookupResult = (await client.lookups.v2.phoneNumbers(formattedPhone).fetch({ fields: 'line_type_intelligence' })) as LookupResult
 
     const response = {
-      isValid: (lookupResult as any).valid ?? Boolean((lookupResult as any).phoneNumber),
+      isValid: lookupResult.valid ?? Boolean(lookupResult.phoneNumber),
       isMobile: lookupResult.lineTypeIntelligence?.type === 'mobile',
       carrier: lookupResult.carrier?.name,
       countryCode: lookupResult.countryCode
@@ -58,11 +66,13 @@ export const handler: Handler = async (event) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify(response)
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Internal server error'
+
     return {
       statusCode: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: error?.message ?? 'Internal error' })
+      body: JSON.stringify({ error: message })
     }
   }
 }

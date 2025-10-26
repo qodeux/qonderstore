@@ -57,11 +57,13 @@ export const handler: Handler = async (event) => {
         status: verificationCheck.status // 'approved' | 'pending' | 'canceled' | ...
       })
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Internal server error'
+
     return {
       statusCode: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: error?.message ?? 'Internal error' })
+      body: JSON.stringify({ error: message })
     }
   }
 }
