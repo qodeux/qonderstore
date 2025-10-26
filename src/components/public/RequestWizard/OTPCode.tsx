@@ -2,14 +2,16 @@ import { Button, InputOtp } from '@heroui/react'
 import { useState } from 'react'
 import { flushSync } from 'react-dom'
 import { Controller, useFormContext } from 'react-hook-form'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useWizard } from 'react-use-wizard'
 import { setWizardNavDir } from '../../../store/slices/uiSlice'
+import type { RootState } from '../../../store/store'
 
 const OTPCode = () => {
-  const { control, handleSubmit, setError, setValue, setFocus } = useFormContext()
+  const { control, handleSubmit, setError, setValue, setFocus, trigger } = useFormContext()
   const { previousStep, nextStep } = useWizard()
   const dispatch = useDispatch()
+  const { requestData } = useSelector((state: RootState) => state.requestAccess)
 
   const maxCodeAttempts = 3
   const [codeAttempts, setCodeAttempts] = useState<number>(0)
@@ -21,19 +23,49 @@ const OTPCode = () => {
     await previousStep()
   }
 
-  const onSubmit = handleSubmit((data) => {
+  const onSubmit = handleSubmit(async (data) => {
     console.log(data)
 
-    if (data.code === '1234') {
-      console.log('Código correcto')
+    const isValid = await trigger()
+
+    if (!isValid) {
+      return
+    }
+
+    //Si estamos en desarrollo saltamos la comprobación del OTP
+    if (import.meta.env.VITE_DEV_MODE === 'true') {
+      if (data.code !== '1234') {
+        setError('code', { type: 'manual', message: 'Código incorrecto, intenta de nuevo' })
+        setTimeout(() => {
+          setValue('code', '')
+          setFocus('code')
+          setCodeAttempts((prev) => prev + 1)
+
+          if (codeAttempts + 1 >= maxCodeAttempts - 1) {
+            setShowHelp(true)
+          }
+        }, 1000)
+        return
+      }
 
       setTimeout(() => {
         nextStep()
       }, 1000)
-    } else {
-      console.log('Código incorrecto')
-      setError('code', { type: 'manual', message: 'Código incorrecto, intenta de nuevo' })
 
+      return
+    }
+
+    const res = await fetch('/.netlify/functions/twilio-otp-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: requestData?.phone, code: data.code })
+    })
+    const verificationResult = await res.json()
+
+    console.log(verificationResult)
+
+    if (!verificationResult.success) {
+      setError('code', { type: 'manual', message: 'Código incorrecto, intenta de nuevo' })
       setTimeout(() => {
         setValue('code', '')
         setFocus('code')
@@ -42,6 +74,10 @@ const OTPCode = () => {
         if (codeAttempts + 1 >= maxCodeAttempts - 1) {
           setShowHelp(true)
         }
+      }, 1000)
+    } else {
+      setTimeout(() => {
+        nextStep()
       }, 1000)
     }
   })
