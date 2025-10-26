@@ -77,8 +77,9 @@ const FrontwebLayout = () => {
         {/* Contenido */}
         <section className='flex-1 flex min-h-0'>
           <div className='flex-1 flex min-h-screen'>
-            {/* Fondo y contenido */}
-            <div className='h-full w-full bg-gray-100 p-8 pt-26 md:py-0'>
+            {/* Fondo y contenido*/}
+            <div key={location.pathname + location.search} className='h-full w-full bg-gray-100 p-8 pt-24 '>
+              {/* Padding top ajustado para el alto del header + el padding del contenedor */}
               <Outlet />
             </div>
           </div>
