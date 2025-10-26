@@ -1,9 +1,10 @@
 import type { Selection, SortDescriptor } from '@heroui/react'
 import { useState } from 'react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { DataTable, type ColumnDef } from '../../components/common/DataTable'
 import type { ToolbarCriteria } from '../../components/common/ToolbarTable'
 import { requestAccessService } from '../../services/requestAccessService'
+import { setSelectedRequest } from '../../store/slices/requestAccessSlice'
 import type { RootState } from '../../store/store'
 import { requestStatusMap } from '../../types/requests'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
@@ -11,6 +12,7 @@ import { applyToolbarFilters } from '../../utils/toolbarFilters'
 const Requests = () => {
   const requests = useSelector((state: RootState) => state.requestAccess.items)
   const { layoutOutletHeight, layoutToolbarSpace } = useSelector((state: RootState) => state.ui) ?? {}
+  const dispatch = useDispatch()
 
   type Row = {
     id: number
@@ -76,8 +78,9 @@ const Requests = () => {
   //     console.log('Editar')
   //   }
 
-  const handleRequestsDelete = (id) => {
+  const handleRequestsDelete = (id: number) => {
     console.log('Solicitar eliminación >', id)
+    dispatch(setSelectedRequest(id))
   }
 
   const handleRequestApprove = async (row: Row) => {

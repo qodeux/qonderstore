@@ -7,6 +7,7 @@ interface RequestAccessState {
   error: string | null
   currentStep: number
   items: Request[]
+  selectedRequest: Request | null
 }
 
 const initialState: RequestAccessState = {
@@ -14,7 +15,8 @@ const initialState: RequestAccessState = {
   loading: false,
   error: null,
   currentStep: 0,
-  items: []
+  items: [],
+  selectedRequest: null
 }
 
 const requestAccessSlice = createSlice({
@@ -41,9 +43,12 @@ const requestAccessSlice = createSlice({
     },
     setAccessRequests(state, action: PayloadAction<Request[]>) {
       state.items = action.payload
+    },
+    setSelectedRequest(state, action: PayloadAction<number>) {
+      state.selectedRequest = state.items.find((item) => item.id === action.payload) || null
     }
   }
 })
 
-export const { patchRequest, setLoading, setError, setCurrentStep, setAccessRequests } = requestAccessSlice.actions
+export const { patchRequest, setLoading, setError, setCurrentStep, setAccessRequests, setSelectedRequest } = requestAccessSlice.actions
 export default requestAccessSlice.reducer
