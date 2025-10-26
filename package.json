@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev-mail": "email dev",
     "build": "vite build ",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -25,6 +26,8 @@
     "@internationalized/date": "^3.10.0",
     "@netlify/functions": "^5.0.0",
     "@react-aria/i18n": "^3.12.13",
+    "@react-email/components": "0.5.7",
+    "@react-email/render": "1.4.0",
     "@reduxjs/toolkit": "^2.9.0",
     "@supabase/supabase-js": "^2.57.4",
     "@tailwindcss/vite": "^4.1.13",
@@ -45,6 +48,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
+    "@react-email/preview-server": "^4.3.2",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react-swc": "^4.0.0",
@@ -52,6 +56,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
+    "react-email": "4.3.2",
     "standard-version": "^9.5.0",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
