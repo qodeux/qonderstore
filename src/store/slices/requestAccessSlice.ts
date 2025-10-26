@@ -38,9 +38,12 @@ const requestAccessSlice = createSlice({
       state.loading = false
       state.error = null
       state.currentStep = 0
+    },
+    setAccessRequests(state, action: PayloadAction<Request[]>) {
+      state.items = action.payload
     }
   }
 })
 
-export const { patchRequest, setLoading, setError, setCurrentStep } = requestAccessSlice.actions
+export const { patchRequest, setLoading, setError, setCurrentStep, setAccessRequests } = requestAccessSlice.actions
 export default requestAccessSlice.reducer

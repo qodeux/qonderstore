@@ -28,22 +28,17 @@ export const requestAccessService = {
       statusText: 'Created'
     }
   },
-  updateRequest: async (requestAccessData: RequestInput) => {
-    if (!requestAccessData.id) {
-      console.error('El id de la categoría es obligatorio para actualizar')
+  updateRequestStatus: async (id: number, status: string) => {
+    if (!id) {
+      console.error('El id de la solicitud es obligatorio para actualizar.')
       return
     }
     const { data: requestAccessUpdated, error: requestAccessError } = await supabase
-      .from('categories')
+      .from('request_access')
       .update({
-        name: requestAccessData.name,
-        parent: requestAccessData.parent,
-        color: requestAccessData.color,
-        slug_id: requestAccessData.slug_id,
-        is_active: requestAccessData.is_active,
-        featured: requestAccessData.featured
+        status
       })
-      .eq('id', requestAccessData.id)
+      .eq('id', id)
       .select()
       .single()
 

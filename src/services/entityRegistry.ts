@@ -3,7 +3,7 @@ import { addToast } from '@heroui/react'
 import type { ReactNode } from 'react'
 import supabase from '../lib/supabase'
 
-export type EntityKind = 'products' | 'categories' | 'providers' | 'users' | 'promotions'
+export type EntityKind = 'products' | 'categories' | 'providers' | 'users' | 'promotions' | 'requests'
 
 export type MenuAction<T> = {
   key: string
@@ -95,6 +95,16 @@ export const entityRegistry: Record<EntityKind, EntityAdapter<any>> = {
     },
     delete: async (id) => {
       await supabase.from('promos').delete().eq('id', id)
+    }
+  },
+  requests: {
+    table: 'request_access',
+    getId: (r) => r.id,
+    update: async (id, patch) => {
+      await supabase.from('request_access').update(patch).eq('id', id)
+    },
+    delete: async (id) => {
+      await supabase.from('request_access').delete().eq('id', id)
     }
   }
 }

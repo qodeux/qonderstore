@@ -5,11 +5,13 @@ import AdminFooter from '../components/common/AdminFooter'
 import AdminSidebar from '../components/common/AdminSidebar'
 import Header from '../components/common/Header'
 import { useProviders } from '../hooks/useProviders'
+import { useRequests } from '../hooks/useRequests'
 import { setLayoutOutletHeight } from '../store/slices/uiSlice'
 import type { AppDispatch } from '../store/store'
 
 const AdminLayout = () => {
   useProviders()
+  useRequests()
   const dispatch = useDispatch<AppDispatch>()
   const contentRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
