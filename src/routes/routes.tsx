@@ -13,6 +13,10 @@ import Providers from '../pages/admin/Providers'
 import Users from '../pages/admin/Users'
 import Login from '../pages/auth/Login'
 import Home from '../pages/Home'
+import FAQ from '../pages/public/FAQ'
+import MailVerify from '../pages/public/MailVerify'
+import Privacidad from '../pages/public/Privacidad'
+import Terminos from '../pages/public/Terminos'
 import Store from '../pages/Store'
 
 const AppRoutes: React.FC = () => (
@@ -20,6 +24,10 @@ const AppRoutes: React.FC = () => (
     <Route path='/' element={<FrontwebLayout />}>
       <Route index element={<Home />} />
       <Route path='/login' element={<Login />} />
+      <Route path='/terminos-y-condiciones' element={<Terminos />} />
+      <Route path='/privacidad' element={<Privacidad />} />
+      <Route path='/faq' element={<FAQ />} />
+      <Route path='/verificacion-email' element={<MailVerify />} />
       <Route path='*' element={<NotFound />} />
     </Route>
 
