@@ -8,12 +8,12 @@ import type { RootState } from '../../../store/store'
 
 const AccountData = () => {
   const { control, trigger, handleSubmit, setError } = useFormContext()
-  const { nextStep, previousStep } = useWizard()
+  const { nextStep } = useWizard()
   const requestData = useSelector((state: RootState) => state.requestAccess.requestData)
 
   const onSubmit = handleSubmit(
     async (data) => {
-      console.log(data)
+      const { email, alias } = data
 
       const isValid = await trigger()
       if (isValid) {
@@ -34,6 +34,13 @@ const AccountData = () => {
             }
           }
 
+          return
+        }
+
+        //Enviamos el correo de bienvenida
+        const emailResponse = await requestAccessService.sendWelcomeEmail(email, alias)
+
+        if (emailResponse.error) {
           return
         }
 
