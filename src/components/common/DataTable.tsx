@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   Button,
+  Checkbox,
+  Chip,
   Dropdown,
   DropdownItem,
   DropdownMenu,
@@ -15,6 +17,7 @@ import {
   TableHeader,
   TableRow,
   Tooltip,
+  type ChipVariantProps,
   type Selection,
   type SortDescriptor
 } from '@heroui/react'
@@ -23,6 +26,7 @@ import type { Key, ReactElement } from 'react'
 import { useCallback, useMemo, useRef } from 'react'
 import { Controller } from 'react-hook-form'
 import { entityRegistry, type EntityAdapter, type EntityKind, type MenuAction } from '../../services/entityRegistry'
+import { request_status } from '../../types/requests'
 import { formatDate, formatRelativeTime, toDate } from '../../utils/date'
 
 export type PresetKey = 'is_active' | 'featured' | 'actions' | 'input' | 'date' | 'money' | 'type'
@@ -46,6 +50,7 @@ export type DateConfig = {
 
 export type TypeConfig<K extends PropertyKey = string, V = React.ReactNode> = {
   map: Record<K, V>
+  wrapper?: { type: 'chip'; variant: ChipVariantProps['variant'] } | { type: 'checkbox' }
   fallback?: V | ((raw: unknown, row: any) => V)
   keyTransform?: (raw: unknown) => K
 }
@@ -278,7 +283,30 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
         // 5) Busca el label en el map tipado
         const label = (cfg.map as any)[k as any]
 
-        // 6) Resuelve label o fallback
+        let color
+        switch (col.key) {
+          case 'status': {
+            color = request_status.find((s) => s.key === k)?.color
+          }
+        }
+
+        // 7) Si hay wrapper, envuelve el label
+        if (cfg.wrapper) {
+          const content = <>{label}</>
+
+          switch (cfg.wrapper.type) {
+            case 'chip':
+              return (
+                <Chip variant={cfg.wrapper.variant} color={color} size='sm'>
+                  {content}
+                </Chip>
+              )
+            case 'checkbox':
+              return <Checkbox size='sm'>{content}</Checkbox>
+          }
+        }
+
+        // 7) Resuelve label o fallback
         if (label != null) return <>{label}</>
         if (typeof cfg.fallback === 'function') return <>{cfg.fallback(raw, row)}</>
         return <>{cfg.fallback ?? ''}</>
