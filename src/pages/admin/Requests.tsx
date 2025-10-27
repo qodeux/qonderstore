@@ -44,15 +44,15 @@ const Requests = () => {
     {
       key: 'created_at',
       label: 'Fecha de registro',
-      allowsSorting: false,
+      allowsSorting: true,
       preset: 'date'
     },
     {
       key: 'status',
       label: 'Estatus',
-      allowsSorting: false,
+      allowsSorting: true,
       preset: 'type',
-      presetConfig: { map: requestStatusMap }
+      presetConfig: { map: requestStatusMap, wrapper: { type: 'chip', variant: 'flat' } }
     },
     {
       key: 'actions',

@@ -1,10 +1,10 @@
 import { toRecord } from './helpers'
 
 export const request_status = [
-  { key: 'accepted', label: 'Aceptado' },
-  { key: 'rejected', label: 'Rechazado' },
-  { key: 'pending', label: 'Pendiente' },
-  { key: 'deleted', label: 'Eliminado' }
+  { key: 'accepted', label: 'Aceptado', color: 'success' },
+  { key: 'rejected', label: 'Rechazado', color: 'danger' },
+  { key: 'pending', label: 'Pendiente', color: 'primary' },
+  { key: 'deleted', label: 'Eliminado', color: 'danger' }
 ] as const
 
 export type RequestStatus = (typeof request_status)[number]['key']
