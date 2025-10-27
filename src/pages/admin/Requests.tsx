@@ -1,8 +1,9 @@
-import type { Selection, SortDescriptor } from '@heroui/react'
+import { useDisclosure, type Selection, type SortDescriptor } from '@heroui/react'
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { DataTable, type ColumnDef } from '../../components/common/DataTable'
-import type { ToolbarCriteria } from '../../components/common/ToolbarTable'
+import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
+import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
 import { requestAccessService } from '../../services/requestAccessService'
 import { setSelectedRequest } from '../../store/slices/requestAccessSlice'
 import type { RootState } from '../../store/store'
@@ -11,6 +12,7 @@ import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const Requests = () => {
   const requests = useSelector((state: RootState) => state.requestAccess.items)
+  const user = useSelector((state: RootState) => state.auth.user)
   const { layoutOutletHeight, layoutToolbarSpace } = useSelector((state: RootState) => state.ui) ?? {}
   const dispatch = useDispatch()
 
@@ -60,12 +62,16 @@ const Requests = () => {
     }
   ]
 
-  const [criteria] = useState<ToolbarCriteria<Row>>({
+  const [criteria, setCriteria] = useState<ToolbarCriteria<Row>>({
     searchText: '',
     selected: {}
   })
 
-  const filteredRows = applyToolbarFilters(requests, ['phone'], criteria)
+  const filteredRows = applyToolbarFilters(
+    requests.filter((r) => r.status !== 'deleted'),
+    ['alias', 'email', 'phone'],
+    criteria
+  )
 
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]))
 
@@ -74,6 +80,8 @@ const Requests = () => {
     direction: 'descending'
   })
 
+  const { isOpen: isOpenDelete, onOpen: onOpenDelete, onOpenChange: onOpenChangeDelete } = useDisclosure()
+
   //   const handleEditRequests = () => {
   //     console.log('Editar')
   //   }
@@ -81,43 +89,53 @@ const Requests = () => {
   const handleRequestsDelete = (id: number) => {
     console.log('Solicitar eliminación >', id)
     dispatch(setSelectedRequest(id))
+    onOpenDelete()
   }
 
   const handleRequestApprove = async (row: Row) => {
-    console.log('aprovado')
-    console.log(row)
-    const requestStatus = await requestAccessService.updateRequestStatus(row.id, 'accepted')
+    if (!user) return
+    const requestStatus = await requestAccessService.updateRequestStatus(row.id, 'accepted', user.id)
     console.log(requestStatus)
   }
 
   const handleRequestReject = async (row: Row) => {
-    console.log('alv')
-    console.log(row)
-    const requestStatus = await requestAccessService.updateRequestStatus(row.id, 'rejected')
+    if (!user) return
+    const requestStatus = await requestAccessService.updateRequestStatus(row.id, 'rejected', user.id)
     console.log(requestStatus)
   }
 
   return (
-    <DataTable<Row>
-      entity='requests'
-      adapterOverrides={{
-        //edit: handleEditRequests,
-        onRequestDelete: (id) => {
-          handleRequestsDelete(id)
-        },
-        rowActions: (row) => [
-          { key: 'approve', label: 'Aprobar', onPress: handleRequestApprove },
-          { key: 'reject', label: 'Rechazado', onPress: handleRequestReject }
-        ]
-      }}
-      maxHeight={layoutOutletHeight ? layoutOutletHeight - layoutToolbarSpace : undefined}
-      rows={filteredRows}
-      columns={columns}
-      selectedKeys={selectedKeys}
-      onSelectionChange={setSelectedKeys}
-      sortDescriptor={sortDescriptor}
-      onSortChange={setSortDescriptor}
-    />
+    <section className='space-y-4'>
+      <ToolbarTable<Row>
+        rows={requests}
+        searchFilter={['alias']}
+        filters={[{ label: 'Status', column: 'status', multiple: true }]}
+        enableToggleBehavior
+        onCriteriaChange={setCriteria}
+      />
+
+      <DataTable<Row>
+        entity='requests'
+        adapterOverrides={{
+          //edit: handleEditRequests,
+          onRequestDelete: (id) => {
+            handleRequestsDelete(id as number)
+          },
+          rowActions: () => [
+            { key: 'approve', label: 'Aprobar', onPress: handleRequestApprove },
+            { key: 'reject', label: 'Rechazado', onPress: handleRequestReject }
+          ]
+        }}
+        maxHeight={layoutOutletHeight ? layoutOutletHeight - layoutToolbarSpace : undefined}
+        rows={filteredRows}
+        columns={columns}
+        selectedKeys={selectedKeys}
+        onSelectionChange={setSelectedKeys}
+        sortDescriptor={sortDescriptor}
+        onSortChange={setSortDescriptor}
+      />
+      <OnDeleteModal isOpenDelete={isOpenDelete} onOpenChangeDelete={onOpenChangeDelete} deleteType='request' />
+    </section>
   )
 }
 

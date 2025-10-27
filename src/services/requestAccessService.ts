@@ -28,7 +28,7 @@ export const requestAccessService = {
       statusText: 'Created'
     }
   },
-  updateRequestStatus: async (id: number, status: string) => {
+  updateRequestStatus: async (id: number, status: string, userId: string) => {
     if (!id) {
       console.error('El id de la solicitud es obligatorio para actualizar.')
       return
@@ -36,7 +36,8 @@ export const requestAccessService = {
     const { data: requestAccessUpdated, error: requestAccessError } = await supabase
       .from('request_access')
       .update({
-        status
+        status,
+        updated_by: userId
       })
       .eq('id', id)
       .select()
@@ -47,12 +48,5 @@ export const requestAccessService = {
       return
     }
     return requestAccessUpdated
-  },
-  deleteRequest: async (id: number) => {
-    console.log('Deleting requestAccess with ID:', id)
-    const { error } = await supabase.from('categories').delete().eq('id', id)
-    if (error) {
-      console.error('Error deleting requestAccess:', error)
-    }
   }
 }

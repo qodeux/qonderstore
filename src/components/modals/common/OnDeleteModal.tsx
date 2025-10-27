@@ -6,10 +6,11 @@ import { categoryService } from '../../../services/categoryService'
 import { productService } from '../../../services/productService'
 import { promotionService } from '../../../services/promotionService'
 import { providerService } from '../../../services/providerService'
+import { requestAccessService } from '../../../services/requestAccessService'
 import { userService } from '../../../services/userService'
 import type { RootState } from '../../../store/store'
 
-export type ItemType = 'product' | 'category' | 'brand' | 'provider' | 'user' | 'promotion'
+export type ItemType = 'product' | 'category' | 'brand' | 'provider' | 'user' | 'promotion' | 'request'
 
 type Props = {
   isOpenDelete: boolean
@@ -23,16 +24,19 @@ const deleteTypeMap = {
   brand: { name: 'marca', article: 'la' },
   provider: { name: 'proveedor', article: 'el' },
   user: { name: 'usuario', article: 'el' },
-  promotion: { name: 'promoción', article: 'la' }
+  promotion: { name: 'promoción', article: 'la' },
+  request: { name: 'solicitud', article: 'la' }
 }
 
 const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) => {
+  const user = useSelector((state: RootState) => state.auth.user)
   const categories = useSelector((state: RootState) => state.categories.categories) ?? []
   const selectedCategory = useSelector((state: RootState) => state.categories.selectedCategory)
   const selectedProduct = useSelector((state: RootState) => state.products.selectedProduct)
   const selectedProvider = useSelector((state: RootState) => state.providers.selectedProvider)
   const selectedUser = useSelector((state: RootState) => state.users.selectedUser)
   const selectedPromotion = useSelector((state: RootState) => state.promotions.selectedPromotion)
+  const selectedRequest = useSelector((state: RootState) => state.requestAccess.selectedRequest)
 
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -52,6 +56,9 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
       break
     case 'promotion':
       itemToDelete = selectedPromotion?.name
+      break
+    case 'request':
+      itemToDelete = selectedRequest?.email
       break
   }
 
@@ -97,6 +104,13 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
         if (selectedPromotion) {
           await promotionService.deletePromotion(selectedPromotion.id)
         }
+        break
+      case 'request':
+        if (selectedRequest) {
+          if (!user) return
+          await requestAccessService.updateRequestStatus(selectedRequest.id, 'deleted', user.id)
+          console.log('Borrando solicitud de: ', selectedRequest.alias)
+        }
     }
     onOpenChangeDelete()
   }
@@ -112,20 +126,17 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
         // if ((selectedCategory?.total_products ?? 0) > 0) return false
         // if (subcategories > 0) return false
         return true
-        break
+
       case 'product':
         if ((selectedProduct?.stock ?? 0) > 0) {
           return confirmDelete
         } else {
           return true
         }
-        break
       case 'provider':
         return true
-        break
       case 'user':
         if (!selectedUser) return false
-
         if (selectedUser.role === 'admin') {
           return false
         }
@@ -133,11 +144,12 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
           return false
         }
         return true
-        break
       case 'promotion':
         if (!selectedPromotion) return false
         return confirmDelete
-        break
+      case 'request':
+        if (!selectedRequest) return false
+        return !['pending'].includes(selectedRequest.status)
       default:
         return true
     }
@@ -166,9 +178,11 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
           <>
             <ModalHeader className='flex flex-col gap-1 '>Eliminar {deleteTypeMap[deleteType].name}</ModalHeader>
             <ModalBody>
-              <p>
-                ¿Estás seguro de que deseas eliminar: <span className='font-bold'>{itemToDelete}</span>?
-              </p>
+              {deleteType != 'request' && (
+                <p>
+                  ¿Estás seguro de que deseas eliminar: <span className='font-bold'>{itemToDelete}</span>?
+                </p>
+              )}
 
               {deleteType === 'category' && typeof selectedCategory?.total_products === 'number' && selectedCategory.total_products > 0 && (
                 <Alert
@@ -264,6 +278,38 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
                       </div>
                     </>
                   }
+                  title='Advertencia'
+                />
+              )}
+
+              {deleteType === 'request' && selectedRequest?.status != 'pending' && (
+                <>
+                  <p>
+                    ¿Estás seguro de que deseas eliminar: <span className='font-bold'>{itemToDelete}</span>?
+                  </p>
+                  <Alert
+                    color='danger'
+                    icon={<ShieldAlert />}
+                    hideIconWrapper
+                    className='mt-4'
+                    classNames={{ title: 'font-bold', description: 'text-sm', alertIcon: 'fill-none', iconWrapper: 'bg-blue-100' }}
+                    description={
+                      <>
+                        La solicitud no será eliminada de la base de datos, solo se ocultará. <strong>Esto no se puede deshacer. </strong>
+                      </>
+                    }
+                    title='Advertencia'
+                  />
+                </>
+              )}
+              {deleteType === 'request' && selectedRequest?.status === 'pending' && (
+                <Alert
+                  color='warning'
+                  icon={<ShieldAlert />}
+                  hideIconWrapper
+                  className='mt-4'
+                  classNames={{ title: 'font-bold', description: 'text-sm', alertIcon: 'fill-none', iconWrapper: 'bg-blue-100' }}
+                  description={<>No se puede eliminar una solicitud pendiente. Primero debe ser aceptada o rechazada.</>}
                   title='Advertencia'
                 />
               )}

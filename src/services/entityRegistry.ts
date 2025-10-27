@@ -104,7 +104,7 @@ export const entityRegistry: Record<EntityKind, EntityAdapter<any>> = {
       await supabase.from('request_access').update(patch).eq('id', id)
     },
     delete: async (id) => {
-      await supabase.from('request_access').delete().eq('id', id)
+      await supabase.from('request_access').update({ status: 'deleted' }).eq('id', id)
     }
   }
 }

@@ -31,9 +31,9 @@ export const requestSchema = z.object({
   phone: z.string(),
   alias: z.string(),
   email: z.email(),
-  accepted_by: z.string().optional(),
+  updated_by: z.string().optional(),
   email_verified: z.boolean(),
   invite_code: z.string().optional(),
-  status: z.enum(['pending', 'accepted', 'rejected']).optional()
+  status: z.enum(['pending', 'accepted', 'rejected', 'deleted'])
 })
 export type Request = z.infer<typeof requestSchema>
