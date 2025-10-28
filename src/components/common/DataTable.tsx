@@ -566,7 +566,7 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
               </TableColumn>
             )}
           </TableHeader>
-          <TableBody items={sortedItems}>
+          <TableBody items={sortedItems} emptyContent='Sin resultados disponibles'>
             {(row) => {
               // const rowKey = getRowKey(row)
               // const rowIsSelected = isKeySelected(selectedKeys, rowKey)
