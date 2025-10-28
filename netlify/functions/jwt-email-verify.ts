@@ -41,12 +41,9 @@ export const handler: Handler = async (event) => {
       .is('used_at', null) // asegura single-use
     if (upd1) throw upd1
 
-    // const { error: upd2 } = await supabaseAdmin
-    //   .from('users')
-    //   .update({ email_verified_at: new Date().toISOString() })
-    //   .eq('id', payload.sub)
-    //   .is('email_verified_at', null) // idempotente
-    // if (upd2) throw upd2
+    const { error: upd2 } = await supabaseAdmin.from('request_access').update({ email_verified: true }).eq('email', payload.email)
+    //.is('email_verified_at', null) // idempotente
+    if (upd2) throw upd2
 
     return {
       statusCode: 200,
