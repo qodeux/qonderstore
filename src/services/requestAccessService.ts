@@ -116,9 +116,9 @@ export const requestAccessService = {
       statusText: 'Created'
     }
   },
-  updateRequestStatus: async (id: number, status: string, userId: string) => {
-    if (!id) {
-      console.error('El id de la solicitud es obligatorio para actualizar.')
+  updateRequestStatus: async (email: string, username: string, status: string, userId: string) => {
+    if (!email) {
+      console.error('El email de la solicitud es obligatorio para actualizar.')
       return
     }
     const { data: requestAccessUpdated, error: requestAccessError } = await supabase
@@ -127,7 +127,7 @@ export const requestAccessService = {
         status,
         updated_by: userId
       })
-      .eq('id', id)
+      .eq('email', email)
       .select()
       .single()
 
@@ -135,6 +135,21 @@ export const requestAccessService = {
       console.error('Error updating requestAccess:', requestAccessError)
       return
     }
+
+    const emailSent = await fetch(`/.netlify/functions/jwt-send-request-status-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: email,
+        username: username,
+        status: status
+      })
+    })
+
+    console.log(emailSent)
+
     return requestAccessUpdated
   }
 }

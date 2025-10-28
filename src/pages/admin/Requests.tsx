@@ -94,13 +94,13 @@ const Requests = () => {
 
   const handleRequestApprove = async (row: Row) => {
     if (!user) return
-    const requestStatus = await requestAccessService.updateRequestStatus(row.id, 'accepted', user.id)
+    const requestStatus = await requestAccessService.updateRequestStatus(row.email, row.alias, 'accepted', user.id)
     console.log(requestStatus)
   }
 
   const handleRequestReject = async (row: Row) => {
     if (!user) return
-    const requestStatus = await requestAccessService.updateRequestStatus(row.id, 'rejected', user.id)
+    const requestStatus = await requestAccessService.updateRequestStatus(row.email, row.alias, 'rejected', user.id)
     console.log(requestStatus)
   }
 

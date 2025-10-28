@@ -108,7 +108,7 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
       case 'request':
         if (selectedRequest) {
           if (!user) return
-          await requestAccessService.updateRequestStatus(selectedRequest.id, 'deleted', user.id)
+          await requestAccessService.updateRequestStatus(selectedRequest.email, selectedRequest.alias, 'deleted', user.id)
           console.log('Borrando solicitud de: ', selectedRequest.alias)
         }
     }
