@@ -29,7 +29,7 @@ const baseUrl = raw
   ? raw.replace(/\/$/, '') // sin slash final
   : 'http://localhost:8888' // fallback dev
 
-export const WelcomeEmail = ({ username, verifyUrl, email }: WelcomeEmailProps) => {
+export const ChangePasswordEmail = ({ username, verifyUrl, email }: WelcomeEmailProps) => {
   if (!React) return null
 
   return (
@@ -53,34 +53,27 @@ export const WelcomeEmail = ({ username, verifyUrl, email }: WelcomeEmailProps) 
           }
         }}
       >
-        <Preview>Te has registrado en Qonderstore</Preview>
+        <Preview>Has solicitado cambiar tu contraseña</Preview>
         <Body className='bg-gray-100 font-sans text-base'>
-          <Img
-            src={`https://qonderstore-dev.netlify.app/branding/logo-full-black.png`}
-            width='280'
-            alt='Qonderstore'
-            className='mx-auto my-10'
-          />
+          <Img src={`${baseUrl}/branding/logo-full-black.png`} width='280' alt='Qonderstore' className='mx-auto my-10' />
           <Container className='bg-white p-45'>
-            <Heading className='my-0 text-center leading-8 text-2xl'>Bienvenido a bordo {username}</Heading>
+            <Heading className='my-0 text-center leading-8 text-2xl'>Cambio de contraseña para {username}</Heading>
 
             <Section>
               <Row>
                 <Text className='text-base'>
-                  Te has registrado correctamente en nuestro sitio, nuestro equipo esta revisando tu solicitud y pronto tendrás una
-                  respuesta.
+                  Has solicitado cambiar tu contraseña. Para continuar, por favor haz click en el siguiente botón.
                 </Text>
 
                 <Text className='text-base'>
-                  Si lo deseas puedes contactarnos directamente por <Link href='https://wa.me/1234567890'>Whatsapp</Link> para agilizar el
-                  proceso. Mientras tanto, te sugerimos que verifiques tu correo electrónico haciendo click en el siguiente botón.
+                  Si no solicitaste este cambio, puedes ignorar este correo y tu contraseña permanecerá sin cambios.
                 </Text>
               </Row>
             </Section>
 
             <Section className='text-center'>
               <Button className='rounded-lg bg-brand px-[18px] py-3 text-white' href={verifyUrl}>
-                Verifica tu correo
+                Cambiar contraseña
               </Button>
             </Section>
           </Container>
@@ -114,10 +107,10 @@ export const WelcomeEmail = ({ username, verifyUrl, email }: WelcomeEmailProps) 
   )
 }
 
-WelcomeEmail.PreviewProps = {
+ChangePasswordEmail.PreviewProps = {
   username: 'Kevin',
   email: 'usuario@example.com',
-  verifyUrl: baseUrl + '/verificar-email?token=exampletoken123'
+  verifyUrl: baseUrl + '/cambiar-password?token=exampletoken123'
 } satisfies WelcomeEmailProps
 
-export default WelcomeEmail
+export default ChangePasswordEmail

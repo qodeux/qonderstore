@@ -17,7 +17,7 @@ const Login = () => {
   const dispatch = useDispatch<AppDispatch>()
   const { isAuthenticated, error, loading, status } = useSelector((state: RootState) => state.auth)
 
-  const from = (location.state as { from?: string } | null)?.from || '/admin/'
+  const from = (location.state as { from?: string } | null)?.from || '/'
 
   const {
     register,

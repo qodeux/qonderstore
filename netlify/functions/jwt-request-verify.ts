@@ -15,7 +15,7 @@ export const handler: Handler = async (event) => {
 
     //console.log('Payload', payload)
 
-    if (payload.purpose !== 'email_verification') {
+    if (payload.purpose !== 'create_account') {
       return { statusCode: 400, headers: cors(), body: 'Invalid purpose' }
     }
 
@@ -41,14 +41,14 @@ export const handler: Handler = async (event) => {
       .is('used_at', null) // asegura single-use
     if (upd1) throw upd1
 
-    const { error: upd2 } = await supabaseAdmin.from('request_access').update({ email_verified: true }).eq('email', payload.email)
-    //.is('email_verified_at', null) // idempotente
-    if (upd2) throw upd2
+    const { data, error: requestAccessError } = await supabaseAdmin.from('request_access').select('*').eq('email', payload.email).single()
+
+    if (requestAccessError) throw requestAccessError
 
     return {
       statusCode: 200,
       headers: { ...cors(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ verified: true })
+      body: JSON.stringify(data)
     }
   } catch (err: unknown) {
     const message = (err as Error)?.message || 'Invalid token'

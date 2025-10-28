@@ -18,18 +18,18 @@ import {
   Text
 } from '@react-email/components'
 
-interface WelcomeEmailProps {
-  username: string
+interface AcceptedEmailProps {
   email: string
-  verifyUrl: string
+  createAccountLink: string
+  username: string
 }
 
-const raw = process.env.DEPLOY_BASE_URL ?? '' // server-side env
+const raw = process.env.PUBLIC_BASE_URL ?? '' // server-side env
 const baseUrl = raw
   ? raw.replace(/\/$/, '') // sin slash final
   : 'http://localhost:8888' // fallback dev
 
-export const WelcomeEmail = ({ username, verifyUrl, email }: WelcomeEmailProps) => {
+export const AcceptedRequestEmail = ({ email, createAccountLink, username }: AcceptedEmailProps) => {
   if (!React) return null
 
   return (
@@ -53,7 +53,7 @@ export const WelcomeEmail = ({ username, verifyUrl, email }: WelcomeEmailProps) 
           }
         }}
       >
-        <Preview>Te has registrado en Qonderstore</Preview>
+        <Preview>Tu solcitud ha sido aceptada</Preview>
         <Body className='bg-gray-100 font-sans text-base'>
           <Img
             src={`https://qonderstore-dev.netlify.app/branding/logo-full-black.png`}
@@ -62,25 +62,22 @@ export const WelcomeEmail = ({ username, verifyUrl, email }: WelcomeEmailProps) 
             className='mx-auto my-10'
           />
           <Container className='bg-white p-45'>
-            <Heading className='my-0 text-center leading-8 text-2xl'>Bienvenido a bordo {username}</Heading>
+            <Heading className='my-0 text-center leading-8 text-2xl'>Tu solicitud fue aceptada</Heading>
 
             <Section>
               <Row>
-                <Text className='text-base'>
-                  Te has registrado correctamente en nuestro sitio, nuestro equipo esta revisando tu solicitud y pronto tendrás una
-                  respuesta.
-                </Text>
+                <Text className='text-base'>¡Todo listo, {username}! Bienvenido a nuestra plataforma.</Text>
 
                 <Text className='text-base'>
-                  Si lo deseas puedes contactarnos directamente por <Link href='https://wa.me/1234567890'>Whatsapp</Link> para agilizar el
-                  proceso. Mientras tanto, te sugerimos que verifiques tu correo electrónico haciendo click en el siguiente botón.
+                  Para terminar el proceso solo debes completar tu registro y acceder desde cualquier dispositivo haciendo clic en el
+                  siguiente enlace (válido por 72 horas).
                 </Text>
               </Row>
             </Section>
 
             <Section className='text-center'>
-              <Button className='rounded-lg bg-brand px-[18px] py-3 text-white' href={verifyUrl}>
-                Verifica tu correo
+              <Button className='rounded-lg bg-brand px-[18px] py-3 text-white' href={createAccountLink}>
+                Crear mi cuenta
               </Button>
             </Section>
           </Container>
@@ -95,13 +92,13 @@ export const WelcomeEmail = ({ username, verifyUrl, email }: WelcomeEmailProps) 
             <Section>
               <Row>
                 <Column className='px-20 text-center'>
-                  <Link>Preguntas frecuentes</Link>
+                  <Link href={`${baseUrl}/faq`}>Preguntas frecuentes</Link>
                 </Column>
                 <Column className='text-center'>
-                  <Link>Aviso de privacidad</Link>
+                  <Link href={`${baseUrl}/privacidad`}>Aviso de privacidad</Link>
                 </Column>
                 <Column className='text-center'>
-                  <Link>Términos y condiciones</Link>
+                  <Link href={`${baseUrl}/terminos-y-condiciones`}>Términos y condiciones</Link>
                 </Column>
               </Row>
             </Section>
@@ -114,10 +111,10 @@ export const WelcomeEmail = ({ username, verifyUrl, email }: WelcomeEmailProps) 
   )
 }
 
-WelcomeEmail.PreviewProps = {
-  username: 'Kevin',
+AcceptedRequestEmail.PreviewProps = {
   email: 'usuario@example.com',
-  verifyUrl: baseUrl + '/verificar-email?token=exampletoken123'
-} satisfies WelcomeEmailProps
+  createAccountLink: 'http://localhost:8888/crear-cuenta',
+  username: 'Kevin'
+} satisfies AcceptedEmailProps
 
-export default WelcomeEmail
+export default AcceptedRequestEmail

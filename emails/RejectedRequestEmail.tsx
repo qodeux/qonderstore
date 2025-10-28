@@ -18,18 +18,16 @@ import {
   Text
 } from '@react-email/components'
 
-interface WelcomeEmailProps {
-  username: string
+interface RejectedEmailProps {
   email: string
-  verifyUrl: string
 }
 
-const raw = process.env.DEPLOY_BASE_URL ?? '' // server-side env
+const raw = process.env.PUBLIC_BASE_URL ?? '' // server-side env
 const baseUrl = raw
   ? raw.replace(/\/$/, '') // sin slash final
   : 'http://localhost:8888' // fallback dev
 
-export const WelcomeEmail = ({ username, verifyUrl, email }: WelcomeEmailProps) => {
+export const RejectedRequestEmail = ({ email }: RejectedEmailProps) => {
   if (!React) return null
 
   return (
@@ -53,7 +51,7 @@ export const WelcomeEmail = ({ username, verifyUrl, email }: WelcomeEmailProps) 
           }
         }}
       >
-        <Preview>Te has registrado en Qonderstore</Preview>
+        <Preview>Tu solcitud ha sido rechazada</Preview>
         <Body className='bg-gray-100 font-sans text-base'>
           <Img
             src={`https://qonderstore-dev.netlify.app/branding/logo-full-black.png`}
@@ -62,25 +60,23 @@ export const WelcomeEmail = ({ username, verifyUrl, email }: WelcomeEmailProps) 
             className='mx-auto my-10'
           />
           <Container className='bg-white p-45'>
-            <Heading className='my-0 text-center leading-8 text-2xl'>Bienvenido a bordo {username}</Heading>
+            <Heading className='my-0 text-center leading-8 text-2xl'>Ups! Tu solicitud fue rechazada</Heading>
 
             <Section>
               <Row>
                 <Text className='text-base'>
-                  Te has registrado correctamente en nuestro sitio, nuestro equipo esta revisando tu solicitud y pronto tendrás una
-                  respuesta.
+                  Lamentablemente nuestro equipo no logro reunir las bases suficientes para aprobar tu solicitud.
                 </Text>
 
                 <Text className='text-base'>
-                  Si lo deseas puedes contactarnos directamente por <Link href='https://wa.me/1234567890'>Whatsapp</Link> para agilizar el
-                  proceso. Mientras tanto, te sugerimos que verifiques tu correo electrónico haciendo click en el siguiente botón.
+                  Si lo deseas puedes contactarnos directamente para revisar tu caso y resolver cualquier duda que tengas.
                 </Text>
               </Row>
             </Section>
 
             <Section className='text-center'>
-              <Button className='rounded-lg bg-brand px-[18px] py-3 text-white' href={verifyUrl}>
-                Verifica tu correo
+              <Button className='rounded-lg bg-brand px-[18px] py-3 text-white' href='https://wa.me/1234567890'>
+                Contactar por WhatsApp
               </Button>
             </Section>
           </Container>
@@ -95,13 +91,13 @@ export const WelcomeEmail = ({ username, verifyUrl, email }: WelcomeEmailProps) 
             <Section>
               <Row>
                 <Column className='px-20 text-center'>
-                  <Link>Preguntas frecuentes</Link>
+                  <Link href={`${baseUrl}/faq`}>Preguntas frecuentes</Link>
                 </Column>
                 <Column className='text-center'>
-                  <Link>Aviso de privacidad</Link>
+                  <Link href={`${baseUrl}/privacidad`}>Aviso de privacidad</Link>
                 </Column>
                 <Column className='text-center'>
-                  <Link>Términos y condiciones</Link>
+                  <Link href={`${baseUrl}/terminos-y-condiciones`}>Términos y condiciones</Link>
                 </Column>
               </Row>
             </Section>
@@ -114,10 +110,8 @@ export const WelcomeEmail = ({ username, verifyUrl, email }: WelcomeEmailProps) 
   )
 }
 
-WelcomeEmail.PreviewProps = {
-  username: 'Kevin',
-  email: 'usuario@example.com',
-  verifyUrl: baseUrl + '/verificar-email?token=exampletoken123'
-} satisfies WelcomeEmailProps
+RejectedRequestEmail.PreviewProps = {
+  email: 'usuario@example.com'
+} satisfies RejectedEmailProps
 
-export default WelcomeEmail
+export default RejectedRequestEmail

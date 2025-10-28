@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { Boxes, ChevronRight, CirclePercent, Combine, Layers, LayoutDashboard, Package, Users } from 'lucide-react'
+import { Boxes, ChevronRight, CirclePercent, ClipboardList, Combine, Layers, LayoutDashboard, Package, Users } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
 import { performLogout } from '../../store/slices/authSlice'
@@ -43,15 +43,15 @@ const menuItems: MenuItem[] = [
   //     icon: <ShoppingBag className='w-5 h-5' />,
   //     href: '/admin/pedidos'
   //   },
-  //   {
-  //     label: 'Solicitudes',
-  //     icon: <ClipboardList className='w-5 h-5' />,
-  //     href: '/admin/solicitudes'
-  //   },
   {
     label: 'Proveedores',
     icon: <Boxes className='w-5 h-5' />,
     href: '/admin/proveedores'
+  },
+  {
+    label: 'Solicitudes',
+    icon: <ClipboardList className='w-5 h-5' />,
+    href: '/admin/solicitudes-acceso'
   },
   {
     label: 'Usuarios',

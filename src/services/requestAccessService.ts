@@ -116,11 +116,40 @@ export const requestAccessService = {
       statusText: 'Created'
     }
   },
-  deleteRequest: async (id: number) => {
-    console.log('Deleting requestAccess with ID:', id)
-    const { error } = await supabase.from('categories').delete().eq('id', id)
-    if (error) {
-      console.error('Error deleting requestAccess:', error)
+  updateRequestStatus: async (email: string, username: string, status: string, userId: string) => {
+    if (!email) {
+      console.error('El email de la solicitud es obligatorio para actualizar.')
+      return
     }
+    const { data: requestAccessUpdated, error: requestAccessError } = await supabase
+      .from('request_access')
+      .update({
+        status,
+        updated_by: userId
+      })
+      .eq('email', email)
+      .select()
+      .single()
+
+    if (requestAccessError) {
+      console.error('Error updating requestAccess:', requestAccessError)
+      return
+    }
+
+    const emailSent = await fetch(`/.netlify/functions/jwt-send-request-status-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: email,
+        username: username,
+        status: status
+      })
+    })
+
+    console.log(emailSent)
+
+    return requestAccessUpdated
   }
 }

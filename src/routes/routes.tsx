@@ -10,8 +10,10 @@ import Dashboard from '../pages/admin/Dashboard'
 import Products from '../pages/admin/Products'
 import Promos from '../pages/admin/Promos'
 import Providers from '../pages/admin/Providers'
+import Requests from '../pages/admin/Requests'
 import Users from '../pages/admin/Users'
 import Login from '../pages/auth/Login'
+import CreateAccount from '../pages/CreateAccount'
 import Home from '../pages/Home'
 import FAQ from '../pages/public/FAQ'
 import MailVerify from '../pages/public/MailVerify'
@@ -28,6 +30,7 @@ const AppRoutes: React.FC = () => (
       <Route path='/privacidad' element={<Privacidad />} />
       <Route path='/faq' element={<FAQ />} />
       <Route path='/verificacion-email' element={<MailVerify />} />
+      <Route path='/crear-cuenta' element={<CreateAccount />} />
       <Route path='*' element={<NotFound />} />
     </Route>
 
@@ -46,7 +49,7 @@ const AppRoutes: React.FC = () => (
     <Route
       path='/admin'
       element={
-        <ProtectedRoute>
+        <ProtectedRoute allowedRoles={['admin', 'staff']}>
           <AdminLayout />
         </ProtectedRoute>
       }
@@ -57,6 +60,7 @@ const AppRoutes: React.FC = () => (
       <Route path='productos' element={<Products />} />
       <Route path='promociones' element={<Promos />} />
       <Route path='proveedores' element={<Providers />} />
+      <Route path='solicitudes-acceso' element={<Requests />} />
       <Route
         path='usuarios'
         element={
