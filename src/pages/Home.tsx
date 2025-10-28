@@ -2,8 +2,10 @@ import { Button, Tooltip } from '@heroui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AnimatePresence } from 'framer-motion'
 import { RotateCcw } from 'lucide-react'
+import { useEffect } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate } from 'react-router'
 import { Wizard } from 'react-use-wizard'
 import AnimatedStep from '../components/common/wizard/AnimatedStep'
 import AccountData from '../components/public/RequestWizard/AccountData'
@@ -17,6 +19,8 @@ import type { Step } from '../types/ui'
 
 const Home = () => {
   const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth)
   const isDevMode = import.meta.env.VITE_DEV_MODE === 'true'
   const { wizardCurrentIndex } = useSelector((state: RootState) => state.ui)
   const mobilePhoneForm = useForm({
@@ -71,6 +75,12 @@ const Home = () => {
 
     dispatch(requestJumpToStep(0))
   }
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(user && ['staff', 'admin'].includes(user.role) ? '/admin' : '/tienda', { replace: true })
+    }
+  }, [isAuthenticated, navigate, user])
 
   return (
     <div className='container grid md:grid-cols-2 md:h-full items-center  space-y-10 md:space-y-0 mx-auto'>
