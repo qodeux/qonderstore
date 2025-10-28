@@ -25,7 +25,9 @@ import { EllipsisVertical, Star } from 'lucide-react'
 import type { Key, ReactElement } from 'react'
 import { useCallback, useMemo, useRef } from 'react'
 import { Controller } from 'react-hook-form'
+import { useSelector } from 'react-redux'
 import { entityRegistry, type EntityAdapter, type EntityKind, type MenuAction } from '../../services/entityRegistry'
+import type { RootState } from '../../store/store'
 import { request_status } from '../../types/requests'
 import { formatDate, formatRelativeTime, toDate } from '../../utils/date'
 
@@ -488,6 +490,8 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
 
   const canRowAction = selectionMode === 'single' && selectionBehavior === 'replace' && (!!adapter.edit || !!p.onRowActivate)
   const tableRef = useRef<HTMLTableElement | null>(null)
+  const { layoutOutletHeight, layoutToolbarSpace } = useSelector((state: RootState) => state.ui) ?? {}
+  const adjustedMaxHeight = layoutOutletHeight ? layoutOutletHeight - (layoutToolbarSpace ?? 0) : undefined
 
   //const isKeySelected = (selectedKeys: Selection, key: Key) => selectedKeys === 'all' || (selectedKeys as Set<Key>).has(key)
 
@@ -525,10 +529,13 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
         style={
           maxHeight
             ? {
-                maxHeight: `${maxHeight}px`,
-                height: `${(tableRef.current?.offsetHeight ?? 0) > maxHeight ? maxHeight : (tableRef.current?.offsetHeight ?? 0) + 35}px`
+                //maxHeight: `${maxHeight}px`,
+                height: `${maxHeight}px`
               }
-            : undefined
+            : {
+                //maxHeight: `${maxHeight}px`,
+                height: `${adjustedMaxHeight}px`
+              }
         }
         className='border-default-200  rounded-large border shadow-sm bg-white'
       >
@@ -559,7 +566,7 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
               </TableColumn>
             )}
           </TableHeader>
-          <TableBody items={sortedItems}>
+          <TableBody items={sortedItems} emptyContent='Sin resultados disponibles'>
             {(row) => {
               // const rowKey = getRowKey(row)
               // const rowIsSelected = isKeySelected(selectedKeys, rowKey)

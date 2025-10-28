@@ -12,7 +12,6 @@ import { applyToolbarFilters } from '../../utils/toolbarFilters'
 const Categories = () => {
   const dispatch = useDispatch()
   const categories = useSelector((state: RootState) => state.categories.categories) ?? []
-  const { layoutOutletHeight, layoutToolbarSpace } = useSelector((state: RootState) => state.ui) ?? {}
 
   type Row = {
     id: number
@@ -123,7 +122,6 @@ const Categories = () => {
             }
             // rowActions: (row) => [{ key:"share", label:"Compartir", onPress: ... }]
           }}
-          maxHeight={layoutOutletHeight ? layoutOutletHeight - layoutToolbarSpace : undefined}
           rows={filteredRows}
           columns={columns}
           selectedKeys={selectedKeys}
