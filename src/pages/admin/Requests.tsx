@@ -13,7 +13,6 @@ import { applyToolbarFilters } from '../../utils/toolbarFilters'
 const Requests = () => {
   const requests = useSelector((state: RootState) => state.requestAccess.items)
   const user = useSelector((state: RootState) => state.auth.user)
-  const { layoutOutletHeight, layoutToolbarSpace } = useSelector((state: RootState) => state.ui) ?? {}
   const dispatch = useDispatch()
 
   type Row = {
@@ -126,7 +125,6 @@ const Requests = () => {
             { key: 'reject', label: 'Rechazado', onPress: handleRequestReject }
           ]
         }}
-        maxHeight={layoutOutletHeight ? layoutOutletHeight - layoutToolbarSpace : undefined}
         rows={filteredRows}
         columns={columns}
         selectedKeys={selectedKeys}

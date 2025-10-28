@@ -14,7 +14,6 @@ import { applyToolbarFilters } from '../../utils/toolbarFilters'
 const Users = () => {
   useUsers() // carga y realtime
   const users = useSelector((state: RootState) => state.users.items) ?? []
-  const { layoutOutletHeight, layoutToolbarSpace } = useSelector((state: RootState) => state.ui) ?? {}
   const dispatch = useDispatch()
 
   type Row = {
@@ -137,7 +136,6 @@ const Users = () => {
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
           getRowKey={(row) => row.id}
-          maxHeight={layoutOutletHeight ? layoutOutletHeight - layoutToolbarSpace : undefined}
         />
       </section>
       <UserModal isOpen={isOpenUser} onOpenChange={onOpenChangeUser} />

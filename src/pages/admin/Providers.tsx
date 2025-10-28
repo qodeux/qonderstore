@@ -18,7 +18,6 @@ import { applyToolbarFilters } from '../../utils/toolbarFilters'
 const Providers = () => {
   const dispatch = useDispatch()
   const providers = useSelector((state: RootState) => state.providers.items)
-  const { layoutOutletHeight, layoutToolbarSpace } = useSelector((state: RootState) => state.ui) ?? {}
   useCatalog('banks')
 
   type Row = {
@@ -165,7 +164,6 @@ const Providers = () => {
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
           getRowKey={(row) => row.id as number}
-          maxHeight={layoutOutletHeight ? layoutOutletHeight - layoutToolbarSpace : undefined}
         />
       </section>
 
