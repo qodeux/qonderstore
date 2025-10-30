@@ -142,9 +142,8 @@ const Confirmation = ({ data }: Props) => {
       }
     }
 
-  console.log(enrichedUnits)
-
-  console.log(data.units)
+  //console.log(enrichedUnits)
+  //console.log(data.units)
 
   return (
     <div className='flex gap-4'>
@@ -170,7 +169,16 @@ const Confirmation = ({ data }: Props) => {
                 inline={{
                   style: { width: '100%', maxWidth: '900px', aspectRatio: '1/1', margin: '0 auto' }
                 }}
-                styles={{ button: { color: 'black', filter: 'none', padding: 1 } }}
+                styles={{
+                  button: {
+                    color: 'black',
+                    filter: 'none',
+                    padding: 1,
+                    background: 'white',
+                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
+                  },
+                  container: { backgroundColor: 'white' }
+                }}
               />
             </div>
 
