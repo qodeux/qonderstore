@@ -3,30 +3,39 @@
  * - si mode="private": pide presigned GET por cada key y muestra <img src=... />
  */
 
+// Gallery.tsx
 import { Tooltip } from '@heroui/react'
 import { CircleX } from 'lucide-react'
-import { useEffect } from 'react'
-import { Controller, useFormContext } from 'react-hook-form'
+import { useEffect, useMemo } from 'react'
+import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import PresignedImage from './PresignedImage'
 
 type Props = {
-  values: string[] // keys o URLs
   mode: 'public' | 'private'
-  publicBaseUrl?: string // si usas keys + base pública
-  expires?: number // para presigned GET en modo private
+  publicBaseUrl?: string
+  expires?: number
   onDelete?: (key: string) => void
 }
 
-const Gallery = ({ values, mode, publicBaseUrl, expires, onDelete }: Props) => {
+const Gallery = ({ mode, publicBaseUrl, expires, onDelete }: Props) => {
   const {
-    setValue,
     control,
+    setValue,
     formState: { errors },
-    watch,
     clearErrors
   } = useFormContext()
+  const imagesRaw = useWatch({ control, name: 'images' }) as string[] | undefined
+  const images = useMemo(() => imagesRaw ?? [], [imagesRaw])
 
-  const mainImage = watch('main_image')
+  const mainImageRaw = useWatch({ control, name: 'main_image' }) as string | undefined
+  const mainImage = useMemo(() => mainImageRaw ?? '', [mainImageRaw])
+
+  const removeFromForm = (key: string) => {
+    const next = images.filter((k) => k !== key)
+    setValue('images', next, { shouldDirty: true, shouldValidate: true })
+    if (mainImage === key) setValue('main_image', '', { shouldDirty: true, shouldValidate: true })
+    onDelete?.(key)
+  }
 
   async function handleRemove(key: string) {
     if (!confirm('¿Seguro que quieres eliminar esta imagen?')) return
@@ -38,49 +47,46 @@ const Gallery = ({ values, mode, publicBaseUrl, expires, onDelete }: Props) => {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Error eliminando archivo')
-
-      // 🔥 Opcional: elimina del array local (para que desaparezca visualmente)
-      // Si recibes `values` como prop, crea un callback `onRemove(key)` desde el uploader padre
-      onDelete?.(key)
-    } catch (e: any) {
-      alert(e.message)
+      removeFromForm(key)
+    } catch (e: unknown) {
+      alert((e as Error).message)
     }
   }
 
   const selectMainImage = (key: string) => {
-    setValue('main_image', key)
+    setValue('main_image', key, { shouldDirty: true })
     clearErrors('main_image')
   }
 
   useEffect(() => {
-    //Si solo hay una imagen, la selecciona como principal
-    if (values.length === 1) {
-      setValue('main_image', values[0])
-    } else if (!values.includes(mainImage)) {
-      setValue('main_image', '')
-    } else if (values.length === 0) {
-      setValue('main_image', '')
+    if (!images.length) {
+      if (mainImage) setValue('main_image', '')
+      return
     }
-  }, [setValue, values, mainImage])
+    if (!mainImage || !images.includes(mainImage)) {
+      setValue('main_image', images[0])
+    }
+  }, [images, mainImage, setValue])
 
   if (mode === 'public') {
     return (
       <div>
-        <p className='text-xs text-gray-500 mb-2 font-semibold'>Imágenes cargadas:</p>
+        <p className='text-xs text-gray-500 mb-2 font-semibold'>Imágenes cargadas</p>
         <ul className='grid grid-cols-2 md:grid-cols-4 gap-3'>
-          {values.map((val, i) => {
-            // si guardaste keys + base pública, construye la URL:
-            const src = publicBaseUrl ? `${publicBaseUrl.replace(/\/$/, '')}/${val.replace(/^\//, '')}` : val // si ya guardaste URLs completas
+          {images.map((val, i) => {
+            const src = publicBaseUrl ? `${publicBaseUrl.replace(/\/$/, '')}/${val.replace(/^\//, '')}` : val
             return (
               <li key={`${val}-${i}`} className='relative'>
                 <figure>
                   <button
-                    className='flex items-center gap-1 text-danger'
+                    className='absolute top-1 right-1 text-danger'
                     onClick={(e) => {
                       e.stopPropagation()
                       handleRemove(val)
                     }}
-                  ></button>
+                  >
+                    <CircleX />
+                  </button>
                   <img src={src} alt='' className='h-32 w-full object-cover rounded-xl' />
                 </figure>
               </li>
@@ -91,18 +97,19 @@ const Gallery = ({ values, mode, publicBaseUrl, expires, onDelete }: Props) => {
     )
   }
 
-  // mode = 'private' → keys → presigned GET
+  // private
   return (
     <div>
+      {/* puede ser hidden; lo dejo visible si quieres depurar */}
       <Controller name='main_image' control={control} render={({ field }) => <input type='hidden' {...field} />} />
-      <p className=' text-primary mb-5 text-center font-semibold'>Imágenes cargadas</p>
+      <p className='text-primary mb-5 text-center font-semibold'>Imágenes cargadas</p>
       <ul className='grid grid-cols-2 md:grid-cols-4 gap-3 mb-4'>
-        {values.map((key, i) => (
+        {images.map((key, i) => (
           <li key={`${key}-${i}`} className='relative' onClick={() => selectMainImage(key)}>
             <figure className={mainImage === key ? 'ring-4 ring-blue-500 rounded-xl p-1' : 'p-1'}>
               <Tooltip content='Eliminar imagen'>
                 <button
-                  className='flex items-center gap-1 text-white text-xs absolute -top-3 -right-3 m-1 bg-red-500 rounded-full  hover:bg-red-600 hover:text-gray-200 z-10 cursor-pointer '
+                  className='flex items-center gap-1 text-white text-xs absolute -top-3 -right-3 m-1 bg-red-500 rounded-full hover:bg-red-600 z-10'
                   onClick={(e) => {
                     e.stopPropagation()
                     handleRemove(key)
@@ -116,7 +123,7 @@ const Gallery = ({ values, mode, publicBaseUrl, expires, onDelete }: Props) => {
           </li>
         ))}
       </ul>
-      {errors?.main_image && <p className='text-sm text-red-600 mt-1 text-center'>{errors.main_image.message as string}</p>}
+      {errors?.main_image && <p className='text-sm text-red-600 mt-1 text-center'>{String(errors.main_image.message)}</p>}
     </div>
   )
 }

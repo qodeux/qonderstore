@@ -1,8 +1,9 @@
+// RHF_R2Uploader.tsx
 import { Button } from '@heroui/react'
 import { CircleX } from 'lucide-react'
-import { useCallback, useState } from 'react'
-import { useDropzone } from 'react-dropzone'
-import { useFormContext } from 'react-hook-form'
+import React, { useCallback, useState } from 'react'
+import { type FileRejection, useDropzone } from 'react-dropzone'
+import { useFormContext, useWatch } from 'react-hook-form'
 import Gallery from './cloudflare-r2/Gallery'
 
 type ItemSigned = {
@@ -12,21 +13,24 @@ type ItemSigned = {
 }
 
 type Props = {
+  /** Nombre del campo del form que guarda el array de imágenes (keys o URLs) */
   name: string
+  /** Prefijo de almacenamiento en el bucket (ej: "products/uuid") */
   prefix?: string
-  mode?: 'public' | 'private' // public = guarda/usa URLs; private = guarda keys y muestra presigned GET
-  accept?: { [mime: string]: string[] }
+  /** public = guarda/usa URLs; private = guarda keys y muestra con presigned GET */
+  mode?: 'public' | 'private'
+  accept?: Record<string, string[]>
   maxSize?: number
   maxFiles?: number
   disabled?: boolean
   uploadLabel?: string
-  /** Solo para mode="public" si quieres construir URL a partir de key */
-  publicBaseUrl?: string // ej: https://cdn.tu-dominio.com
+  /** Si `mode="public"` y guardas keys, puedes construir la URL con base pública */
+  publicBaseUrl?: string
   /** Vida de la presigned GET (segundos) para previews en privado */
-  previewExpiresIn?: number // default 60
+  previewExpiresIn?: number
 }
 
-export default function RHF_R2Uploader({
+const RHF_R2Uploader: React.FC<Props> = ({
   name,
   prefix = 'uploads',
   mode = 'private',
@@ -35,23 +39,27 @@ export default function RHF_R2Uploader({
   maxFiles = 10,
   disabled,
   uploadLabel = 'Subir archivos',
-  publicBaseUrl, // si usas keys + base pública
+  publicBaseUrl,
   previewExpiresIn = 60
-}: Props) {
+}) => {
   const {
     setValue,
     getValues,
-    formState: { errors }
+    formState: { errors },
+    control
   } = useFormContext()
+
+  // Observa el valor actual del campo (array de keys o URLs) desde RHF
+  const currentField = (useWatch({ control, name }) as string[]) ?? []
+
+  // Estado local de archivos seleccionados (antes de subir)
   const [files, setFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
-  const [progress, setProgress] = useState<Record<string, number>>({}) // key → %
+  const [progress, setProgress] = useState<Record<string, number>>({}) // key -> 0..100
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  // valor actual del campo (urls o keys según mode)
-  const currentField = (getValues(name) as string[] | undefined) ?? []
-
   const onDrop = useCallback((accepted: File[]) => {
+    if (!accepted?.length) return
     setFiles((prev) => [...prev, ...accepted])
   }, [])
 
@@ -65,6 +73,7 @@ export default function RHF_R2Uploader({
   })
 
   const hasFiles = files.length > 0
+  const fieldError = (errors as Record<string, any>)?.[name]?.message as string | undefined
 
   const removeFile = (idx: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== idx))
@@ -76,7 +85,7 @@ export default function RHF_R2Uploader({
       const xhr = new XMLHttpRequest()
       xhr.open('PUT', url)
       xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
-      xhr.upload.onprogress = (e) => {
+      xhr.upload.onprogress = (e: ProgressEvent) => {
         if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
       }
       xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`HTTP ${xhr.status}`)))
@@ -92,7 +101,7 @@ export default function RHF_R2Uploader({
       setUploading(true)
       setProgress({})
 
-      // 1) firmar
+      // 1) Solicitar firmas
       const res = await fetch('/.netlify/functions/r2-sign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -105,43 +114,37 @@ export default function RHF_R2Uploader({
       if (!res.ok || !Array.isArray(data?.items)) {
         throw new Error(data?.error || 'No se pudieron obtener URLs firmadas')
       }
+
       const items: ItemSigned[] = data.items
       if (items.length !== files.length) throw new Error('El servidor no firmó todos los archivos')
 
-      // 2) subir con progreso por key
+      // 2) Subir con progreso
       await Promise.all(
         items.map((it, i) => putWithProgress(it.uploadUrl, files[i], (pct) => setProgress((prev) => ({ ...prev, [it.key]: pct }))))
       )
 
-      // 3) actualizar el valor RHF
+      // 3) Actualizar form y main_image si no existe
       const valuesToAdd =
         mode === 'public'
-          ? items.map((i) => i.publicUrl) // público: guarda URLs públicas
-          : items.map((i) => i.key) // privado: guarda keys
+          ? items.map((i) => i.publicUrl) // guarda URLs públicas
+          : items.map((i) => i.key) // guarda keys privadas
 
-      setValue(name, [...currentField, ...valuesToAdd], { shouldValidate: true, shouldDirty: true })
+      const next = [...currentField, ...valuesToAdd]
+      setValue(name, next, { shouldValidate: true, shouldDirty: true })
 
-      // 4) limpiar selección local
+      const main = getValues('main_image') as string | undefined
+      if (!main && next.length > 0) {
+        setValue('main_image', next[0], { shouldDirty: true, shouldValidate: true })
+      }
+
+      // 4) Limpiar selección local
       setFiles([])
-    } catch (e: any) {
-      setErrorMsg(e?.message || 'Error subiendo archivos')
+    } catch (e: unknown) {
+      setErrorMsg((e as Error)?.message || 'Error subiendo archivos')
     } finally {
       setUploading(false)
     }
   }
-
-  const handleDelete = async (key: string) => {
-    console.log('Eliminar imagen ')
-
-    const currentField = (getValues(name) as string[] | undefined) ?? []
-
-    console.log(currentField)
-
-    const next = currentField.filter((v) => v !== key)
-    setValue(name, next, { shouldDirty: true, shouldValidate: true })
-  }
-
-  const fieldError = (errors as any)?.[name]?.message as string | undefined
 
   function getDropzoneErrorMessage(code: string, file: File, maxSizeMB: number) {
     switch (code) {
@@ -171,7 +174,7 @@ export default function RHF_R2Uploader({
         ) : (
           <>
             <p className='font-medium'>Arrastra y suelta, o haz clic para seleccionar</p>
-            <p className='text-xs text-gray-500'> Para mejores resultados, utiliza imágenes cuadradas de mínimo 800px </p>
+            <p className='text-xs text-gray-500'>Para mejores resultados, usa imágenes cuadradas de mínimo 800px</p>
             <p className='text-xs text-gray-500 mt-1'>
               Hasta {maxFiles} imágenes de máximo {(maxSize / (1024 * 1024)).toFixed(0)}MB cada una.
             </p>
@@ -182,7 +185,7 @@ export default function RHF_R2Uploader({
       {/* Rechazos */}
       {fileRejections.length > 0 && (
         <ul className='text-sm text-red-600 space-y-1'>
-          {fileRejections.map(({ file, errors }) => (
+          {fileRejections.map(({ file, errors }: FileRejection) => (
             <li key={file.name}>
               {errors.map((e) => (
                 <div key={e.code}>{getDropzoneErrorMessage(e.code, file, maxSize / (1024 * 1024))}</div>
@@ -194,14 +197,20 @@ export default function RHF_R2Uploader({
 
       {/* Selección local + progreso */}
       {hasFiles && (
-        <ul className='grid grid-cols-2 md:grid-cols-4 gap-3 '>
+        <ul className='grid grid-cols-2 md:grid-cols-4 gap-3'>
           {files.map((file, idx) => {
             const preview = URL.createObjectURL(file)
-            const pctAny = Object.values(progress)[0] // indicativo visual mientras firmamos
+            // Indicador simple (si subes varios, puedes mostrar barra por item usando progress[it.key])
+            const anyPct = Object.values(progress)[0]
             return (
               <li key={`${file.name}-${idx}`} className='relative'>
                 <figure>
-                  <button className='flex items-center gap-1 text-danger' onClick={() => removeFile(idx)} disabled={uploading}>
+                  <button
+                    className='flex items-center gap-1 text-danger'
+                    onClick={() => removeFile(idx)}
+                    disabled={uploading}
+                    type='button'
+                  >
                     <CircleX /> Remover
                   </button>
                   <img
@@ -213,8 +222,6 @@ export default function RHF_R2Uploader({
                 </figure>
                 <div className='mt-1 flex items-center justify-between text-xs'>
                   <span className='truncate'>{file.name}</span>
-                </div>
-                <div>
                   <span className='text-xs text-gray-500'>
                     {file.size < 1024
                       ? `${file.size} B`
@@ -225,7 +232,7 @@ export default function RHF_R2Uploader({
                 </div>
                 {uploading && (
                   <div className='mt-1 w-full bg-gray-200 h-2 rounded overflow-hidden'>
-                    <div className='h-2 rounded' style={{ width: `${pctAny ?? 0}%`, transition: 'width .2s' }} />
+                    <div className='h-2 rounded' style={{ width: `${anyPct ?? 0}%`, transition: 'width .2s' }} />
                   </div>
                 )}
               </li>
@@ -252,10 +259,11 @@ export default function RHF_R2Uploader({
           </Button>
         )}
       </div>
-      {/* Galería de lo que YA quedó en el formulario */}
-      {currentField.length > 0 && (
-        <Gallery values={currentField} mode={mode} publicBaseUrl={publicBaseUrl} expires={previewExpiresIn} onDelete={handleDelete} />
-      )}
+
+      {/* Galería - lee del mismo form (campo `name`) */}
+      {currentField.length > 0 && <Gallery mode={mode} publicBaseUrl={publicBaseUrl} expires={previewExpiresIn} />}
     </div>
   )
 }
+
+export default RHF_R2Uploader
