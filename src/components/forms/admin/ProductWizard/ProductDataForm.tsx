@@ -1,12 +1,13 @@
+import '@/components/common/react-tags/style.css'
 import { Autocomplete, AutocompleteItem, Button, Checkbox, Input, Select, SelectItem, Switch, Textarea } from '@heroui/react'
 import { IterationCw, Star } from 'lucide-react'
 import { customAlphabet } from 'nanoid'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { PatternFormat } from 'react-number-format'
-import { useSelector } from 'react-redux'
-import '../../../components/common/react-tags/style.css'
-import type { RootState } from '../../../store/store'
+import { useDispatch, useSelector } from 'react-redux'
+import { setSaleType } from '../../../../store/slices/productsSlice'
+import type { RootState } from '../../../../store/store'
 
 function slugify(text: string) {
   return text
@@ -18,16 +19,11 @@ function slugify(text: string) {
 }
 
 const ProductDataForm = () => {
+  const dispatch = useDispatch()
   const categories = useSelector((state: RootState) => state.categories.categories)
   const productBrands = useSelector((state: RootState) => state.products.brands)
 
-  const {
-    register,
-    control,
-    setValue,
-    trigger,
-    formState: { errors }
-  } = useFormContext()
+  const { register, control, setValue, trigger } = useFormContext()
 
   const userTouchedSlug = useRef(false)
 
@@ -40,7 +36,7 @@ const ProductDataForm = () => {
   const saleTypeWatch = useWatch({ control, name: 'sale_type' })
   const formHasChildren = useWatch({ control, name: 'hasChildren' }) // del form
 
-  const brandWatch = useWatch({ control, name: 'brand' })
+  //const brandWatch = useWatch({ control, name: 'brand' })
 
   // derive prefix
   const categoryPrefix = useMemo(() => {
@@ -72,76 +68,49 @@ const ProductDataForm = () => {
     setValue('sku', next, { shouldDirty: true, shouldValidate: true })
   }, [setValue])
 
+  useEffect(() => {
+    dispatch(setSaleType(saleTypeWatch))
+  }, [saleTypeWatch, dispatch])
+
   return (
-    <form className='flex flex-row gap-4' name='product-data-form'>
+    <form name='product-data-form'>
       {/* asegurar registro siempre */}
       <input type='hidden' {...register('subcategory')} />
       <input type='hidden' {...register('hasChildren')} />
 
-      <section className='w-1/3 flex flex-col gap-2'>
-        <figure className='w-full aspect-square border border-dashed border-gray-400 bg-gray-50 flex items-center justify-center'>
-          <span className='text-sm text-gray-400 text-center'>
-            Click para agregar imagen
-            <br />
-            (Próximamente)
-          </span>
-        </figure>
+      <section className='space-y-2'>
+        <div className=' flex justify-between items-center'>
+          <Controller
+            name='is_active'
+            control={control}
+            render={({ field }) => (
+              <Switch size='sm' {...field} isSelected={field.value}>
+                {field.value ? 'Activo' : 'Inactivo'}
+              </Switch>
+            )}
+          />
+          <Controller
+            name='featured'
+            control={control}
+            render={({ field }) => (
+              <Checkbox
+                icon={<Star fill='#000' />}
+                size='lg'
+                color='warning'
+                {...field}
+                classNames={{ label: 'justify-start text-base text-sm' }}
+                isSelected={field.value}
+              >
+                {field.value ? 'Destacado' : 'Destacar'}
+              </Checkbox>
+            )}
+          />
+        </div>
 
-        <Controller
-          name='featured'
-          control={control}
-          render={({ field }) => (
-            <Checkbox
-              icon={<Star fill='#000' />}
-              size='lg'
-              color='warning'
-              {...field}
-              classNames={{ label: 'justify-start text-base text-sm' }}
-              isSelected={field.value}
-            >
-              {field.value ? 'Destacado' : 'Destacar'}
-            </Checkbox>
-          )}
-        />
-
-        <Controller
-          name='sku'
-          control={control}
-          render={({ field }) => (
-            <PatternFormat
-              format={`${categoryWatch ? `${categoryPrefix}-######` : '######'}`}
-              customInput={Input}
-              label='SKU'
-              size='sm'
-              variant='bordered'
-              value={field.value ?? ''}
-              onValueChange={(v) => field.onChange(v.value)}
-              isInvalid={!!errors.sku}
-              endContent={
-                <Button isIconOnly className='absolute right-0 top-0 m-2' size='sm' variant='ghost' color='primary' onPress={regenerateSku}>
-                  <IterationCw size={18} />
-                </Button>
-              }
-            />
-          )}
-        />
-
-        <Controller
-          name='is_active'
-          control={control}
-          render={({ field }) => (
-            <Switch size='sm' {...field} isSelected={field.value}>
-              {field.value ? 'Activo' : 'Inactivo'}
-            </Switch>
-          )}
-        />
-      </section>
-
-      <section className='w-2/3 space-y-2'>
         <Controller
           name='name'
           control={control}
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <Input
               label='Nombre'
               type='text'
@@ -154,8 +123,8 @@ const ProductDataForm = () => {
                   setValue('slug', slugify(v), { shouldValidate: true, shouldDirty: true })
                 }
               }}
-              isInvalid={!!errors.name}
-              errorMessage={errors.name?.message as string}
+              isInvalid={!!fieldState.error}
+              errorMessage={fieldState.error?.message as string}
             />
           )}
         />
@@ -163,7 +132,7 @@ const ProductDataForm = () => {
         <Controller
           name='slug'
           control={control}
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <Input
               label='Slug'
               type='text'
@@ -174,8 +143,8 @@ const ProductDataForm = () => {
                 userTouchedSlug.current = true
                 field.onChange(v)
               }}
-              isInvalid={!!errors.slug}
-              errorMessage={errors.slug?.message as string}
+              isInvalid={!!fieldState.error}
+              errorMessage={fieldState.error?.message as string}
             />
           )}
         />
@@ -183,7 +152,7 @@ const ProductDataForm = () => {
         <Controller
           name='category'
           control={control}
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <Select
               label='Categoria'
               size='sm'
@@ -202,8 +171,8 @@ const ProductDataForm = () => {
                 }
                 void trigger('subcategory')
               }}
-              isInvalid={!!errors.category}
-              errorMessage={errors.category?.message as string}
+              isInvalid={!!fieldState.error}
+              errorMessage={fieldState.error?.message as string}
               disallowEmptySelection
             >
               {categories
@@ -244,29 +213,60 @@ const ProductDataForm = () => {
           />
         )}
 
-        <Controller
-          name='sale_type'
-          control={control}
-          render={({ field }) => (
-            <Select
-              label='Tipo de venta'
-              size='sm'
-              variant='bordered'
-              selectedKeys={field.value ? [String(field.value)] : []}
-              onSelectionChange={(keys) => {
-                const value = Array.from(keys)[0]
-                field.onChange(value) // 'unit' | 'bulk'
-              }}
-              selectionMode='single'
-              isInvalid={!!errors.sale_type}
-              errorMessage={errors.sale_type?.message as string}
-              disallowEmptySelection
-            >
-              <SelectItem key='unit'>Unidad</SelectItem>
-              <SelectItem key='bulk'>Granel</SelectItem>
-            </Select>
-          )}
-        />
+        <div className='flex gap-2'>
+          <Controller
+            name='sale_type'
+            control={control}
+            render={({ field, fieldState }) => (
+              <Select
+                label='Tipo de venta'
+                size='sm'
+                variant='bordered'
+                selectedKeys={field.value ? [String(field.value)] : []}
+                onSelectionChange={(keys) => {
+                  const value = Array.from(keys)[0]
+                  field.onChange(value) // 'unit' | 'bulk'
+                }}
+                selectionMode='single'
+                isInvalid={!!fieldState.error}
+                errorMessage={fieldState.error?.message as string}
+                disallowEmptySelection
+              >
+                <SelectItem key='unit'>Unidad</SelectItem>
+                <SelectItem key='bulk'>Granel</SelectItem>
+              </Select>
+            )}
+          />
+          <Controller
+            name='sku'
+            control={control}
+            render={({ field, fieldState }) => (
+              <PatternFormat
+                format={`${categoryWatch ? `${categoryPrefix}-######` : '######'}`}
+                customInput={Input}
+                label='SKU'
+                size='sm'
+                variant='bordered'
+                value={field.value ?? ''}
+                onValueChange={(v) => field.onChange(v.value)}
+                isInvalid={!!fieldState.error}
+                errorMessage={fieldState.error?.message as string}
+                endContent={
+                  <Button
+                    isIconOnly
+                    className='absolute right-0 top-0 m-2'
+                    size='sm'
+                    variant='ghost'
+                    color='primary'
+                    onPress={regenerateSku}
+                  >
+                    <IterationCw size={18} />
+                  </Button>
+                }
+              />
+            )}
+          />
+        </div>
 
         {saleTypeWatch === 'unit' && (
           <Controller
@@ -291,14 +291,7 @@ const ProductDataForm = () => {
           />
         )}
 
-        <Textarea
-          label='Descripcion'
-          size='sm'
-          variant='bordered'
-          isInvalid={!!errors.description}
-          errorMessage={errors.description?.message as string}
-          {...register('description')}
-        />
+        <Textarea label='Descripcion' size='sm' variant='bordered' {...register('description')} />
       </section>
     </form>
   )

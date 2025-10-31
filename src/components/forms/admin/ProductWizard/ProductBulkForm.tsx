@@ -2,7 +2,7 @@ import { Checkbox, CheckboxGroup, Input, NumberInput, Select, SelectItem, Switch
 import { useEffect, useRef } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
 import { NumericFormat } from 'react-number-format'
-import { bulkUnitsAvailable } from '../../../types/products'
+import { bulkUnitsAvailable } from '../../../../types/products'
 
 const ProductBulkForm = () => {
   const {
@@ -227,10 +227,9 @@ const ProductBulkForm = () => {
                   const checked = e.target.checked
                   field.onChange(checked)
                   if (checked) {
-                    trigger('min_sale')
                     setTimeout(() => setFocus('min_sale'), 0)
                   } else {
-                    setValue('min_sale', undefined, { shouldValidate: false })
+                    setValue('min_sale', undefined, { shouldDirty: true, shouldValidate: false })
                     clearErrors('min_sale')
                   }
                 }}
@@ -244,22 +243,19 @@ const ProductBulkForm = () => {
             control={control}
             render={({ field }) => (
               <NumberInput
+                key={minSaleSwitch ? 'min-on' : 'min-off'}
                 aria-label='Compra mínima'
-                {...field}
+                value={minSaleSwitch ? field.value ?? undefined : undefined}
                 isDisabled={!minSaleSwitch}
                 size='sm'
                 className='max-w-20 text-center'
-                isWheelDisabled
+                maxValue={999}
                 minValue={1}
                 onChange={(v) => {
-                  field.onChange(v === undefined ? undefined : Number(v))
+                  field.onChange(v === undefined ? undefined : v)
                   if (minSaleSwitch) trigger('min_sale')
                 }}
-                onBlur={async () => {
-                  field.onBlur()
-                  if (minSaleSwitch) await trigger('min_sale')
-                }}
-                isInvalid={!!errors.min_sale}
+                isInvalid={!!errors.min_sale && minSaleSwitch}
               />
             )}
           />
@@ -279,10 +275,9 @@ const ProductBulkForm = () => {
                   const checked = e.target.checked
                   field.onChange(checked)
                   if (checked) {
-                    trigger('max_sale')
                     setTimeout(() => setFocus('max_sale'), 0)
                   } else {
-                    setValue('max_sale', undefined, { shouldValidate: false })
+                    setValue('max_sale', undefined, { shouldDirty: true, shouldValidate: false })
                     clearErrors('max_sale')
                   }
                 }}
@@ -297,23 +292,18 @@ const ProductBulkForm = () => {
             control={control}
             render={({ field }) => (
               <NumberInput
+                key={maxSaleSwitch ? 'max-on' : 'max-off'}
                 aria-label='Compra máxima'
-                {...field}
+                value={maxSaleSwitch ? field.value ?? undefined : undefined}
                 isDisabled={!maxSaleSwitch}
                 size='sm'
                 className='max-w-20 text-center'
-                maxValue={999}
                 minValue={1}
-                isWheelDisabled
                 onChange={(v) => {
-                  field.onChange(v === undefined ? undefined : Number(v))
+                  field.onChange(v)
                   if (maxSaleSwitch) trigger('max_sale')
                 }}
-                onBlur={async () => {
-                  field.onBlur()
-                  if (maxSaleSwitch) await trigger('max_sale')
-                }}
-                isInvalid={!!errors.max_sale}
+                isInvalid={!!errors.max_sale && maxSaleSwitch}
               />
             )}
           />

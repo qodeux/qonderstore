@@ -1,7 +1,7 @@
 import { addToast } from '@heroui/react'
 import supabase from '../lib/supabase'
-import type { Product, ProductBulkInput, ProductDataInput, ProductUnitInput } from '../schemas/products.schema'
-import type { ProductDetails } from '../types/products'
+import type { Product } from '../schemas/products.schema'
+import type { ProductRpcPayload } from '../schemas/productsPayload.schema'
 
 export const productService = {
   fetchProducts: async () => {
@@ -20,105 +20,38 @@ export const productService = {
     }
     return productDetails
   },
-  createProduct: async (productData: ProductDataInput) => {
-    const { data: productInserted, error: productError } = await supabase
-      .from('products')
-      .insert([
-        {
-          name: productData.name,
-          slug: productData.slug,
-          sku: productData.sku,
-          category: productData.category,
-          subcategory: productData.subcategory || null,
-          sale_type: productData.sale_type,
-          is_active: productData.is_active,
-          featured: productData.featured || false,
-          description: productData.description,
-          brand: productData.brand || null
-        }
-      ])
-      .select()
-      .single()
+  createProduct: async (payload: ProductRpcPayload) => {
+    console.log('Creating product with payload:', payload)
+    const { data, error } = await supabase.rpc('rpc_create_product', {
+      payload
+    })
 
-    if (productError) {
-      console.error('Error inserting product:', productError)
-
-      return { error: productError }
+    if (error) {
+      console.error('Error inserting product:', error)
+      throw error
     }
 
     addToast({
       title: 'Producto agregado',
-      description: `El producto "${productInserted.name}" ha sido agregado correctamente.`,
+      description: `El producto "${data.product.name}" ha sido agregado correctamente.`,
       color: 'success',
       variant: 'bordered',
       shouldShowTimeoutProgress: true
     })
 
-    return productInserted
+    return { data }
   },
-  insertProductUnit: async (productId: string, dataProductUnit: ProductUnitInput) => {
-    const { data: productUnitInserted, error: productUnitError } = await supabase
-      .from('products_unit')
-      .insert([
-        {
-          product_id: productId,
-          unit: dataProductUnit.unit,
-          base_cost: dataProductUnit.base_cost,
-          public_price: dataProductUnit.public_price,
-          min_sale: dataProductUnit.min_sale,
-          max_sale: dataProductUnit.max_sale,
-          low_stock: dataProductUnit.low_stock,
-          wholesale_prices: dataProductUnit.wholesale_prices
-        }
-      ])
-      .select()
-      .single()
+  updateProduct: async (id: number, payload: ProductRpcPayload) => {
+    console.log('Updating product with id:', id, payload)
 
-    if (productUnitError) {
-      console.error('Error inserting unit data:', productUnitError)
-      return
-    }
-    return productUnitInserted
-  },
-  insertProductBulk: async (productId: string, dataProductBulk: ProductBulkInput) => {
-    const { data: productBulkInserted, error: productBulkError } = await supabase
-      .from('products_bulk')
-      .insert([
-        {
-          product_id: productId,
-          bulk_units_available: dataProductBulk.bulk_units_available,
-          base_unit: dataProductBulk.base_unit,
-          base_unit_price: dataProductBulk.base_unit_price,
-          min_sale: dataProductBulk.min_sale,
-          max_sale: dataProductBulk.max_sale,
-          units: dataProductBulk.units
-        }
-      ])
-      .select()
-      .single()
-
-    if (productBulkError) {
-      console.error('Error inserting bulk data:', productBulkError)
-      return
-    }
-    return productBulkInserted
-  },
-
-  updateProduct: async (id: number, product: ProductDataInput, details: ProductDetails) => {
-    const payload = details.sale_type === 'unit' ? { p_unit: details.details, p_bulk: null } : { p_unit: null, p_bulk: details.details }
-
-    console.log(product, details)
-
-    const { data, error } = await supabase.rpc('update_product_and_details', {
+    const { data, error } = await supabase.rpc('rpc_update_product', {
       p_id: id,
-      p_product: product,
-      ...payload
+      payload
     })
 
     if (error) {
-      console.error('Error inserting product:', error)
-
-      return { error }
+      console.error('Error updating product:', error)
+      throw error
     }
 
     addToast({
@@ -130,7 +63,7 @@ export const productService = {
       shouldShowTimeoutProgress: true
     })
 
-    return data
+    return { data }
   },
 
   deleteProduct: async (productId: string) => {
