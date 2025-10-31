@@ -1,18 +1,17 @@
 import z from 'zod'
-import type { WholeSaleRow } from '../components/forms/admin/ProductWizard/ProductUnitForm'
 
 const emptyToUndefined = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v)
 
-const toNullIfEmptyJson = (v: unknown) => {
-  if (v == null) return null
-  if (Array.isArray(v)) return v.length ? JSON.stringify(v) : null
-  if (typeof v === 'string') {
-    const s = v.trim()
-    if (!s || s === '[]') return null
-    return s
-  }
-  return v
-}
+// Filas de mayoreo
+const WholesaleRowLoose = z.object({
+  min: z.number().int().min(1, 'El mínimo debe ser mayor o igual a 1').optional(),
+  price: z.number().min(0, 'El precio no puede ser negativo').optional()
+})
+
+const WholesaleRowStrict = z.object({
+  min: z.number().int().min(1, 'El mínimo debe ser mayor o igual a 1'),
+  price: z.number().min(0, 'El precio no puede ser negativo')
+})
 
 export const productDataInputSchema = z
   .object({
@@ -37,7 +36,9 @@ export const productDataInputSchema = z
       )
     ),
 
-    sale_type: z.enum(['unit', 'bulk'], { error: 'Requerido' }),
+    sale_type: z
+      .preprocess((v) => (v === undefined ? null : v), z.enum(['unit', 'bulk']).nullable())
+      .refine((v) => v !== null, { message: 'Requerido' }),
 
     description: z.string().optional(),
     // tags: z.string().optional(),
@@ -55,7 +56,9 @@ export const productDataInputSchema = z
     }
   })
 
-export type ProductDataInput = z.infer<typeof productDataInputSchema>
+export type ProductDataInput = z.input<typeof productDataInputSchema>
+// - Valores que SALEN del schema (después del transform), listos para guardar:
+export type ProductDataSubmit = z.output<typeof productDataInputSchema>
 
 const toUndefIfEmpty = (v: unknown) => (v === '' || v === null || v === undefined ? undefined : v)
 
@@ -70,21 +73,21 @@ export const productUnitInputSchema = z
 
     base_cost: z.coerce.number().optional(),
     public_price: z.coerce.number('Dato requerido').min(0, 'El precio no puede ser negativo'),
-    // switches: si no vienen de la DB, blíndalos a false
+
+    // switches
     lowStockSwitch: z.preprocess((v) => v ?? false, z.coerce.boolean()).catch(false),
     minSaleSwitch: z.preprocess((v) => v ?? false, z.coerce.boolean()).catch(false),
     maxSaleSwitch: z.preprocess((v) => v ?? false, z.coerce.boolean()).catch(false),
     wholesaleSwitch: z.preprocess((v) => v ?? false, z.coerce.boolean()).catch(false),
 
-    // numéricos opcionales, sin union/literal
+    // numéricos opcionales
     low_stock: optionalPosInt,
     min_sale: optionalPosInt,
     max_sale: optionalPosInt,
 
-    wholesale_prices: z.preprocess(toNullIfEmptyJson, z.string().nullable()).default(null)
+    wholesale_prices: z.preprocess((v) => (typeof v === 'string' ? JSON.parse(v) : v), z.array(WholesaleRowLoose).default([]))
   })
   .superRefine((val, ctx) => {
-    // Reglas condicionales
     if (val.lowStockSwitch && (val.low_stock === undefined || Number.isNaN(val.low_stock))) {
       ctx.addIssue({ code: 'custom', path: ['low_stock'], message: 'Ingresa el nivel de alerta' })
     }
@@ -94,73 +97,68 @@ export const productUnitInputSchema = z
     if (val.maxSaleSwitch && (val.max_sale === undefined || Number.isNaN(val.max_sale))) {
       ctx.addIssue({ code: 'custom', path: ['max_sale'], message: 'Ingresa el máximo por transacción' })
     }
-
-    // (opcional) coherencia entre mínimos y máximos si ambos están activos
     if (val.minSaleSwitch && val.maxSaleSwitch && val.min_sale != null && val.max_sale != null) {
-      if (val.min_sale > val.max_sale) {
-        ctx.addIssue({ code: 'custom', path: ['max_sale'], message: 'El máximo debe ser ≥ al mínimo' })
+      if (val.min_sale >= val.max_sale) {
+        ctx.addIssue({ code: 'custom', path: ['max_sale'], message: 'El máximo no puede ser menor que el mínimo' })
       }
     }
 
-    // 🔹 Validación genérica de mayoreo (un solo mensaje)
     if (!val.wholesaleSwitch) return
 
-    let rows: Array<{ min?: unknown; price?: unknown }>
-    try {
-      rows = JSON.parse(val.wholesale_prices ?? '[]')
-    } catch {
+    const rows = val.wholesale_prices as Array<z.infer<typeof WholesaleRowLoose>>
+    if (!Array.isArray(rows) || rows.length === 0) {
       ctx.addIssue({
         code: 'custom',
         path: ['wholesale_prices'],
-        message: 'Datos de mayoreo incompletos o inválidos'
+        message: 'Agrega al menos un precio de mayoreo'
       })
       return
     }
 
-    let invalid = false
-    if (!Array.isArray(rows) || rows.length === 0) invalid = true
-
-    let prevMin: number | null = null
-    let prevPrice: number | null = null
-
-    for (const r of rows) {
-      const nMin = Number((r as WholeSaleRow)?.min)
-      const nPrice = Number((r as WholeSaleRow)?.price)
-
-      // requeridos y números válidos
-      if (!Number.isFinite(nMin) || !Number.isFinite(nPrice)) {
-        invalid = true
-        break
+    // Todas las filas deben estar completas
+    rows.forEach((r, i) => {
+      if (r.min == null) {
+        ctx.addIssue({ code: 'custom', path: ['wholesale_prices', i, 'min'], message: 'Requerido' })
       }
-      // límites básicos (ajusta si quieres permitir 0)
-      if (nMin < 1 || nPrice < 0) {
-        invalid = true
-        break
+      if (r.price == null) {
+        ctx.addIssue({ code: 'custom', path: ['wholesale_prices', i, 'price'], message: 'Requerido' })
       }
-      // orden: min no decrece, price no crece
-      if (prevMin !== null && nMin < prevMin) {
-        invalid = true
-        break
-      }
-      if (prevPrice !== null && nPrice > prevPrice) {
-        invalid = true
-        break
-      }
+    })
 
-      prevMin = nMin
-      prevPrice = nPrice
+    // Orden: min no decrece; price no crece
+    for (let i = 1; i < rows.length; i++) {
+      const prev = rows[i - 1]
+      const curr = rows[i]
+      if (prev.min != null && curr.min != null && curr.min <= prev.min) {
+        ctx.addIssue({ code: 'custom', path: ['wholesale_prices', i, 'min'], message: `Debe ser mayor que ${prev.min}` })
+      }
+      if (prev.price != null && curr.price != null && curr.price > prev.price) {
+        ctx.addIssue({ code: 'custom', path: ['wholesale_prices', i, 'price'], message: `Debe ser menor que ${prev.price}` })
+      }
+    }
+  })
+  .transform((val) => {
+    let wholesale_prices: Array<z.infer<typeof WholesaleRowStrict>> | null = null
+
+    if (val.wholesaleSwitch) {
+      const clean = (val.wholesale_prices ?? [])
+        .filter((r) => r.min != null && r.price != null)
+        .map((r) => WholesaleRowStrict.parse({ min: r.min, price: r.price }))
+
+      wholesale_prices = clean.length > 0 ? clean : null
+    } else {
+      wholesale_prices = null
     }
 
-    if (invalid) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['wholesale_prices'],
-        message: 'Datos de mayoreo incompletos o inválidos'
-      })
+    return {
+      ...val,
+      wholesale_prices
     }
   })
 
-export type ProductUnitInput = z.infer<typeof productUnitInputSchema>
+export type ProductUnitInput = z.input<typeof productUnitInputSchema>
+// - Valores que SALEN del schema (después del transform), listos para guardar:
+export type ProductUnitSubmit = z.output<typeof productUnitInputSchema>
 
 const unitValueSchema = z.object({
   margin: z.number('Margen requerido').refine((v) => !Number.isNaN(v), 'Margen inválido'),
@@ -176,8 +174,8 @@ const unitsSchema = z.preprocess((v) => (v == null ? {} : v), z.record(z.string(
 export const productBulkInputSchema = z
   .object({
     bulk_units_available: z.array(z.string(), 'Declara al menos una unidad disponible').min(1, 'Declara al menos una unidad disponible'),
-    base_unit: z.string('La unidad base es obligatoria'),
-    base_unit_price: z.number('El precio es obligatorio').min(0, 'El precio no puede ser negativo'),
+    base_unit: z.coerce.string('La unidad base es obligatoria'),
+    base_unit_price: z.coerce.number('El precio es obligatorio').min(0, 'El precio no puede ser negativo'),
 
     minSaleSwitch: z.preprocess((v) => v ?? false, z.coerce.boolean()).catch(false),
     min_sale: optionalPosInt,
@@ -185,7 +183,6 @@ export const productBulkInputSchema = z
     maxSaleSwitch: z.preprocess((v) => v ?? false, z.coerce.boolean()).catch(false),
     max_sale: optionalPosInt,
 
-    // <-- SOLO OBJETO
     units: unitsSchema
   })
   .superRefine((val, ctx) => {
@@ -268,12 +265,17 @@ export const productBulkInputSchema = z
     }
   })
 
-export type ProductBulkInput = z.infer<typeof productBulkInputSchema>
+export type ProductBulkInput = z.input<typeof productBulkInputSchema>
+// - Valores que SALEN del schema (después del transform), listos para guardar:
+export type ProductBulkSubmit = z.output<typeof productBulkInputSchema>
 
 export const productUploadedImageSchema = z
   .object({
-    main_image: z.preprocess(emptyToUndefined, z.string().min(1, 'Selecciona la imagen principal').optional()),
-    images: z.array(z.string().min(1, 'Ruta inválida')).optional().default([])
+    // ENTRADA: string | undefined  -> SALIDA: string | undefined (sin default aquí)
+    main_image: z.preprocess(emptyToUndefined, z.coerce.string().min(1, 'Selecciona la imagen principal').optional()),
+
+    // ENTRADA: string[] | undefined -> SALIDA: string[] (por el default)
+    images: z.array(z.string().min(1, 'Ruta inválida')).default([]) // 👈 sin .optional()
   })
   .superRefine((val, ctx) => {
     const images = val.images ?? []
@@ -282,7 +284,7 @@ export const productUploadedImageSchema = z
     // Duplicados
     if (images.length !== new Set(images).size) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'No repitas imágenes.',
         path: ['images']
       })
@@ -292,14 +294,14 @@ export const productUploadedImageSchema = z
       // main_image obligatoria
       if (!val.main_image) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'Selecciona la imagen principal.',
           path: ['main_image']
         })
       } else if (!images.includes(val.main_image)) {
         // main_image debe estar dentro de images
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'La imagen principal debe estar dentro de "images".',
           path: ['main_image']
         })
@@ -316,7 +318,8 @@ export const productUploadedImageSchema = z
     }
   })
 
-export type ProductUploadedImageInput = z.infer<typeof productUploadedImageSchema>
+export type ProductUploadedImageInput = z.input<typeof productUploadedImageSchema>
+export type ProductUploadedImageSubmit = z.output<typeof productUploadedImageSchema>
 
 export const productSchema = z.object({
   id: z.number(),
@@ -332,7 +335,9 @@ export const productSchema = z.object({
   featured: z.boolean(),
   is_active: z.boolean(),
   brand: z.string().optional(),
-  created_at: z.string()
+  created_at: z.string(),
+  images: z.array(z.string()).optional(),
+  main_image: z.string().optional()
 })
 
 export type Product = z.infer<typeof productSchema>
