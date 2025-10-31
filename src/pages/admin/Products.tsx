@@ -18,7 +18,6 @@ const selectionCount = (s: Selection, total: number) => (s === 'all' ? total : s
 const Products = () => {
   const dispatch = useDispatch()
   const products = useSelector((state: RootState) => state.products.items)
-  const { layoutOutletHeight, layoutToolbarSpace } = useSelector((state: RootState) => state.ui) ?? {}
 
   type Row = {
     id: number
@@ -181,7 +180,6 @@ const Products = () => {
           sortDescriptor={sortDescriptor}
           onSortChange={setSortDescriptor}
           getRowKey={getRowKey}
-          maxHeight={layoutOutletHeight ? layoutOutletHeight - (layoutToolbarSpace ?? 0) : undefined}
         />
       </section>
 

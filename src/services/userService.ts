@@ -1,5 +1,6 @@
 import { addToast } from '@heroui/react'
 import supabase from '../lib/supabase'
+import type { CreateAccountInput } from '../schemas/createAccount.schema'
 import type { UserInputCreate, UserInputUpdate } from '../schemas/users.schema'
 
 export const userService = {
@@ -9,6 +10,53 @@ export const userService = {
       console.error('Error fetching users:', error)
     }
     return users
+  },
+  registerUser: async (userData: CreateAccountInput) => {
+    const { data, error } = await supabase.auth.signUp({
+      email: userData.email,
+      password: userData.password
+    })
+
+    if (error) {
+      console.log(error)
+      return { error: 'Error al crear el usuario' }
+    }
+
+    if (!data.user) throw 'Error'
+
+    //Una vez agregado en auth.users, insertar en user_profiles
+    const { data: userInserted, error: userError } = await supabase
+      .from('user_profiles')
+      .insert([
+        {
+          id: data.user.id,
+          user_name: userData.user_name,
+          role: 'customer',
+          is_active: true,
+          email: userData.email,
+          phone: userData.phone,
+          email_verified: userData.email_verified
+        }
+      ])
+      .select()
+      .single()
+
+    if (userError) {
+      console.error('Error inserting user:', userError)
+
+      //Rollback y borrar el usuario creado en auth.users
+      await fetch(`/.netlify/functions/user-transaction`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: data.user.id })
+      })
+
+      return { error: userError }
+    }
+
+    return userInserted
   },
   createUser: async (userData: UserInputCreate) => {
     //Primero insertar en la tabla auth.users

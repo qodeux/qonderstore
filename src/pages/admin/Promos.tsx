@@ -129,7 +129,7 @@ const Promotions = () => {
 
   return (
     <>
-      <section className='space-y-6'>
+      <section className='space-y-4'>
         <ToolbarTable<Row>
           rows={filteredRows}
           searchFilter={['name']}
