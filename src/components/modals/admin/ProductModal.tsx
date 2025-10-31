@@ -1,23 +1,33 @@
 import { Modal, ModalBody, ModalContent, Spinner } from '@heroui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { PostgrestError } from '@supabase/supabase-js'
 import { AnimatePresence, motion } from 'framer-motion'
 import { customAlphabet } from 'nanoid'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FormProvider, useForm, type FieldErrors } from 'react-hook-form'
+import { FormProvider, useForm, type Resolver } from 'react-hook-form'
 import { useDispatch, useSelector } from 'react-redux'
 import { Wizard } from 'react-use-wizard'
+import { useGetCombinedPayload } from '../../../hooks/useGetCombinedPayload'
 import {
   productBulkInputSchema,
   productDataInputSchema,
   productUnitInputSchema,
   productUploadedImageSchema,
-  type ProductUploadedImageInput
+  type ProductBulkInput,
+  type ProductBulkSubmit,
+  type ProductDataInput,
+  type ProductDataSubmit,
+  type ProductUnitInput,
+  type ProductUnitSubmit,
+  type ProductUploadedImageInput,
+  type ProductUploadedImageSubmit
 } from '../../../schemas/products.schema'
+import type { ProductRpcPayload } from '../../../schemas/productsPayload.schema'
 import { productService } from '../../../services/productService'
 import { setSelectedProduct } from '../../../store/slices/productsSlice'
 import { requestJumpToStep, setWizardCurrentStep } from '../../../store/slices/uiSlice'
 import type { RootState } from '../../../store/store'
-import type { ProductBulkFormValues, ProductDataFormValues, ProductDetails, ProductUnitFormValues } from '../../../types/products'
+import type { BulkDbUnits, DbBulkDetails, DbUnitDetails } from '../../../types/products'
 import type { Step } from '../../../types/ui'
 import AnimatedStep from '../../common/wizard/AnimatedStep'
 import RowSteps from '../../common/wizard/RowSteps'
@@ -31,7 +41,7 @@ import ProductUploadImagesForm from '../../forms/admin/ProductWizard/ProductUplo
 // ========================
 // Default helpers
 // ========================
-const makeNewProductDefaults = (sku: string): ProductDataFormValues => ({
+const makeNewProductDefaults = (sku: string): ProductDataInput => ({
   name: '',
   slug: '',
   sku,
@@ -40,11 +50,11 @@ const makeNewProductDefaults = (sku: string): ProductDataFormValues => ({
   subcategory: undefined,
   sale_type: undefined,
   description: '',
-  is_active: true,
+  is_active: false,
   featured: false
 })
 
-const unitDefaults: ProductUnitFormValues = {
+const unitDefaults: ProductUnitInput = {
   // Coloca aquí tus defaults reales para la sección Unidad
   unit: 'pz',
   base_cost: undefined,
@@ -54,14 +64,21 @@ const unitDefaults: ProductUnitFormValues = {
   maxSaleSwitch: false,
   low_stock: undefined,
   min_sale: undefined,
-  max_sale: undefined
+  max_sale: undefined,
+  wholesaleSwitch: false,
+  wholesale_prices: []
 }
 
-const bulkDefaults: ProductBulkFormValues = {
+const bulkDefaults: ProductBulkInput = {
   // Coloca aquí tus defaults reales para la sección Granel
+  bulk_units_available: [],
   base_unit: undefined,
   base_unit_price: undefined,
-  units: {}
+  units: {},
+  minSaleSwitch: false,
+  min_sale: undefined,
+  maxSaleSwitch: false,
+  max_sale: undefined
 }
 
 // ========================
@@ -86,47 +103,43 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
   const categories = useSelector((state: RootState) => state.categories.categories)
 
   const prevIsOpenRef = useRef(isOpen)
-  const [activeTab, setActiveTab] = useState<'data' | 'unit' | 'bulk'>('data')
 
   // nanoid para SKU temporal por apertura
   const gen6Ref = useRef(customAlphabet('0123456789', 6))
   const sessionSkuRef = useRef<string | null>(null)
 
   // Forms: mantenemos shouldUnregister:false para no perder valores entre tabs
-  const productForm = useForm<ProductDataFormValues>({
-    resolver: zodResolver(productDataInputSchema),
-    shouldUnregister: false,
-    mode: 'all',
-    reValidateMode: 'onChange'
-  })
-  const {
-    formState: { isDirty: isProductDirty, errors: productErrors }
-  } = productForm
-
-  const unitForm = useForm<ProductUnitFormValues>({
-    resolver: zodResolver(productUnitInputSchema),
+  const productForm = useForm<ProductDataInput>({
+    resolver: zodResolver<ProductDataInput, typeof productDataInputSchema, ProductDataSubmit>(
+      productDataInputSchema
+    ) as unknown as Resolver<ProductDataInput>,
     shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange'
   })
 
-  const {
-    formState: { isDirty: isUnitDirty, errors: unitErrors }
-  } = unitForm
-
-  const bulkForm = useForm<ProductBulkFormValues>({
-    resolver: zodResolver(productBulkInputSchema),
+  const unitForm = useForm<ProductUnitInput>({
+    resolver: zodResolver<ProductUnitInput, typeof productUnitInputSchema, ProductUnitSubmit>(
+      productUnitInputSchema
+    ) as unknown as Resolver<ProductUnitInput>,
     shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange'
   })
 
-  const {
-    formState: { isDirty: isBulkDirty, errors: bulkErrors }
-  } = bulkForm
+  const bulkForm = useForm<ProductBulkInput>({
+    resolver: zodResolver<ProductBulkInput, typeof productBulkInputSchema, ProductBulkSubmit>(
+      productBulkInputSchema
+    ) as unknown as Resolver<ProductBulkInput>,
+    shouldUnregister: false,
+    mode: 'all',
+    reValidateMode: 'onChange'
+  })
 
   const uploadImagesForm = useForm<ProductUploadedImageInput>({
-    resolver: zodResolver(productUploadedImageSchema),
+    resolver: zodResolver<ProductUploadedImageInput, typeof productUploadedImageSchema, ProductUploadedImageSubmit>(
+      productUploadedImageSchema
+    ) as unknown as Resolver<ProductUploadedImageInput>,
     shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange'
@@ -139,7 +152,7 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
       form: productForm
     },
     {
-      title: 'Detalles de tipo de venta',
+      title: 'Detalles del tipo de venta',
       content: saleType === 'unit' ? ProductUnitForm : ProductBulkForm,
       form: saleType === 'unit' ? unitForm : bulkForm
     },
@@ -162,16 +175,91 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
     }
   }
 
-  const getCombined = useCallback(() => {
-    const data = productForm.getValues()
-    const details = saleType === 'unit' ? unitForm.getValues() : bulkForm.getValues()
-    const images = uploadImagesForm.getValues()
+  const getCombinedPayload = useGetCombinedPayload({
+    productForm,
+    unitForm,
+    bulkForm,
+    uploadImagesForm
+  })
 
-    return { ...data, ...details, ...images }
-  }, [productForm, unitForm, bulkForm, saleType, uploadImagesForm])
+  const toNumOrUndef = (v: unknown): number | undefined => {
+    if (v === '' || v === null || v === undefined) return undefined
+    const n = Number(v)
+    return Number.isFinite(n) ? n : undefined
+  }
 
-  const onConfirm = () => {
-    // Aquí podrías manejar la confirmación del wizard si es necesario
+  const buildUnitDefaultsFromDb = (db?: Partial<DbUnitDetails>): ProductUnitInput => {
+    const hasWholesale = Array.isArray(db?.wholesale_prices) && (db!.wholesale_prices!.length ?? 0) > 0
+
+    return {
+      unit: db?.unit ?? 'pz',
+      base_cost: db?.base_cost ?? undefined,
+      public_price: db?.public_price ?? undefined,
+
+      lowStockSwitch: db?.low_stock != null,
+      minSaleSwitch: db?.min_sale != null,
+      maxSaleSwitch: db?.max_sale != null,
+      wholesaleSwitch: hasWholesale,
+
+      low_stock: db?.low_stock ?? undefined,
+      min_sale: db?.min_sale ?? undefined,
+      max_sale: db?.max_sale ?? undefined,
+
+      wholesale_prices: hasWholesale ? (db!.wholesale_prices as { min: number; price: number }[]) : []
+    }
+  }
+
+  const buildBulkDefaultsFromDb = (db: Partial<DbBulkDetails>): ProductBulkInput => {
+    // 1) Normaliza seleccionadas/base
+    const selected = Array.isArray(db.bulk_units_available) ? db.bulk_units_available.filter(Boolean) : []
+    const baseUnit = (db.base_unit ?? '').trim()
+
+    // Asegura que la base esté en el arreglo seleccionado (por si en BD viene inconsistente)
+    const bulk_units_available = baseUnit && !selected.includes(baseUnit) ? [baseUnit, ...selected] : selected
+
+    // 2) Normaliza precio base y switches
+    const base_unit_price = toNumOrUndef(db.base_unit_price)
+
+    const min_sale_val = toNumOrUndef(db.min_sale)
+    const max_sale_val = toNumOrUndef(db.max_sale)
+
+    const minSaleSwitch = min_sale_val != null
+    const maxSaleSwitch = max_sale_val != null
+
+    // 3) Normaliza units:
+    //    - Debe haber entradas EXACTAMENTE para las unidades seleccionadas distintas de la base
+    //    - Cada entrada con margin/price numéricos (de lo contrario, la quitamos para no romper zod)
+    const unitsRaw = db.units ?? {}
+    const expectedKeys = bulk_units_available.filter((u) => u !== baseUnit)
+
+    const units: BulkDbUnits = {}
+
+    for (const k of expectedKeys) {
+      const u = unitsRaw[k]
+      if (!u) continue
+
+      const margin = toNumOrUndef(u.margin)
+      const price = toNumOrUndef(u.price)
+
+      // Si falta alguno, lo omitimos; Zod te marcará si hace falta según selección
+      if (margin == null || price == null) continue
+
+      units[k] = { margin, price }
+    }
+
+    // 4) Ensambla defaults del formulario
+    const defaults: ProductBulkInput = {
+      bulk_units_available,
+      base_unit: baseUnit || undefined,
+      base_unit_price,
+      units,
+      minSaleSwitch,
+      min_sale: min_sale_val,
+      maxSaleSwitch,
+      max_sale: max_sale_val
+    }
+
+    return defaults
   }
 
   // Construye valores iniciales según edición/nuevo
@@ -179,7 +267,7 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
     // sku estable por sesión de modal (nuevo). Si no existe, genera uno.
     if (!sessionSkuRef.current) sessionSkuRef.current = gen6Ref.current()
 
-    const baseData: ProductDataFormValues =
+    const baseData: ProductDataInput =
       isEditing && selectedProduct
         ? {
             name: selectedProduct.name ?? '',
@@ -187,6 +275,7 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
             sku: selectedProduct.sku ?? sessionSkuRef.current,
             category: categories.find((cat) => cat.name?.toLowerCase?.() === selectedProduct.category?.toLowerCase?.())?.id ?? undefined,
             subcategory: selectedProduct.subcategory ?? undefined,
+            hasChildren: selectedProduct.subcategory != null,
             sale_type: selectedProduct.sale_type ?? undefined,
             brand: selectedProduct.brand ?? undefined,
             description: selectedProduct.description ?? '',
@@ -195,137 +284,56 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
           }
         : makeNewProductDefaults(sessionSkuRef.current)
 
-    let details: ProductUnitFormValues | ProductBulkFormValues | undefined
+    let details: ProductUnitInput | ProductBulkInput | undefined
     if (isEditing && selectedProduct) {
       try {
         details = await productService.fetchProductDetails(selectedProduct)
+        //console.log(details)
       } catch (e) {
         console.warn('No se pudieron obtener los detalles del producto:', e)
       }
     }
 
-    return { formData: baseData, formDetails: details }
+    const images =
+      isEditing && selectedProduct ? { images: selectedProduct.images ?? [], main_image: selectedProduct.main_image } : { images: [] }
+
+    return { formData: baseData, formDetails: details, uploadImages: images }
   }, [isEditing, selectedProduct, categories])
-
-  const hasErrors = (itemCheck) => {
-    if (itemCheck.error?.code === '23505') {
-      // Manejo de error: clave duplicada
-      const details = itemCheck.error?.details ?? ''
-
-      setActiveTab('data')
-      if (details.includes('slug')) {
-        productForm.setError('slug', { message: 'La clave ya existe' })
-      } else if (details.includes('sku')) {
-        productForm.setError('sku', { message: 'Sku duplicado' })
-      } else {
-        console.error('Error desconocido:', details)
-      }
-      return true
-    } else {
-      return false
-    }
-  }
-
-  const deepErrorCount = (e: FieldErrors<any>): number => {
-    const values = Object.values(e ?? {})
-    return values.reduce((acc, v: any) => {
-      if (!v) return acc
-      // Si es un "leaf" de RHF (tiene message), cuenta 1
-      if (typeof v === 'object' && 'message' in v) return acc + 1
-      // Si es array u objeto anidado, sigue contando
-      if (Array.isArray(v)) {
-        return acc + v.reduce((a, item) => a + (item ? deepErrorCount(item) : 0), 0)
-      }
-      if (typeof v === 'object') {
-        return acc + deepErrorCount(v)
-      }
-      return acc
-    }, 0)
-  }
-
-  const totalErrorCount = deepErrorCount(productErrors) + deepErrorCount(unitErrors) + deepErrorCount(bulkErrors)
 
   // Crear/Guardar
   const handleSubmitProduct = useCallback(async () => {
     try {
-      setIsLoading(true)
       setIsSaving(true)
-
-      // 1) Validación de datos principales
-
-      console.log(productForm.getValues())
-      console.log(productForm.formState.errors)
-
-      const isProductValid = await productForm.trigger()
-      if (!isProductValid) {
-        setActiveTab('data')
-        return
-      }
-
-      const productData = productDataInputSchema.parse(productForm.getValues())
-      const saleType = productData.sale_type
-
-      // 2) Validar sección específica
-      if (saleType === 'unit') {
-        console.log(unitForm.formState.errors)
-        const ok = await unitForm.trigger()
-        if (!ok) {
-          setActiveTab('unit')
-          return
-        }
-      }
-      if (saleType === 'bulk') {
-        console.log(bulkForm.formState.errors)
-
-        const ok = await bulkForm.trigger()
-        if (!ok) {
-          setActiveTab('bulk')
-          return
-        }
-      }
-
-      let details: ProductDetails | undefined
-      if (saleType === 'unit') {
-        const unitData = productUnitInputSchema.parse(unitForm.getValues())
-        details = { sale_type: 'unit', details: unitData }
-      } else if (saleType === 'bulk') {
-        const bulkData = productBulkInputSchema.parse(bulkForm.getValues())
-        details = { sale_type: 'bulk', details: bulkData }
-      } else {
-        // Si llegas aquí, falta seleccionar el tipo
-        setActiveTab('data')
-        return
-      }
+      const payload = getCombinedPayload()
 
       if (isEditing && selectedProduct) {
-        const productUpdated = await productService.updateProduct(selectedProduct.id, productData, details)
-        console.log('Producto actualizado?:', productUpdated)
-
-        if (hasErrors(productUpdated)) return
+        //console.log('Payload para actualizar:', payload)
+        await productService.updateProduct(selectedProduct.id, payload as ProductRpcPayload)
       } else {
-        // 3) Insertar Producto
-        const productInserted = await productService.createProduct(productData)
-
-        console.log('Producto insertado:', productInserted)
-
-        if (hasErrors(productInserted)) return
-
-        // 4) Insertar detalles
-        if (saleType === 'unit') {
-          const unitData = productUnitInputSchema.parse(unitForm.getValues())
-          await productService.insertProductUnit(productInserted.id, unitData)
-        } else if (saleType === 'bulk') {
-          const bulkData = productBulkInputSchema.parse(bulkForm.getValues())
-          await productService.insertProductBulk(productInserted.id, bulkData)
-        }
+        //console.log('Payload para crear:', payload)
+        await productService.createProduct(payload as ProductRpcPayload)
       }
 
-      // Cerrar el modal al terminar:
       onOpenChange()
-    } catch (error) {
-      console.error('Error agregando producto:', error)
+    } catch (e) {
+      const error = e as PostgrestError
+      if (error.code === '23505') {
+        const details = error.details ?? ''
+
+        if (details.includes('Key (slug)')) {
+          dispatch(requestJumpToStep(0))
+          productForm.setError('slug', { message: 'La clave ya existe' })
+        } else if (details.includes('Key (sku)')) {
+          dispatch(requestJumpToStep(0))
+          productForm.setError('sku', { message: 'El Sku ya existe' })
+        } else {
+          console.error('Error desconocido:', details)
+        }
+      }
+    } finally {
+      setIsSaving(false)
     }
-  }, [productForm, unitForm, bulkForm, onOpenChange, isEditing, selectedProduct])
+  }, [isEditing, selectedProduct, getCombinedPayload, onOpenChange, productForm, dispatch])
 
   // Manejo de apertura/cierre del modal
   useEffect(() => {
@@ -333,22 +341,19 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
 
     const setDefaults = async () => {
       if (isOpen && !wasOpen) {
-        console.log('Abriendo modal de producto')
         // Al abrir\
+        //console.log('Abriendo modal de producto')
         setIsLoading(true)
-        const { formData, formDetails } = await buildFormValues()
+        const { formData, formDetails, uploadImages } = await buildFormValues()
         productForm.reset(formData)
+        uploadImagesForm.reset(uploadImages)
 
         if (isEditing) {
           if (formData.sale_type === 'unit') {
-            unitForm.reset((formDetails as ProductUnitFormValues) ?? unitDefaults)
-
-            unitForm.setValue('wholesale_prices_read', unitForm.getValues('wholesale_prices'))
+            const mapped = buildUnitDefaultsFromDb(formDetails as Partial<DbUnitDetails>)
+            unitForm.reset(mapped ?? unitDefaults)
           } else if (formData.sale_type === 'bulk') {
-            bulkForm.reset((formDetails as ProductBulkFormValues) ?? bulkDefaults)
-          } else {
-            unitForm.reset(unitDefaults)
-            bulkForm.reset(bulkDefaults)
+            bulkForm.reset(buildBulkDefaultsFromDb(formDetails as Partial<DbBulkDetails>))
           }
 
           setTimeout(() => setIsLoading(false), 100) // para que no parpadee tanto el spinner
@@ -356,16 +361,14 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
           setIsLoading(false)
           unitForm.reset(unitDefaults)
           bulkForm.reset(bulkDefaults)
-          setActiveTab('data')
         }
       }
 
       if (!isOpen && wasOpen) {
         // Al cerrar
-        console.log('Cerrando modal de producto')
+        //console.log('Cerrando modal de producto')
 
         dispatch(setSelectedProduct(null))
-        setActiveTab('data')
         sessionSkuRef.current = null // forzar nuevo SKU la próxima vez
 
         // Dejar todo listo para próxima apertura (estado limpio)
@@ -385,7 +388,8 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
     }
 
     void setDefaults()
-  }, [isOpen, isEditing, buildFormValues, dispatch, productForm, unitForm, bulkForm])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, isEditing, buildFormValues, dispatch, productForm, unitForm, bulkForm, uploadImagesForm])
 
   return (
     <Modal
@@ -416,7 +420,7 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
         <ModalBody>
           <Wizard
             header={<RowSteps currentStep={wizardCurrentIndex} onStepChange={onStepClick} steps={WizardSteps} allowAllSteps={isEditing} />}
-            footer={<WizardFooter getStepForm={(idx) => WizardSteps[idx]?.form} onConfirm={onConfirm} />}
+            footer={<WizardFooter getStepForm={(idx) => WizardSteps[idx]?.form} onConfirm={handleSubmitProduct} />}
             wrapper={<AnimatePresence initial={false} mode='wait' />}
           >
             {WizardSteps.map(({ content: StepContent, form }, index) => (
@@ -426,7 +430,7 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
                     <StepContent />
                   </FormProvider>
                 ) : (
-                  <StepContent data={getCombined()} />
+                  <StepContent data={getCombinedPayload()} />
                 )}
               </AnimatedStep>
             ))}

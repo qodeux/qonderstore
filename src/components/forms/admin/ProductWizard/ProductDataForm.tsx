@@ -23,13 +23,7 @@ const ProductDataForm = () => {
   const categories = useSelector((state: RootState) => state.categories.categories)
   const productBrands = useSelector((state: RootState) => state.products.brands)
 
-  const {
-    register,
-    control,
-    setValue,
-    trigger,
-    formState: { errors }
-  } = useFormContext()
+  const { register, control, setValue, trigger } = useFormContext()
 
   const userTouchedSlug = useRef(false)
 
@@ -116,7 +110,7 @@ const ProductDataForm = () => {
         <Controller
           name='name'
           control={control}
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <Input
               label='Nombre'
               type='text'
@@ -129,8 +123,8 @@ const ProductDataForm = () => {
                   setValue('slug', slugify(v), { shouldValidate: true, shouldDirty: true })
                 }
               }}
-              isInvalid={!!errors.name}
-              errorMessage={errors.name?.message as string}
+              isInvalid={!!fieldState.error}
+              errorMessage={fieldState.error?.message as string}
             />
           )}
         />
@@ -138,7 +132,7 @@ const ProductDataForm = () => {
         <Controller
           name='slug'
           control={control}
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <Input
               label='Slug'
               type='text'
@@ -149,8 +143,8 @@ const ProductDataForm = () => {
                 userTouchedSlug.current = true
                 field.onChange(v)
               }}
-              isInvalid={!!errors.slug}
-              errorMessage={errors.slug?.message as string}
+              isInvalid={!!fieldState.error}
+              errorMessage={fieldState.error?.message as string}
             />
           )}
         />
@@ -158,7 +152,7 @@ const ProductDataForm = () => {
         <Controller
           name='category'
           control={control}
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <Select
               label='Categoria'
               size='sm'
@@ -177,8 +171,8 @@ const ProductDataForm = () => {
                 }
                 void trigger('subcategory')
               }}
-              isInvalid={!!errors.category}
-              errorMessage={errors.category?.message as string}
+              isInvalid={!!fieldState.error}
+              errorMessage={fieldState.error?.message as string}
               disallowEmptySelection
             >
               {categories
@@ -223,7 +217,7 @@ const ProductDataForm = () => {
           <Controller
             name='sale_type'
             control={control}
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <Select
                 label='Tipo de venta'
                 size='sm'
@@ -234,8 +228,8 @@ const ProductDataForm = () => {
                   field.onChange(value) // 'unit' | 'bulk'
                 }}
                 selectionMode='single'
-                isInvalid={!!errors.sale_type}
-                errorMessage={errors.sale_type?.message as string}
+                isInvalid={!!fieldState.error}
+                errorMessage={fieldState.error?.message as string}
                 disallowEmptySelection
               >
                 <SelectItem key='unit'>Unidad</SelectItem>
@@ -246,7 +240,7 @@ const ProductDataForm = () => {
           <Controller
             name='sku'
             control={control}
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <PatternFormat
                 format={`${categoryWatch ? `${categoryPrefix}-######` : '######'}`}
                 customInput={Input}
@@ -255,7 +249,8 @@ const ProductDataForm = () => {
                 variant='bordered'
                 value={field.value ?? ''}
                 onValueChange={(v) => field.onChange(v.value)}
-                isInvalid={!!errors.sku}
+                isInvalid={!!fieldState.error}
+                errorMessage={fieldState.error?.message as string}
                 endContent={
                   <Button
                     isIconOnly
@@ -296,14 +291,7 @@ const ProductDataForm = () => {
           />
         )}
 
-        <Textarea
-          label='Descripcion'
-          size='sm'
-          variant='bordered'
-          isInvalid={!!errors.description}
-          errorMessage={errors.description?.message as string}
-          {...register('description')}
-        />
+        <Textarea label='Descripcion' size='sm' variant='bordered' {...register('description')} />
       </section>
     </form>
   )

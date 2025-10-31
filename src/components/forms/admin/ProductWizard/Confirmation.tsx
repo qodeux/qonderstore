@@ -9,12 +9,18 @@ import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails'
 import 'yet-another-react-lightbox/plugins/thumbnails.css'
 import 'yet-another-react-lightbox/styles.css'
 import { usePresignedImages } from '../../../../hooks/usePresignedImages'
+import type { BulkDetailsForPayload, DetailsForPayload, ProductRpcPayload } from '../../../../schemas/productsPayload.schema'
 import type { RootState } from '../../../../store/store'
-import { bulkUnitsAvailable, saleTypes, saleUnitsAvailable } from '../../../../types/products'
+import { bulkUnitsAvailable, saleTypes, saleUnitsAvailable, type RawUnitEntry } from '../../../../types/products'
 
 type Props = {
-  data?: any
+  data?: {
+    product: ProductRpcPayload['product']
+    details: ProductRpcPayload['details']
+  }
 }
+
+const isBulk = (d: DetailsForPayload): d is BulkDetailsForPayload => d.type === 'bulk'
 
 type BulkUnitKey = (typeof bulkUnitsAvailable)[number]['key']
 
@@ -26,14 +32,9 @@ type UnitMeta = {
 
 type EnrichedUnitItem = {
   unit: UnitMeta
-  // precio que tengas guardado por unidad (si lo sigues mostrando)
   price?: number | null
   margin?: number | null
-
-  // 👇 NUEVOS CAMPOS
-  // precio por la UNIDAD BASE con margen (lo que quieres en el encabezado: “$X por oz”)
   priceByUnitBaseWithMargin?: number | null
-  // precio por la UNIDAD PROPIA con margen (derivado desde la base)
   unitPriceFromBaseWithMargin?: number | null
 }
 
@@ -41,14 +42,12 @@ const Confirmation = ({ data }: Props) => {
   const categories = useSelector((state: RootState) => state.categories.categories)
   const brands = useSelector((state: RootState) => state.products.brands)
 
-  console.log(data)
-
   const normalizeKey = (k: unknown): string =>
     String(k ?? '')
       .trim()
       .toLowerCase()
 
-  // si recibes claves externas distintas, mapea aquí
+  // mapeo flexible de claves externas → internas
   const externalToInternal: Record<string, BulkUnitKey> = {
     gr: 'gr',
     g: 'gr',
@@ -61,69 +60,19 @@ const Confirmation = ({ data }: Props) => {
 
   const toNumber = (v: unknown) => (v === null || v === undefined ? null : Number(v))
 
-  const enrichedUnits = useMemo<EnrichedUnitItem[]>(() => {
-    if ((data?.sale_type ?? '').trim().toLowerCase() !== 'bulk' || !data?.units) return []
+  // Memoiza las imágenes base
+  const images = useMemo(() => data?.product?.images ?? [], [data?.product?.images])
+  const mainImage = data?.product?.main_image ?? null
 
-    // Soporta array u objeto { lb: {...}, gr: {...} }
-    const list = Array.isArray(data.units)
-      ? data.units
-      : Object.entries(data.units as Record<string, any>).map(([unitKey, payload]) => ({
-          key: unitKey,
-          ...payload
-        }))
+  // Memoiza el orden de las imágenes
+  const orderedImages = useMemo(() => {
+    return mainImage ? [mainImage, ...images.filter((img: string) => img !== mainImage)] : images
+  }, [images, mainImage])
 
-    // Meta de la unidad base (p. ej. 'oz')
-    const baseRaw = normalizeKey(data?.base_unit)
-    const baseInternal = externalToInternal[baseRaw] as BulkUnitKey | undefined
-    const baseMeta = bulkUnitsAvailable.find((b) => b.key === baseInternal)
-
-    // Precio público de la unidad base (usa el que tengas en tu form)
-    const basePublicPrice =
-      toNumber((data as any)?.base_unit_price) ??
-      toNumber((data as any)?.public_price) ?? // por si lo nombras así
-      null
-
-    return list.map((u: any) => {
-      const rawKey = normalizeKey(u.key ?? u.id ?? u.code ?? u.label)
-      const internalKey = externalToInternal[rawKey] as BulkUnitKey | undefined
-
-      // meta de la unidad del ítem
-      const meta =
-        bulkUnitsAvailable.find((b) => b.key === internalKey) ??
-        ({ key: rawKey as BulkUnitKey, label: u.label ?? rawKey.toUpperCase(), value: 1 } as UnitMeta)
-
-      const storedPrice = toNumber(u.price) // si aún guardas un precio manual por unidad
-      const margin = toNumber(u.margin) ?? 0 // % (ej. 100, -50, etc.)
-
-      // 1) Precio por UNIDAD BASE con margen:
-      //    basePublicPrice * (1 + margen)
-      const priceByUnitBaseWithMargin = basePublicPrice == null ? null : basePublicPrice * (1 + margin / 100)
-
-      // 2) Ese precio llévalo a la UNIDAD PROPIA:
-      //    (precio base con margen) * (gramos de la unidad propia / gramos de la unidad base)
-      const unitPriceFromBaseWithMargin =
-        priceByUnitBaseWithMargin == null || !baseMeta ? null : priceByUnitBaseWithMargin * (meta.value / baseMeta.value)
-
-      return {
-        unit: meta,
-        price: storedPrice, // si lo sigues mostrando/guardando
-        margin,
-        priceByUnitBaseWithMargin,
-        unitPriceFromBaseWithMargin
-      } as EnrichedUnitItem
-    })
-  }, [data?.sale_type, data?.units, data?.base_unit, (data as any)?.base_unit_price, (data as any)?.public_price])
-
-  const [open, setOpen] = useState(false)
-  const [index, setIndex] = useState(0)
-
-  const images = data?.images ?? []
-
-  const orderedImages = data.main_image ? [data.main_image, ...images.filter((img: string) => img !== data.main_image)] : images
-
-  // Llamamos tu función Netlify por cada imagen
+  // Usa el hook de presigned URLs (depende de images)
   const { urls, loading } = usePresignedImages(images, 200)
 
+  // Memoiza los slides del Lightbox
   const slides = useMemo(
     () =>
       orderedImages.map((key) => ({
@@ -132,23 +81,70 @@ const Confirmation = ({ data }: Props) => {
     [urls, orderedImages]
   )
 
-  const toggleOpen = (state: boolean) => () => setOpen(state)
+  const [open, setOpen] = useState(false)
+  const [index, setIndex] = useState(0)
 
-  const updateIndex =
-    (when: boolean) =>
-    ({ index: current }: { index: number }) => {
-      if (when === open) {
-        setIndex(current)
+  // Enriquecer unidades SOLO si es bulk
+  // Enriquecer unidades SOLO si es bulk
+  const enrichedUnits = useMemo<EnrichedUnitItem[]>(() => {
+    if (!data || !isBulk(data.details)) return []
+
+    const units = data.details.units
+
+    // Normalizamos a lista unificada
+    const list: RawUnitEntry[] = Array.isArray(units)
+      ? (units as RawUnitEntry[])
+      : Object.entries(units as Record<string, RawUnitEntry>).map(([unitKey, payload]) => ({
+          key: unitKey,
+          ...payload
+        }))
+
+    const baseRaw = normalizeKey(data.details.base_unit)
+    const baseInternal = externalToInternal[baseRaw] as BulkUnitKey | undefined
+    const baseMeta = bulkUnitsAvailable.find((b) => b.key === baseInternal)
+    const basePublicPrice = toNumber(data.details.base_unit_price)
+
+    // Mapeamos cada unidad enriquecida
+    return list.map((u): EnrichedUnitItem => {
+      const rawKey = normalizeKey(u.key ?? u.id ?? u.code ?? u.label)
+      const internalKey = externalToInternal[rawKey] as BulkUnitKey | undefined
+
+      const meta: UnitMeta =
+        bulkUnitsAvailable.find((b) => b.key === internalKey) ??
+        ({
+          key: rawKey as BulkUnitKey,
+          label: u.label ?? rawKey.toUpperCase(),
+          value: 1
+        } as UnitMeta)
+
+      const storedPrice = toNumber(u.price)
+      const margin = toNumber(u.margin) ?? 0
+
+      const priceByUnitBaseWithMargin = basePublicPrice == null ? null : basePublicPrice * (1 + margin / 100)
+      const unitPriceFromBaseWithMargin =
+        priceByUnitBaseWithMargin == null || !baseMeta ? null : priceByUnitBaseWithMargin * (meta.value / baseMeta.value)
+
+      return {
+        unit: meta,
+        price: storedPrice,
+        margin,
+        priceByUnitBaseWithMargin,
+        unitPriceFromBaseWithMargin
       }
-    }
+    })
+  }, [data, externalToInternal])
 
-  //console.log(enrichedUnits)
-  //console.log(data.units)
+  // Ya podemos cortar aquí si no hay data
+  if (!data) return <p>No hay datos del producto.</p>
+
+  const details = data.details
+  const unitDetails = details.type === 'unit' ? details : null
+  const bulkDetails = details.type === 'bulk' ? details : null
 
   return (
     <div className='flex gap-4'>
       <section className='w-2/4'>
-        {data.images && data.images.length > 0 ? (
+        {data.product.images && data.product.images.length > 0 ? (
           <>
             {loading && <p className='text-sm text-gray-500'>Cargando imágenes...</p>}
             <div className='relative border-1 border-gray-400 rounded-lg overflow-hidden'>
@@ -162,8 +158,10 @@ const Confirmation = ({ data }: Props) => {
                 slides={slides}
                 plugins={[Inline]}
                 on={{
-                  view: updateIndex(false),
-                  click: toggleOpen(true)
+                  view: ({ index: current }) => {
+                    if (open === false) setIndex(current)
+                  },
+                  click: () => setOpen(true)
                 }}
                 carousel={{ padding: 0, spacing: 0, imageFit: 'cover' }}
                 inline={{
@@ -184,146 +182,180 @@ const Confirmation = ({ data }: Props) => {
 
             <Lightbox
               open={open}
-              close={toggleOpen(false)}
+              close={() => setOpen(false)}
               index={index}
               slides={slides}
-              on={{ view: updateIndex(true) }}
+              on={{
+                view: ({ index: current }) => {
+                  if (open === true) setIndex(current)
+                }
+              }}
               animation={{ fade: 0 }}
               controller={{ closeOnPullDown: true, closeOnBackdropClick: true }}
               plugins={[Thumbnails]}
             />
           </>
         ) : (
-          <>
-            <figure className='aspect-square border-1 border-gray-400 flex items-center justify-center text-gray-400 bg-gray-200 rounded-lg  flex-col'>
-              <ImageOff size={64} className='text-gray-300' />
-              Sin imágenes
-            </figure>
-          </>
+          <figure className='aspect-square border-1 border-gray-400 flex items-center justify-center text-gray-400 bg-gray-200 rounded-lg  flex-col'>
+            <ImageOff size={64} className='text-gray-300' />
+            Sin imágenes
+          </figure>
         )}
 
         <div className='flex items-center justify-between'>
           <p className='flex flex-col'>
-            {`${categories.find((cat) => cat.id === data?.category)?.slug_id}-${data?.sku}`}
+            {`${categories.find((cat) => cat.id === data.product.category)?.slug_id}-${data.product.sku}`}
             <span className='text-xs text-gray-500'>SKU</span>
           </p>
           <p className='flex flex-col items-end'>
-            <span className={data.is_active ? 'text-green-500' : 'text-gray-400'}>{data.is_active ? 'Activo' : 'Inactivo'}</span>
+            <span className={data.product.is_active ? 'text-green-500' : 'text-gray-400'}>
+              {data.product.is_active ? 'Activo' : 'Inactivo'}
+            </span>
             <span className='text-xs text-gray-500'>Status</span>
           </p>
         </div>
-        {(data.min_sale || data.max_sale || data.low_stock) && (
-          <div className='grid grid-cols-3 mt-4 bg-white p-2 rounded-lg  border-1 border-gray-300 '>
-            {data.min_sale && (
+
+        {/* Badges de min/max/low stock */}
+        {(details.min_sale != null || details.max_sale != null || (unitDetails && unitDetails.low_stock != null)) && (
+          <div className='grid grid-cols-3 mt-4 bg-white p-2 rounded-lg border-1 border-gray-300'>
+            {details.min_sale != null && (
               <Tooltip content='Mínimo de compra' placement='top'>
                 <div className='flex items-center justify-center gap-2'>
-                  <PackageMinus /> <span className='text-lg text-gray-600'>{data.min_sale}</span>
+                  <PackageMinus />
+                  <span className='text-lg text-gray-600'>{details.min_sale}</span>
                 </div>
               </Tooltip>
             )}
 
-            {data.max_sale && (
+            {details.max_sale != null && (
               <Tooltip content='Máximo de compra' placement='top'>
                 <div className='flex items-center justify-center gap-2'>
-                  <PackagePlus /> <span className='text-lg text-gray-600'>{data.max_sale}</span>
+                  <PackagePlus />
+                  <span className='text-lg text-gray-600'>{details.max_sale}</span>
                 </div>
               </Tooltip>
             )}
-            {data.low_stock && (
+
+            {unitDetails && unitDetails.low_stock != null && (
               <Tooltip content='Alerta de stock' placement='top'>
                 <div className='flex items-center justify-center gap-2'>
-                  <TriangleAlert /> <span className='text-lg text-gray-600'>{data.low_stock}</span>
+                  <TriangleAlert />
+                  <span className='text-lg text-gray-600'>{unitDetails.low_stock}</span>
                 </div>
               </Tooltip>
             )}
           </div>
         )}
-
-        {/* <figure className='aspect-square relative mt-3'>
-         
-          <PresignedImage keyPath={data?.main_image} expires={200} />
-        </figure> */}
       </section>
+
       <section className='space-y-2 w-2/4 '>
         <div>
-          <h4 className='text-lg font-bold'>{data?.name}</h4>
+          <h4 className='text-lg font-bold'>{data.product.name}</h4>
           <p className='flex flex-col '>
-            {brands.find((brand) => brand.id == data?.brand)?.name}
+            {brands.find((brand) => brand.id == data.product.brand?.toString())?.name}
             <span className='text-gray-500 text-xs'> Marca</span>
           </p>
         </div>
 
         <div className='flex items-center'>
           <p className='flex flex-col'>
-            {categories.find((cat) => cat.id === data?.category)?.name}
+            {categories.find((cat) => cat.id === data.product.category)?.name}
             <span className='text-gray-500 text-xs'> Categoría</span>
           </p>
-          {data.subcategory && (
+          {data.product.subcategory && (
             <>
               <div className='mx-2'>
                 <ChevronRight />
               </div>
               <p className='flex flex-col'>
-                {categories.find((cat) => cat.id === data?.subcategory)?.name}
+                {categories.find((cat) => cat.id === data.product.subcategory)?.name}
                 <span className='text-gray-500 text-xs'> Subcategoría</span>
               </p>
             </>
           )}
         </div>
 
-        <p className='text-sm'>{data?.description}</p>
-        <p>
-          Venta {data?.sale_type === 'unit' ? 'por' : 'a'} {saleTypes.find((type) => type.key === data?.sale_type)?.label.toLowerCase()}
-        </p>
-        {data?.sale_type === 'unit' ? (
-          <div>
-            <div className='flex items-center gap-8 mt-2'>
-              {data.base_cost && (
+        <p className='text-sm'>{data.product.description}</p>
+        <h5 className='font-semibold m-0'>
+          Venta {data.product.sale_type === 'unit' ? 'por' : 'a'}{' '}
+          {saleTypes.find((type) => type.key === data.product.sale_type)?.label.toLowerCase()}
+        </h5>
+
+        {unitDetails && (
+          <section>
+            <div className='flex items-center gap-8 mt-1'>
+              {unitDetails.base_cost != null && (
                 <div className='flex flex-col'>
                   <div className='flex items-center gap-1 '>
                     <NumericFormat
-                      value={data?.base_cost}
+                      value={unitDetails.base_cost}
                       displayType='text'
                       thousandSeparator
                       prefix='$'
                       decimalScale={2}
                       className='text-xl'
                     />
-                    <span className='text-xs mt-1'>{`/ ${saleUnitsAvailable.find((unit) => unit.key === data?.unit)?.label}`}</span>
+                    <span className='text-xs mt-1'>/ {saleUnitsAvailable.find((u) => u.key === unitDetails.unit)?.label}</span>
                   </div>
                   <span className='text-xs text-gray-500'>Costo base</span>
                 </div>
               )}
+
               <div className='flex flex-col'>
                 <div className='flex items-center gap-1 '>
                   <NumericFormat
-                    value={data?.public_price}
+                    value={unitDetails.public_price}
                     displayType='text'
                     thousandSeparator
                     prefix='$'
                     decimalScale={2}
                     className='text-2xl font-bold'
                   />
-                  <span className='text-xs mt-1'>{`/ ${saleUnitsAvailable.find((unit) => unit.key === data?.unit)?.label}`}</span>
+                  <span className='text-xs mt-1'>/ {saleUnitsAvailable.find((u) => u.key === unitDetails.unit)?.label}</span>
                 </div>
                 <span className='text-xs text-gray-500'>Precio público</span>
               </div>
             </div>
-          </div>
-        ) : (
+
+            {unitDetails.wholesale_prices && unitDetails.wholesale_prices.length > 0 && (
+              <div className='mt-2'>
+                <h5 className='font-semibold'>Precios de mayoreo</h5>
+                <ul className='grid grid-cols-1'>
+                  {unitDetails.wholesale_prices.map((wp, idx) => (
+                    <li key={idx} className='flex flex-col'>
+                      <span>
+                        <NumericFormat
+                          value={wp.price}
+                          displayType='text'
+                          thousandSeparator
+                          prefix='$'
+                          decimalScale={2}
+                          className='text-lg'
+                        />{' '}
+                        <span className='text-xs'>/ {saleUnitsAvailable.find((u) => u.key === unitDetails.unit)?.label}</span> | Mínimo:{' '}
+                        <NumericFormat value={wp.min} displayType='text' thousandSeparator decimalScale={0} />
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+        )}
+
+        {bulkDetails && (
           <div>
-            {/* <p>Unidad base: {bulkUnitsAvailable.find((unit) => unit.key === data?.base_unit)?.label}</p> */}
             <div className='flex flex-col'>
               <div className='flex items-center gap-1 '>
                 <NumericFormat
-                  value={data?.base_unit_price}
+                  value={bulkDetails.base_unit_price}
                   displayType='text'
                   thousandSeparator
                   prefix='$'
                   decimalScale={2}
                   className='text-2xl font-bold'
                 />
-                <span className='text-xs mt-1'>/ {bulkUnitsAvailable.find((b) => b.key === data?.base_unit)?.label}</span>
+                <span className='text-xs mt-1'>/ {bulkUnitsAvailable.find((b) => b.key === bulkDetails.base_unit)?.label}</span>
               </div>
               <span className='text-xs text-gray-500'>Precio base</span>
             </div>
@@ -332,34 +364,32 @@ const Confirmation = ({ data }: Props) => {
               <div className='mt-3 grid grid-cols-2 gap-1 text-center'>
                 {enrichedUnits.map((u) => (
                   <div key={u.unit.key} className='mt-2 bg-white p-2 border-1 border-gray-300 rounded-lg'>
-                    <p>
-                      {u.price != null && !Number.isNaN(Number(u.price)) ? (
-                        <div className='flex items-center gap-1 justify-center'>
-                          <NumericFormat
-                            value={Math.ceil(Number(u.price))}
-                            displayType='text'
-                            thousandSeparator
-                            prefix='$'
-                            decimalScale={2}
-                            className='text-xl font-bold'
-                          />
-                          <span className='text-xs mt-1'>/ {u.unit.label}</span>
-                        </div>
-                      ) : (
-                        '-'
-                      )}
-                    </p>
+                    {u.price != null && !Number.isNaN(Number(u.price)) ? (
+                      <div className='flex items-center gap-1 justify-center'>
+                        <NumericFormat
+                          value={Math.ceil(Number(u.price))}
+                          displayType='text'
+                          thousandSeparator
+                          prefix='$'
+                          decimalScale={2}
+                          className='text-xl font-bold'
+                        />
+                        <span className='text-xs mt-1'>/ {u.unit.label}</span>
+                      </div>
+                    ) : (
+                      '-'
+                    )}
 
                     <span className='text-xs text-gray-500'>
                       ~
                       <NumericFormat
-                        value={Number(u.priceByUnitBaseWithMargin).toFixed()}
+                        value={Number(u.priceByUnitBaseWithMargin ?? 0).toFixed()}
                         displayType='text'
                         thousandSeparator
                         prefix='$'
                         decimalScale={2}
                       />{' '}
-                      por {bulkUnitsAvailable.find((b) => b.key === data?.base_unit)?.label}
+                      por {bulkUnitsAvailable.find((b) => b.key === bulkDetails.base_unit)?.label}
                     </span>
                   </div>
                 ))}
