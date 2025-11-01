@@ -7,7 +7,10 @@ import { useSelector } from 'react-redux'
 import type { RootState } from '../../../store/store'
 import { userRoles } from '../../../types/users'
 
-const UserForm = () => {
+type Props = {
+  fromAccount?: boolean
+}
+const UserForm = ({ fromAccount }: Props) => {
   const {
     control,
     formState: { errors, dirtyFields },
@@ -100,6 +103,7 @@ const UserForm = () => {
             errorMessage={fieldState.error?.message as string}
             disallowEmptySelection
             classNames={{ base: 'bg-white' }}
+            isDisabled={fromAccount}
           >
             {userRoles
               .filter((profile) => profile.key !== 'customer')
@@ -243,15 +247,23 @@ const UserForm = () => {
       />
 
       <div className='flex justify-between items-center p-1'>
-        <Controller
-          name='is_active'
-          control={control}
-          render={({ field }) => (
-            <Switch {...field} aria-label='Activo' size='sm' onChange={(isSelected) => field.onChange(isSelected)} isSelected={field.value}>
-              Activo
-            </Switch>
-          )}
-        />
+        {!fromAccount && (
+          <Controller
+            name='is_active'
+            control={control}
+            render={({ field }) => (
+              <Switch
+                {...field}
+                aria-label='Activo'
+                size='sm'
+                onChange={(isSelected) => field.onChange(isSelected)}
+                isSelected={field.value}
+              >
+                Activo
+              </Switch>
+            )}
+          />
+        )}
         {isEditing && (
           <button type='button' className='flex items-center text-sm gap-1' onClick={handleToggleChangePassword}>
             <RotateCcwKey size='20' />
