@@ -84,7 +84,6 @@ const bulkDefaults: ProductBulkInput = {
 // ========================
 // Componente principal
 // ========================
-
 type Props = {
   isOpen: boolean
   onOpenChange: () => void
@@ -100,7 +99,7 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
   const [isSaving, setIsSaving] = useState(false)
 
   // Datos auxiliares
-  const categories = useSelector((state: RootState) => state.categories.categories)
+  const categories = useSelector((state: RootState) => state.categories.items)
 
   const prevIsOpenRef = useRef(isOpen)
 

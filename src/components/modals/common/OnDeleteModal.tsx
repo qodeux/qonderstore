@@ -30,7 +30,7 @@ const deleteTypeMap = {
 
 const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) => {
   const user = useSelector((state: RootState) => state.auth.user)
-  const categories = useSelector((state: RootState) => state.categories.categories) ?? []
+  const categories = useSelector((state: RootState) => state.categories.items) ?? []
   const selectedCategory = useSelector((state: RootState) => state.categories.selectedCategory)
   const selectedProduct = useSelector((state: RootState) => state.products.selectedProduct)
   const selectedProvider = useSelector((state: RootState) => state.providers.selectedProvider)

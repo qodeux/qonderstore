@@ -24,7 +24,7 @@ const PromotionForm = () => {
 
   const isConditioned = useWatch({ control, name: 'is_conditioned' })
 
-  const categories = useSelector((state: RootState) => state.categories.categories)
+  const categories = useSelector((state: RootState) => state.categories.items)
 
   const products = useSelector((state: RootState) => state.products.items)
 

@@ -20,7 +20,7 @@ function slugify(text: string) {
 
 const ProductDataForm = () => {
   const dispatch = useDispatch()
-  const categories = useSelector((state: RootState) => state.categories.categories)
+  const categories = useSelector((state: RootState) => state.categories.items)
   const productBrands = useSelector((state: RootState) => state.products.brands)
 
   const { register, control, setValue, trigger } = useFormContext()

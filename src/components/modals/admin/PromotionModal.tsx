@@ -16,7 +16,7 @@ type Props = {
 
 const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
   const { isEditing, selectedPromotion } = useSelector((state: RootState) => state.promotions)
-  const categories = useSelector((state: RootState) => state.categories.categories)
+  const categories = useSelector((state: RootState) => state.categories.items)
 
   // Calcula los default values ANTES de crear el form
   const defaultValues = useMemo(() => {
