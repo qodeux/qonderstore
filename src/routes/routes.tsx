@@ -13,6 +13,7 @@ import Providers from '../pages/admin/Providers'
 import Requests from '../pages/admin/Requests'
 import Users from '../pages/admin/Users'
 import Login from '../pages/auth/Login'
+import Category from '../pages/Category'
 import CreateAccount from '../pages/CreateAccount'
 import Home from '../pages/Home'
 import FAQ from '../pages/public/FAQ'
@@ -43,6 +44,7 @@ const AppRoutes: React.FC = () => (
       }
     >
       <Route index element={<Store />} />
+      <Route path='categoria/:slug' element={<Category />} />
       <Route path='*' element={<NotFound />} />
     </Route>
 
