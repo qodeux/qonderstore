@@ -20,7 +20,8 @@ export const categorySchema = z.object({
   total_products: z.number().optional(),
   featured: z.boolean().optional(),
   is_active: z.boolean(),
-  color: z.string().optional()
+  color: z.string().optional(),
+  main_image: z.string().optional()
 })
 
 export type Category = z.infer<typeof categorySchema>

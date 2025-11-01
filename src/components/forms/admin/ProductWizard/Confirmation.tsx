@@ -39,7 +39,7 @@ type EnrichedUnitItem = {
 }
 
 const Confirmation = ({ data }: Props) => {
-  const categories = useSelector((state: RootState) => state.categories.categories)
+  const categories = useSelector((state: RootState) => state.categories.items)
   const brands = useSelector((state: RootState) => state.products.brands)
 
   const normalizeKey = (k: unknown): string =>

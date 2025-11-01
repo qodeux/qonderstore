@@ -11,7 +11,7 @@ import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const Categories = () => {
   const dispatch = useDispatch()
-  const categories = useSelector((state: RootState) => state.categories.categories) ?? []
+  const categories = useSelector((state: RootState) => state.categories.items) ?? []
 
   type Row = {
     id: number
