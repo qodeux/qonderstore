@@ -28,7 +28,7 @@ const Header = () => {
           <Logo className='h-10 text-white max-w-48' />
         </Link>
       </NavbarBrand>
-      {/* {isAuthenticated && (
+      {isAuthenticated && (
         <NavbarContent className='hidden sm:flex gap-4 ' justify='center'>
           <NavbarItem>
             <Link href='/'>Home</Link>
@@ -36,11 +36,8 @@ const Header = () => {
           <NavbarItem>
             <Link href='/tienda'>Tienda</Link>
           </NavbarItem>
-          <NavbarItem>
-            <Link href='/admin'>Admin</Link>
-          </NavbarItem>
         </NavbarContent>
-      )} */}
+      )}
       <NavbarContent justify='end'>
         <NavbarItem>
           {isAuthenticated ? (
