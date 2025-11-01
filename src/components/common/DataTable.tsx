@@ -21,7 +21,7 @@ import {
   type Selection,
   type SortDescriptor
 } from '@heroui/react'
-import { EllipsisVertical, Star } from 'lucide-react'
+import { EllipsisVertical, Star, Tag } from 'lucide-react'
 import type { Key, ReactElement } from 'react'
 import { useCallback, useMemo, useRef } from 'react'
 import { Controller } from 'react-hook-form'
@@ -57,6 +57,10 @@ export type TypeConfig<K extends PropertyKey = string, V = React.ReactNode> = {
   keyTransform?: (raw: unknown) => K
 }
 
+export type MoneyConfig = {
+  type?: 'product' | 'currency' | 'percentage'
+}
+
 type ColumnBase<T> = {
   key: keyof T | string
   label: string
@@ -69,6 +73,7 @@ type ColumnBase<T> = {
 type ColumnDate<T> = ColumnBase<T> & { preset: 'date'; presetConfig?: DateConfig }
 type ColumnInput<T> = ColumnBase<T> & { preset: 'input'; presetConfig?: InputConfig }
 type ColumnType<T> = ColumnBase<T> & { preset: 'type'; presetConfig: TypeConfig }
+type ColumnMoney<T> = ColumnBase<T> & { preset: 'money'; presetConfig: MoneyConfig }
 type ColumnActive<T> = ColumnBase<T> & { preset: 'is_active' }
 type ColumnActions<T> = ColumnBase<T> & { preset: 'actions' }
 type ColumnPlain<T> = ColumnBase<T> & {
@@ -76,7 +81,14 @@ type ColumnPlain<T> = ColumnBase<T> & {
   presetConfig?: never
 }
 
-export type ColumnDef<T> = ColumnDate<T> | ColumnInput<T> | ColumnType<T> | ColumnActive<T> | ColumnActions<T> | ColumnPlain<T>
+export type ColumnDef<T> =
+  | ColumnDate<T>
+  | ColumnInput<T>
+  | ColumnType<T>
+  | ColumnMoney<T>
+  | ColumnActive<T>
+  | ColumnActions<T>
+  | ColumnPlain<T>
 
 type Props<T> = {
   columns: ColumnDef<T>[]
@@ -316,6 +328,48 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
 
       case 'money': {
         const raw = (row as any)[String(column)]
+
+        const col = columns.find((c) => String(c.key) === String(column))
+        if (!col) return null
+        // estrechar a ColumnMoney<T>
+        if (col.preset !== 'money') {
+          const raw = (row as any)[String(column)]
+          return <>{raw ?? ''}</>
+        }
+        const cfg = col.presetConfig
+        if (cfg?.type === 'product' || !cfg?.type) {
+          if (raw == null || Number.isNaN(Number(raw))) return null
+
+          const value = Number(raw)
+          const hasPromo = (row as any)['hasPromotion'] as boolean
+          const discountAmount = (row as any)['discountAmount'] as number
+          const discountPercent = (row as any)['discountPercent'] as number
+          const finalPrice = (row as any)['finalPrice'] as number
+          if (hasPromo) {
+            // Si hay promoción, muestra el precio con descuento
+            return (
+              <Tooltip
+                content={
+                  <>
+                    <h4 className='font-bold'>Promoción activa</h4>
+                    <div className='flex items-center gap-1'>
+                      <Tag size={14} className='text-success' />
+                      <span className='text-success'>{discountPercent}%</span>
+                      <span>- {discountAmount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span>
+                    </div>
+                  </>
+                }
+                placement='top'
+              >
+                <div>
+                  <del className='text-xs'>{value.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</del>{' '}
+                  {finalPrice.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}
+                </div>
+              </Tooltip>
+            )
+          }
+        }
+
         if (raw == null || Number.isNaN(Number(raw))) return null
         const value = Number(raw)
         const content = value.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })

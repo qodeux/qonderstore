@@ -9,15 +9,17 @@ import { ToolbarTable, type ToolbarCriteria } from '../../components/common/Tool
 import { useDispatch, useSelector } from 'react-redux'
 import ProductModal from '../../components/modals/admin/ProductModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
+import { selectProductsWithBestPromo } from '../../store/selectors/productsWithPromo'
 import { setEditMode, setSelectedProduct } from '../../store/slices/productsSlice'
-import type { RootState } from '../../store/store'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const selectionCount = (s: Selection, total: number) => (s === 'all' ? total : s.size)
 
 const Products = () => {
   const dispatch = useDispatch()
-  const products = useSelector((state: RootState) => state.products.items)
+  const products = useSelector(selectProductsWithBestPromo)
+
+  //console.log(products)
 
   type Row = {
     id: number
@@ -45,6 +47,7 @@ const Products = () => {
       label: 'Precio',
       allowsSorting: true,
       preset: 'money',
+      presetConfig: { type: 'product' },
       align: 'end'
     },
     {
@@ -137,6 +140,7 @@ const Products = () => {
         }
       }
     ]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMulti, selectedKeys, filteredRows])
 
   // (Opcional) detectar transición 1↔︎múltiple por si necesitas efectos secundarios
