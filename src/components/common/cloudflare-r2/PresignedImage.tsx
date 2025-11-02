@@ -139,7 +139,6 @@ const PresignedImage = ({ keyPath, expires = 60 }: Props) => {
       decoding='async'
       fetchPriority='low'
       referrerPolicy='no-referrer'
-      crossOrigin='anonymous'
     />
   )
 }
