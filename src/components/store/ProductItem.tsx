@@ -7,12 +7,13 @@ import PresignedImage from '../common/cloudflare-r2/PresignedImage'
 
 type ProductItemProps = {
   item: ProductWithPromo
+  isRelated?: boolean
 }
-const ProductItem = ({ item }: ProductItemProps) => {
+const ProductItem = ({ item, isRelated }: ProductItemProps) => {
   return (
     <Card key={item.id} shadow='sm' className='border border-neutral-300'>
       <CardHeader className='p-0'>
-        <Link to={`/producto/${item.slug}`} className='contents'>
+        <Link to={`${isRelated ? '/tienda/' : ''}producto/${item.slug}`} className='contents'>
           <div className='w-full aspect-square bg-neutral-100 border-b border-neutral-300 flex items-center justify-center text-neutral-500 text-xs'>
             {item.main_image ? <PresignedImage keyPath={item.main_image} expires={180} /> : 'Sin imagen'}
           </div>
