@@ -38,7 +38,14 @@ const AppRoutes: React.FC = () => (
       <Route path='*' element={<NotFound />} />
     </Route>
 
-    <Route path='/tienda/productos' element={<SidebarLayout />}>
+    <Route
+      path='/tienda/productos'
+      element={
+        <ProtectedRoute>
+          <SidebarLayout />
+        </ProtectedRoute>
+      }
+    >
       <Route index element={<Catalog />} />
     </Route>
 

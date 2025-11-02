@@ -134,7 +134,7 @@ const PresignedImage = ({ keyPath, expires = 60 }: Props) => {
     <img
       src={url}
       alt=''
-      className='w-full aspect-square object-cover rounded-xl border-1 border-gray-300'
+      className='w-full aspect-square object-cover '
       loading='lazy'
       decoding='async'
       fetchPriority='low'
