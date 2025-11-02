@@ -1,7 +1,19 @@
 import React, { useEffect, useState } from 'react'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { Boxes, ChevronRight, CirclePercent, ClipboardList, Combine, Layers, LayoutDashboard, Package, Users } from 'lucide-react'
+import {
+  BookMarked,
+  Boxes,
+  ChevronRight,
+  CirclePercent,
+  ClipboardList,
+  Combine,
+  Layers,
+  LayoutDashboard,
+  Package,
+  SendToBack,
+  Users
+} from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
 import { performLogout } from '../../store/slices/authSlice'
@@ -46,7 +58,10 @@ const menuItems: MenuItem[] = [
   {
     label: 'Proveedores',
     icon: <Boxes className='w-5 h-5' />,
-    href: '/admin/proveedores'
+    submenu: [
+      { label: 'Directorio', href: '/admin/proveedores', icon: <BookMarked className='w-4 h-4' /> },
+      { label: 'Pedidos', href: '/admin/pedidos-proveedores', icon: <SendToBack className='w-4 h-4' /> }
+    ]
   },
   {
     label: 'Solicitudes',

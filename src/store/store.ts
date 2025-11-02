@@ -11,6 +11,8 @@ import usersReducer from './slices/usersSlice'
 
 import requestAccessReducer from './slices/requestAccessSlice'
 
+import providersOrdersReducer from './slices/providersOrdersSlice'
+
 const store = configureStore({
   reducer: {
     ui: uiReducer,
@@ -21,7 +23,8 @@ const store = configureStore({
     providers: providersReducer,
     users: usersReducer,
     promotions: promotionReducer,
-    requestAccess: requestAccessReducer
+    requestAccess: requestAccessReducer,
+    providersOrders: providersOrdersReducer
   }
 })
 
