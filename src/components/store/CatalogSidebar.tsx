@@ -1,61 +1,41 @@
-import {
-  Accordion,
-  AccordionItem,
-  Button,
-  Checkbox,
-  CheckboxGroup,
-  Listbox,
-  ListboxItem,
-  ScrollShadow,
-  Slider,
-  type Selection
-} from '@heroui/react'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useSelector } from 'react-redux'
+// components/store/CatalogSidebar.tsx
+import { Accordion, AccordionItem, Button, Checkbox, CheckboxGroup, Listbox, ListboxItem, ScrollShadow, Slider } from '@heroui/react'
+import { Circle } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { selectCatalogFilters, selectPriceDomain } from '../../store/selectors/catalogSelectors'
 import { selectProductsWithBestPromo } from '../../store/selectors/productsWithPromo'
+import { setBrandIds, setCategorySlugs, setPriceRange, setTypes } from '../../store/slices/productFiltersSlice'
 import type { RootState } from '../../store/store'
+import { arrayToSelection, selectionToArray } from '../../utils/selection'
 
-type Props = {
-  isOpen: boolean
-  onToggle?: () => void
-}
-
+type Props = { isOpen: boolean }
 const ProductTypeSearch = [
   { value: 'new', label: 'Nuevo' },
   { value: 'sale', label: 'Oferta' },
   { value: 'featured', label: 'Destacado' },
   { value: 'popular', label: 'Popular' }
-]
+] as const
 
 const CatalogSidebar = ({ isOpen }: Props) => {
+  const dispatch = useDispatch()
   const categories = useSelector((s: RootState) => s.categories.items)
   const brands = useSelector((s: RootState) => s.products.brands)
   const products = useSelector(selectProductsWithBestPromo)
 
-  const [selectedCategoryKeys, setSelectedCategoryKeys] = useState<Selection>(new Set())
-  const [selectedBrandKeys, setSelectedBrandKeys] = useState<Selection>(new Set())
+  const filters = useSelector(selectCatalogFilters)
+  const priceDomain = useSelector(selectPriceDomain) // {min,max} global
 
+  // Estado controlado del slider (lee filtro; si null, usa dominio completo)
+  const currentMin = filters.priceMin ?? priceDomain.min
+  const currentMax = filters.priceMax ?? priceDomain.max
+  const sliderValue: [number, number] = [currentMin, currentMax]
+
+  const sliderDisabled = priceDomain.max <= priceDomain.min
+
+  // Altura scroll acordeón (igual que ya tenías)
   const accordionContainerRef = useRef<HTMLDivElement>(null)
   const [maxAccordionScrollHeight, setMaxAccordionScrollHeight] = useState(0)
-
-  // --- PRECIOS SEGUROS ---
-  const prices = useMemo(() => products.map((p) => Number(p.price)).filter((v) => Number.isFinite(v)), [products])
-
-  // Fallbacks si no hay precios válidos
-  const minPrice = prices.length ? Math.floor(Math.min(...prices)) : 0
-  const maxPrice = prices.length ? Math.ceil(Math.max(...prices)) : 1000
-
-  // Valor controlado del slider (rango)
-  const [value, setValue] = useState<[number, number]>([minPrice, maxPrice])
-
-  const didInit = useRef(false)
-  useEffect(() => {
-    if (prices.length && !didInit.current) {
-      setValue([minPrice, maxPrice])
-      didInit.current = true
-    }
-  }, [prices.length, minPrice, maxPrice])
-
   useEffect(() => {
     const updateSize = () => {
       if (!accordionContainerRef.current) return
@@ -66,10 +46,7 @@ const CatalogSidebar = ({ isOpen }: Props) => {
     return () => window.removeEventListener('resize', updateSize)
   }, [])
 
-  const handleReset = () => setValue([minPrice, maxPrice])
-
-  // Si no hay rango real, desactiva el slider
-  const sliderDisabled = maxPrice <= minPrice
+  const handleResetPrice = () => dispatch(setPriceRange({ min: null, max: null }))
 
   return (
     <aside
@@ -78,53 +55,73 @@ const CatalogSidebar = ({ isOpen }: Props) => {
         transition-[opacity,transform] duration-300 z-30 p-4
         ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 pointer-events-none'}
       `}
-      /* El ancho lo controla el layout (grid col) */
     >
       <div className='flex flex-col gap-4 h-full'>
-        <CheckboxGroup label='Tipo de producto'>
-          {ProductTypeSearch.map((type) => (
-            <Checkbox key={type.value} value={type.value} size='sm'>
-              {type.label}
+        {/* TIPOS */}
+        <label className='text-foreground-500 flex items-center gap-1'>
+          <Circle className='w-3 pt-1' fill='#17c964' /> Tipo de producto
+        </label>
+
+        <CheckboxGroup value={filters.types} onChange={(vals) => dispatch(setTypes(vals as typeof filters.types))}>
+          {ProductTypeSearch.map((t) => (
+            <Checkbox key={t.value} value={t.value} size='sm'>
+              {t.label}
             </Checkbox>
           ))}
         </CheckboxGroup>
 
+        {/* PRECIO */}
         <section className='flex flex-col gap-3'>
-          <label className='text-foreground-500'>Filtrar por precio</label>
+          <label className='text-foreground-500 flex items-center gap-1'>
+            <Circle className='w-3 pt-1' fill='#006fee' />
+            Filtrar por precio
+          </label>
 
           <Slider
             className='max-w-md'
-            value={value}
-            onChange={(v) => setValue(v as [number, number])}
+            value={sliderValue}
+            onChange={(v) => {
+              const [min, max] = v as [number, number]
+              dispatch(
+                setPriceRange({
+                  min: min === priceDomain.min ? null : min,
+                  max: max === priceDomain.max ? null : max
+                })
+              )
+            }}
             label='Rango'
-            minValue={minPrice}
-            maxValue={maxPrice}
+            minValue={priceDomain.min}
+            maxValue={priceDomain.max}
             step={50}
             formatOptions={{ style: 'currency', currency: 'MXN' }}
             isDisabled={sliderDisabled}
           />
 
           <div className='flex gap-2 justify-end'>
-            <Button size='sm' radius='sm' fullWidth variant='ghost' onPress={handleReset} isDisabled={sliderDisabled}>
+            <Button size='sm' radius='sm' variant='ghost' fullWidth onPress={handleResetPrice} isDisabled={sliderDisabled}>
               Restablecer
-            </Button>
-            <Button size='sm' radius='sm' className='bg-black text-white hover:bg-neutral-800' fullWidth isDisabled={sliderDisabled}>
-              Filtrar
             </Button>
           </div>
         </section>
 
+        {/* CATEGORÍAS & MARCAS */}
         <section className='flex-grow' ref={accordionContainerRef}>
           <Accordion defaultExpandedKeys={['category']} itemClasses={{ trigger: 'py-4', content: 'py-0 pb-4' }} className='px-0'>
-            <AccordionItem key='category' title='Categorías'>
+            <AccordionItem
+              key='category'
+              title={
+                <label className='text-foreground-500 flex items-center gap-1'>
+                  <Circle className='w-3 pt-1' fill='#7828c8' /> Categorías
+                </label>
+              }
+            >
               <ScrollShadow style={{ maxHeight: `${maxAccordionScrollHeight}px` }}>
                 <Listbox
-                  disallowEmptySelection
                   aria-label='categories'
-                  selectedKeys={selectedCategoryKeys}
+                  selectedKeys={arrayToSelection(filters.categorySlugs)}
                   selectionMode='multiple'
                   variant='flat'
-                  onSelectionChange={setSelectedCategoryKeys}
+                  onSelectionChange={(s) => dispatch(setCategorySlugs(selectionToArray(s)))}
                   items={categories.filter((c) => c.parent === null)}
                 >
                   {(item) => <ListboxItem key={item.slug_id}>{item.name}</ListboxItem>}
@@ -132,17 +129,23 @@ const CatalogSidebar = ({ isOpen }: Props) => {
               </ScrollShadow>
             </AccordionItem>
 
-            <AccordionItem key='brand' title='Marca'>
+            <AccordionItem
+              key='brand'
+              title={
+                <label className='text-foreground-500 flex items-center gap-1'>
+                  <Circle className='w-3 pt-1' fill='#f31260' /> Marca
+                </label>
+              }
+            >
               <Listbox
-                disallowEmptySelection
                 aria-label='brands'
-                selectedKeys={selectedBrandKeys}
+                selectedKeys={arrayToSelection(filters.brandIds)}
                 selectionMode='multiple'
                 variant='flat'
-                onSelectionChange={setSelectedBrandKeys}
+                onSelectionChange={(s) => dispatch(setBrandIds(selectionToArray(s).map(Number)))}
                 items={brands}
               >
-                {(item) => <ListboxItem key={`brand-${item.id}`}>{item.name}</ListboxItem>}
+                {(item) => <ListboxItem key={String(item.id)}>{item.name}</ListboxItem>}
               </Listbox>
             </AccordionItem>
           </Accordion>

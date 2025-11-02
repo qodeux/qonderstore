@@ -1,20 +1,31 @@
+// components/store/OrderBy.tsx
 import { Button, Select, SelectItem, Tooltip, type Selection } from '@heroui/react'
 import { ArrowDownWideNarrow, ArrowUpNarrowWide } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { selectCatalogFilters } from '../../store/selectors/catalogSelectors'
+import { setSort } from '../../store/slices/productFiltersSlice'
+
+const keyToSortBy = (k: string) => (k === 'precio' ? 'price' : k === 'popularidad' ? 'popularity' : ('rating' as const))
+
+const sortByToKey = (by: 'price' | 'popularity' | 'rating' | 'relevance') =>
+  by === 'price' ? 'precio' : by === 'popularity' ? 'popularidad' : by === 'rating' ? 'valoracion' : null
 
 const OrderBy = () => {
-  const [selectedKey, setSelectedKey] = useState<Selection>(new Set())
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const dispatch = useDispatch()
+  const { sortBy, sortDir } = useSelector(selectCatalogFilters)
 
-  const showSortDirection = selectedKey !== 'all' && selectedKey.size > 0
+  // Mantén el Select controlado por Redux (si está en 'relevance', no mostramos nada seleccionado)
+  const selectedKey = useMemo<Selection>(() => {
+    const key = sortByToKey(sortBy)
+    return key ? new Set([key]) : new Set()
+  }, [sortBy])
+
+  const showSortDirection = sortBy !== 'relevance'
 
   const toggleSortDirection = () => {
-    setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+    dispatch(setSort({ by: sortBy, dir: sortDir === 'asc' ? 'desc' : 'asc' }))
   }
-
-  //   useEffect(() => {
-  //     setSortDirection('asc')
-  //   }, [selectedKey])
 
   return (
     <div className='flex items-center w-full'>
@@ -28,7 +39,17 @@ const OrderBy = () => {
         variant='bordered'
         radius='sm'
         selectedKeys={selectedKey}
-        onSelectionChange={setSelectedKey}
+        onSelectionChange={(s: Selection) => {
+          // Si se limpia (isClearable) → volvemos a 'relevance'
+          if (s === 'all' || (s instanceof Set && s.size === 0)) {
+            dispatch(setSort({ by: 'relevance' }))
+            return
+          }
+          const v = Array.from(s as Set<string>)[0]
+          const by = keyToSortBy(v)
+          // No forzamos dir aquí: el slice ya pone defaults sensatos por by
+          dispatch(setSort({ by }))
+        }}
         isClearable
       >
         <SelectItem key='precio'>Precio</SelectItem>
@@ -37,7 +58,7 @@ const OrderBy = () => {
       </Select>
 
       {showSortDirection && (
-        <Tooltip content={`Mostrar de ${sortDirection === 'asc' ? 'menor a mayor' : 'mayor a menor'}`}>
+        <Tooltip content={`Mostrar de ${sortDir === 'asc' ? 'menor a mayor' : 'mayor a menor'}`}>
           <Button
             variant='ghost'
             isIconOnly
@@ -46,7 +67,7 @@ const OrderBy = () => {
             aria-label='Cambiar dirección de orden'
             className='rounded-lg rounded-l-none border-l-0'
           >
-            {sortDirection === 'asc' ? <ArrowDownWideNarrow /> : <ArrowUpNarrowWide />}
+            {sortDir === 'asc' ? <ArrowUpNarrowWide /> : <ArrowDownWideNarrow />}
           </Button>
         </Tooltip>
       )}
