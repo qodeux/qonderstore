@@ -12,8 +12,8 @@ const Catalog: React.FC = () => {
   return (
     <section className='w-full flex flex-col md:flex-row  text-neutral-900'>
       {/*MAIN CONTENT*/}
-      <section className='flex-1 container mx-auto w-full p-4 '>
-        <div className='text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-3 rounded-lg bg-white shadow-lg sticky top-8 z-20 mb-6  '>
+      <section className='flex-1 container mx-auto w-full '>
+        <div className='text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-3 rounded-lg bg-white shadow-lg sticky top-4 z-20 mb-6  '>
           <div className=' flex-wrap items-center gap-2 hidden sm:flex'>
             <Button isIconOnly radius='sm' variant='light' aria-label='Vista de cuadrícula'>
               <LayoutGrid />
