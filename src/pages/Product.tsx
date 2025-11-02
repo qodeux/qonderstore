@@ -173,17 +173,21 @@ const Product = () => {
               <Rating className='pr-5' value={rating} />
               <span> Opiniones (999)</span>
             </div>
-            <Progress
-              aria-label='Disponibilidad'
-              label='Quedan'
-              size='sm'
-              value={((product.stock ?? 0) * 10) / 2}
-              showValueLabel
-              className='w-full max-w-1/2  md:max-w-1/3'
-              formatOptions={{ style: 'decimal' }}
-              valueLabel={`${product.stock ?? 0} unidades`}
-              color={product.stock && product.stock > 5 ? 'success' : 'danger'}
-            />
+            {(product.stock ?? 0) > 0 ? (
+              <Progress
+                aria-label='Disponibilidad'
+                label='Quedan'
+                size='sm'
+                value={((product.stock ?? 0) * 10) / 2}
+                showValueLabel
+                className='w-full max-w-1/2  md:max-w-1/3'
+                formatOptions={{ style: 'decimal' }}
+                valueLabel={`${product.stock ?? 0} unidades`}
+                color={product.stock && product.stock > 5 ? 'success' : 'danger'}
+              />
+            ) : (
+              <span className='text-red-600 font-semibold'>Producto agotado</span>
+            )}
           </div>
           <p>{product.description}</p>
           <div className='flex items-center justify-between'>
@@ -198,49 +202,51 @@ const Product = () => {
               </div>
             )}
           </div>
-          <section className='flex flex-col lg:flex-row gap-6 md:gap-2'>
-            <div className='flex items-center gap-2 w-full'>
-              <div className='flex items-center max-w-fit'>
-                <Button
-                  isIconOnly
-                  size='lg'
-                  className='rounded-r-none bg-black text-white '
-                  variant='ghost'
-                  onPress={() => handleSetQuantity('remove')}
-                >
-                  <Minus />
-                </Button>
-                <NumberInput
-                  size='sm'
-                  maxLength={3}
-                  aria-label='Cantidad'
-                  minValue={1}
-                  value={quantity}
-                  onValueChange={(value) => setQuantity(value || 1)}
-                  radius='none'
-                  classNames={{ mainWrapper: 'w-14', input: 'text-center' }}
-                  hideStepper
-                />
-                <Button
-                  isIconOnly
-                  size='lg'
-                  className='rounded-l-none  bg-black text-white'
-                  variant='ghost'
-                  onPress={() => handleSetQuantity('add')}
-                >
-                  <Plus />
-                </Button>
+          {(product.stock ?? 0) > 0 && (
+            <section className='flex flex-col lg:flex-row gap-6 md:gap-2'>
+              <div className='flex items-center gap-2 w-full'>
+                <div className='flex items-center max-w-fit'>
+                  <Button
+                    isIconOnly
+                    size='lg'
+                    className='rounded-r-none bg-black text-white '
+                    variant='ghost'
+                    onPress={() => handleSetQuantity('remove')}
+                  >
+                    <Minus />
+                  </Button>
+                  <NumberInput
+                    size='sm'
+                    maxLength={3}
+                    aria-label='Cantidad'
+                    minValue={1}
+                    value={quantity}
+                    onValueChange={(value) => setQuantity(value || 1)}
+                    radius='none'
+                    classNames={{ mainWrapper: 'w-14', input: 'text-center' }}
+                    hideStepper
+                  />
+                  <Button
+                    isIconOnly
+                    size='lg'
+                    className='rounded-l-none  bg-black text-white'
+                    variant='ghost'
+                    onPress={() => handleSetQuantity('add')}
+                  >
+                    <Plus />
+                  </Button>
+                </div>
+                <Select label='Unidad' size='sm' className='w-full md:max-w-[160px]' defaultSelectedKeys={['oz']}>
+                  <SelectItem key='gr'>{quantity > 1 ? 'Gramos' : 'Gramo'}</SelectItem>
+                  <SelectItem key='oz'>{quantity > 1 ? 'Onzas' : 'Onza'}</SelectItem>
+                  <SelectItem key='lb'>{quantity > 1 ? 'Libras' : 'Libra'}</SelectItem>
+                </Select>
               </div>
-              <Select label='Unidad' size='sm' className='w-full md:max-w-[160px]' defaultSelectedKeys={['oz']}>
-                <SelectItem key='gr'>{quantity > 1 ? 'Gramos' : 'Gramo'}</SelectItem>
-                <SelectItem key='oz'>{quantity > 1 ? 'Onzas' : 'Onza'}</SelectItem>
-                <SelectItem key='lb'>{quantity > 1 ? 'Libras' : 'Libra'}</SelectItem>
-              </Select>
-            </div>
-            <Button className='bg-black text-white hover:bg-neutral-800' size='lg'>
-              Agregar
-            </Button>
-          </section>
+              <Button className='bg-black text-white hover:bg-neutral-800' size='lg'>
+                Agregar
+              </Button>
+            </section>
+          )}
         </div>
       </section>
       <section className='my-8 container mx-auto '>
