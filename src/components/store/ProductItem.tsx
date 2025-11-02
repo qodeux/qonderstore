@@ -14,7 +14,7 @@ const ProductItem = ({ item }: ProductItemProps) => {
       <CardHeader className='p-0'>
         <Link to={`/producto/${item.slug}`} className='contents'>
           <div className='w-full aspect-square bg-neutral-100 border-b border-neutral-300 flex items-center justify-center text-neutral-500 text-xs'>
-            {item.main_image ? <PresignedImage keyPath={item.main_image} expires={180} /> : 'Sin imagen'}
+            {item.main_image ? <PresignedImage keyPath={item.main_image} expires={600} /> : 'Sin imagen'}
           </div>
         </Link>
       </CardHeader>
