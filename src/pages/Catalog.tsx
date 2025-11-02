@@ -118,7 +118,7 @@ const Catalog = () => {
                       whileHover={{ y: -2, boxShadow: '0 6px 24px rgba(0,0,0,.08)' }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <ProductItem item={item} />
+                      <ProductItem item={item} isRelated />
                     </motion.div>
                   ))}
                 </AnimatePresence>
