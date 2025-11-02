@@ -20,8 +20,8 @@ const PresignedImage = ({ keyPath, expires = 60 }: Props) => {
         if (!r.ok) throw new Error(`GET presign failed (${r.status})`)
         const { url } = await r.json()
         if (!stop) setUrl(url)
-      } catch (e: any) {
-        if (!stop) setError(e?.message || 'error')
+      } catch (e: unknown) {
+        if (!stop) setError((e as Error)?.message || 'error')
       } finally {
         if (!stop) setLoading(false)
       }
@@ -38,14 +38,12 @@ const PresignedImage = ({ keyPath, expires = 60 }: Props) => {
   }, [keyPath, expires])
 
   if (loading) {
-    return <div className=' w-full animate-pulse rounded-xl bg-gray-200 aspect-square' />
+    return <div className=' w-full animate-pulse  bg-gray-200 aspect-square' />
   }
   if (error) {
-    return (
-      <div className='w-full rounded-xl bg-red-50 text-red-600 text-xs flex items-center justify-center p-2 aspect-square'>{error}</div>
-    )
+    return <div className='w-full  bg-red-50 text-red-600 text-xs flex items-center justify-center p-2 aspect-square'>{error}</div>
   }
-  return <img src={url} alt='' className='w-full object-cover rounded-xl aspect-square border-1 border-gray-300' />
+  return <img src={url} alt='' className='w-full object-cover  aspect-square' />
 }
 
 export default PresignedImage
