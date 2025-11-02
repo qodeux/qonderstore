@@ -36,6 +36,9 @@ const Header = () => {
           <NavbarItem>
             <Link href='/tienda'>Tienda</Link>
           </NavbarItem>
+          <NavbarItem>
+            <Link href='/tienda/productos'>Productos</Link>
+          </NavbarItem>
         </NavbarContent>
       )}
       <NavbarContent justify='end'>

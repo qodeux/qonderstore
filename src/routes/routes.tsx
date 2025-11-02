@@ -4,6 +4,7 @@ import { Route, Routes } from 'react-router'
 import ProtectedRoute from '../components/ProtectedRoute'
 import AdminLayout from '../layouts/AdminLayout'
 import FrontwebLayout from '../layouts/FrontwebLayout'
+import SidebarLayout from '../layouts/SidebarLayout'
 import NotFound from '../pages/404'
 import Categories from '../pages/admin/Categories'
 import Dashboard from '../pages/admin/Dashboard'
@@ -13,6 +14,7 @@ import Providers from '../pages/admin/Providers'
 import Requests from '../pages/admin/Requests'
 import Users from '../pages/admin/Users'
 import Login from '../pages/auth/Login'
+import Catalog from '../pages/Catalog'
 import Category from '../pages/Category'
 import CreateAccount from '../pages/CreateAccount'
 import Home from '../pages/Home'
@@ -36,6 +38,10 @@ const AppRoutes: React.FC = () => (
       <Route path='*' element={<NotFound />} />
     </Route>
 
+    <Route path='/tienda/productos' element={<SidebarLayout />}>
+      <Route index element={<Catalog />} />
+    </Route>
+
     <Route
       path='/tienda'
       element={
@@ -48,6 +54,7 @@ const AppRoutes: React.FC = () => (
       <Route path='categoria/:slug' element={<Category />} />
       <Route path='categoria/:category/producto/:slug' element={<Product />} />
       <Route path='producto/:slug' element={<Product />} />
+
       <Route path='*' element={<NotFound />} />
     </Route>
 
