@@ -36,9 +36,7 @@ const AnimatedStep = memo(function AnimatedStep({ children, rxStep }: Props) {
 
   // Guardar último step al desmontar
   useEffect(() => {
-    return () => {
-      dispatch(rxStep(activeStep))
-    }
+    dispatch(rxStep(activeStep)) // setea SIEMPRE el step visible
   }, [activeStep, dispatch, rxStep])
 
   // Jump programado (no afecta la animación basada en intención)
