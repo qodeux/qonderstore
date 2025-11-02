@@ -1,19 +1,15 @@
-import type { Variants } from 'framer-motion'
-import { motion } from 'framer-motion'
-import { memo, useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { motion, type Variants } from 'framer-motion'
+import { memo, useLayoutEffect, useRef } from 'react'
+import { useDispatch } from 'react-redux'
 import { useWizard } from 'react-use-wizard'
-import { clearJumpToStep, setWizardNavDir } from '../../../store/slices/uiSlice'
-import type { RootState } from '../../../store/store'
 
 type Props = {
   children: React.ReactNode
+  /** Action creator que guarda el índice actual en Redux */
   rxStep: (step: number) => { payload: number; type: string }
 }
 
-// Dirección explícita:
-//   +1 => avanzar: entra desde la derecha (x: 100)
-//   -1 => atrás:   entra desde la izquierda (x: -100)
+// +1 entra desde la derecha, -1 desde la izquierda
 const variants: Variants = {
   enter: (d: number) => ({ x: d > 0 ? 100 : -100, opacity: 0 }),
   center: { x: 0, opacity: 1 },
@@ -21,39 +17,32 @@ const variants: Variants = {
 }
 
 const AnimatedStep = memo(function AnimatedStep({ children, rxStep }: Props) {
-  const { activeStep, goToStep } = useWizard()
+  const { activeStep } = useWizard()
   const dispatch = useDispatch()
-  const navDir = useSelector((s: RootState) => s.ui.wizardNavDir) // -1 | 0 | 1
-  const jumpToStep = useSelector((s: RootState) => s.ui.wizardJumpToStep)
 
-  // Limpia la intención una vez montado el paso (siguiente tick)
-  useEffect(() => {
-    if (navDir !== 0) {
-      const t = setTimeout(() => dispatch(setWizardNavDir(0)), 0)
-      return () => clearTimeout(t)
-    }
-  }, [navDir, dispatch])
+  // Mantiene el step previo para calcular dirección sin depender de Redux
+  const prevRef = useRef(activeStep)
+  const firstMountRef = useRef(true)
 
-  // Guardar último step al desmontar
-  useEffect(() => {
-    dispatch(rxStep(activeStep)) // setea SIEMPRE el step visible
+  const dir = firstMountRef.current
+    ? 1 // primer montaje: simula avance (entra desde derecha)
+    : activeStep > prevRef.current
+      ? 1
+      : activeStep < prevRef.current
+        ? -1
+        : 0
+
+  // Sincroniza índice visible y actualiza ref previa
+  useLayoutEffect(() => {
+    firstMountRef.current = false
+    prevRef.current = activeStep
+    dispatch(rxStep(activeStep))
   }, [activeStep, dispatch, rxStep])
-
-  // Jump programado (no afecta la animación basada en intención)
-  useEffect(() => {
-    if (Number.isInteger(jumpToStep) && jumpToStep != null && jumpToStep !== activeStep) {
-      goToStep(jumpToStep)
-      dispatch(clearJumpToStep())
-    }
-  }, [jumpToStep, activeStep, goToStep, dispatch])
-
-  // Fallback simple: si llega 0 por primer mount, asume +1 (entra desde derecha)
-  const dir = navDir === 0 ? 1 : navDir
 
   return (
     <motion.div
-      key={activeStep} // fuerza remount por paso
-      custom={dir} // usa intención explícita
+      // Nota: NO uses key={activeStep} aquí; el key está en el map del Wizard
+      custom={dir}
       variants={variants}
       initial='enter'
       animate='center'

@@ -5,10 +5,7 @@ import { cn } from '@heroui/react'
 import { LazyMotion, domAnimation, m } from 'framer-motion'
 import type { ComponentProps } from 'react'
 import React from 'react'
-import { flushSync } from 'react-dom'
-import { useDispatch } from 'react-redux'
 import { useWizard } from 'react-use-wizard'
-import { setWizardNavDir } from '../../../store/slices/uiSlice'
 
 export type RowStepProps = {
   title?: React.ReactNode
@@ -45,19 +42,12 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
     { color = 'primary', steps = [], onStepChange, hideProgressBars = false, stepClassName, className, allowAllSteps = false, ...props },
     ref
   ) => {
-    const dispatch = useDispatch()
     const { activeStep, goToStep } = useWizard()
 
     const handleClick = (stepIndex: number) => {
-      // Solo permitir saltar hacia atrás (completados) a menos que esté permitido todo
+      // Permite ir hacia atrás (completados) o a cualquiera si allowAllSteps
       if (!allowAllSteps && stepIndex > activeStep) return
-
-      const dir = Math.sign(stepIndex - activeStep) as -1 | 0 | 1
-      if (dir !== 0) {
-        // marca la intención ANTES de cambiar de paso
-        flushSync(() => dispatch(setWizardNavDir(dir)))
-      }
-
+      if (stepIndex === activeStep) return
       goToStep(stepIndex)
       onStepChange?.(stepIndex)
     }
