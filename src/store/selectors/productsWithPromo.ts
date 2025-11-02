@@ -190,3 +190,9 @@ export const selectDiscountedProducts = createSelector([selectProductsWithBestPr
 
 export const makeSelectProductWithPromoById = (id: number) =>
   createSelector([selectProductsWithBestPromo], (list) => list.find((p) => p.id === id) ?? null)
+
+export const makeSelectProductWithPromoBySlug = (slug: string) =>
+  createSelector([selectProductsWithBestPromo], (list) => {
+    const key = String(slug).toLowerCase()
+    return list.find((p) => String((p as any).slug).toLowerCase() === key) ?? null
+  })

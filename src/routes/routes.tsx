@@ -18,6 +18,7 @@ import Catalog from '../pages/Catalog'
 import Category from '../pages/Category'
 import CreateAccount from '../pages/CreateAccount'
 import Home from '../pages/Home'
+import Product from '../pages/Product'
 import FAQ from '../pages/public/FAQ'
 import MailVerify from '../pages/public/MailVerify'
 import Privacidad from '../pages/public/Privacidad'
@@ -51,6 +52,8 @@ const AppRoutes: React.FC = () => (
     >
       <Route index element={<Store />} />
       <Route path='categoria/:slug' element={<Category />} />
+      <Route path='categoria/:category/producto/:slug' element={<Product />} />
+      <Route path='producto/:slug' element={<Product />} />
 
       <Route path='*' element={<NotFound />} />
     </Route>
