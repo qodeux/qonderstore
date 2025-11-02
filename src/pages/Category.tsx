@@ -1,8 +1,9 @@
-import { Button, Input, Select, SelectItem } from '@heroui/react'
-import { ArrowDownWideNarrow, ChevronLeft } from 'lucide-react'
+import { Button, Input } from '@heroui/react'
+import { ChevronLeft } from 'lucide-react'
 import { useSelector } from 'react-redux'
 import { useNavigate, useParams } from 'react-router'
 import CategoryItem from '../components/store/CategoryItem'
+import OrderBy from '../components/store/OrderBy'
 import ProductItem from '../components/store/ProductItem'
 import { selectProductsWithBestPromo } from '../store/selectors/productsWithPromo'
 import type { RootState } from '../store/store'
@@ -61,16 +62,9 @@ const Category = () => {
         <section>
           <header className='mb-6 flex items-center justify-between'>
             <h3 className='text-3xl font-bold mb-8'>Todos los productos</h3>
-            <div className='flex items-center min-w-xs'>
-              <Input placeholder='Buscar productos...' size='md' className='mr-4' />
-              <Select label='Ordenar por' size='sm'>
-                <SelectItem key='precio'>Precio</SelectItem>
-                <SelectItem key='popularidad'>Popularidad</SelectItem>
-                <SelectItem key='valoracion'>Valoración</SelectItem>
-              </Select>
-              <Button variant='ghost' className='ml-4' isIconOnly>
-                <ArrowDownWideNarrow />
-              </Button>
+            <div className='flex items-center '>
+              <Input label='Buscar productos...' size='sm' className='mr-4  w-50' />
+              <OrderBy />
             </div>
           </header>
           <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8'>
