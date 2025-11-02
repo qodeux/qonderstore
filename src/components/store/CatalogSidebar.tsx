@@ -4,7 +4,6 @@ import { Circle } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { selectCatalogFilters, selectPriceDomain } from '../../store/selectors/catalogSelectors'
-import { selectProductsWithBestPromo } from '../../store/selectors/productsWithPromo'
 import { setBrandIds, setCategorySlugs, setPriceRange, setTypes } from '../../store/slices/productFiltersSlice'
 import type { RootState } from '../../store/store'
 import { arrayToSelection, selectionToArray } from '../../utils/selection'
@@ -21,7 +20,6 @@ const CatalogSidebar = ({ isOpen }: Props) => {
   const dispatch = useDispatch()
   const categories = useSelector((s: RootState) => s.categories.items)
   const brands = useSelector((s: RootState) => s.products.brands)
-  const products = useSelector(selectProductsWithBestPromo)
 
   const filters = useSelector(selectCatalogFilters)
   const priceDomain = useSelector(selectPriceDomain) // {min,max} global

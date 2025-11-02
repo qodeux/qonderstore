@@ -75,9 +75,16 @@ const PresignedImage = ({ keyPath, expires = 60 }: Props) => {
       setUrl(signedUrl)
       setLoading(false)
       scheduleRenew(entry)
-    } catch (e: any) {
-      if (e?.name === 'AbortError') return
-      setError(e?.message || 'error')
+    } catch (e) {
+      const err = e as unknown
+      if (err instanceof DOMException && err.name === 'AbortError') return
+
+      if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError('error')
+      }
+
       setLoading(false)
     } finally {
       abortRef.current = null

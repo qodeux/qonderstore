@@ -2,7 +2,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 
 export type ProductTypeTag = 'new' | 'sale' | 'featured' | 'popular'
-export type SortBy = 'relevance' | 'price' | 'name' | 'newest' | 'discount' | 'popularity' | 'rating'
+export type SortBy = 'relevance' | 'price' | 'popularity' | 'rating'
 export type SortDir = 'asc' | 'desc'
 
 export type ProductFiltersState = {

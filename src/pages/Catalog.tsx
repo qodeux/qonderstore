@@ -1,25 +1,17 @@
 // pages/Catalog.tsx
 import { Button, Chip, Input } from '@heroui/react'
-import { AnimatePresence, LazyMotion, domAnimation, m as motion } from 'framer-motion'
+import { AnimatePresence, LazyMotion, domAnimation, m as motion, type Transition } from 'framer-motion'
 import { LayoutGrid, List } from 'lucide-react'
-import React, { useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import OrderBy from '../components/store/OrderBy'
 import ProductItem from '../components/store/ProductItem'
+import { useDebouncedSearch } from '../hooks/useDebouncedSearch'
 import { selectCatalogFilters, selectVisibleProducts } from '../store/selectors/catalogSelectors'
 import { clearBrandIds, clearCategorySlugs, clearTypes, setPriceRange, setQuery } from '../store/slices/productFiltersSlice'
 import type { RootState } from '../store/store'
 
-const useDebounced = (fn: (...args: any[]) => void, ms = 300) => {
-  const t = useRef<number | null>(null)
-  return (...args: any[]) => {
-    if (t.current) window.clearTimeout(t.current)
-    t.current = window.setTimeout(() => fn(...args), ms)
-  }
-}
-
 // Animación tipo resorte para movimientos de layout
-const spring = { type: 'spring', stiffness: 500, damping: 40, mass: 0.8 }
+const spring: Transition = { type: 'spring', stiffness: 500, damping: 40, mass: 0.8 }
 
 // Variants para entrada/salida de items
 const itemVariants = {
@@ -33,13 +25,13 @@ const containerVariants = {
   animate: { transition: { staggerChildren: 0.03, delayChildren: 0.02 } }
 }
 
-const Catalog: React.FC = () => {
+const Catalog = () => {
   const dispatch = useDispatch()
   const filters = useSelector(selectCatalogFilters)
   const products = useSelector(selectVisibleProducts)
   const { types, categorySlugs, brandIds, priceMax, priceMin } = useSelector((state: RootState) => state.productFilters)
 
-  const debouncedQuery = useDebounced((val: string) => dispatch(setQuery(val)), 300)
+  const debouncedQuery = useDebouncedSearch((val: string) => dispatch(setQuery(val)), 300)
 
   return (
     <section className='w-full flex flex-col md:flex-row text-neutral-900'>

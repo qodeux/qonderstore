@@ -1,4 +1,5 @@
-// store/selectors/catalogSelectors.ts
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createSelector } from '@reduxjs/toolkit'
 import type { ProductFiltersState } from '../slices/productFiltersSlice'
 import type { RootState } from '../store'
