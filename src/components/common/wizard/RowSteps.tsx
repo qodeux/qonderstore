@@ -1,17 +1,11 @@
 'use client'
 
 import type { ButtonProps } from '@heroui/react'
-import type { ComponentProps } from 'react'
-
 import { cn } from '@heroui/react'
-import { useControlledState } from '@react-stately/utils'
 import { LazyMotion, domAnimation, m } from 'framer-motion'
+import type { ComponentProps } from 'react'
 import React from 'react'
-
-// 👇 NUEVO
-import { flushSync } from 'react-dom'
-import { useDispatch } from 'react-redux'
-import { setWizardNavDir } from '../../../store/slices/uiSlice'
+import { useWizard } from 'react-use-wizard'
 
 export type RowStepProps = {
   title?: React.ReactNode
@@ -21,8 +15,6 @@ export type RowStepProps = {
 export interface RowStepsProps extends React.HTMLAttributes<HTMLButtonElement> {
   steps?: RowStepProps[]
   color?: ButtonProps['color']
-  currentStep?: number
-  defaultStep?: number
   hideProgressBars?: boolean
   className?: string
   stepClassName?: string
@@ -47,40 +39,22 @@ function CheckIcon(props: ComponentProps<'svg'>) {
 
 const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
   (
-    {
-      color = 'primary',
-      steps = [],
-      defaultStep = 0,
-      onStepChange,
-      currentStep: currentStepProp,
-      hideProgressBars = false,
-      stepClassName,
-      className,
-      allowAllSteps = false,
-      ...props
-    },
+    { color = 'primary', steps = [], onStepChange, hideProgressBars = false, stepClassName, className, allowAllSteps = false, ...props },
     ref
   ) => {
-    const dispatch = useDispatch() // 👈 NUEVO
-    const [currentStep, setCurrentStep] = useControlledState(currentStepProp, defaultStep, onStepChange)
+    const { activeStep, goToStep } = useWizard()
 
-    const handleClick = (stepIndex: number, status: string) => {
-      if (status === 'complete' || allowAllSteps) {
-        // 👉 calcula dirección relativa al paso actual
-        const dir = Math.sign(stepIndex - currentStep) as -1 | 0 | 1
-        if (dir !== 0) {
-          // marca la intención ANTES del cambio de paso
-          flushSync(() => dispatch(setWizardNavDir(dir)))
-        }
-
-        setCurrentStep(stepIndex) // dispara onStepChange si es controlado
-        onStepChange?.(stepIndex) // por si lo usas como evento aparte
-      }
+    const handleClick = (stepIndex: number) => {
+      // Permite ir hacia atrás (completados) o a cualquiera si allowAllSteps
+      if (!allowAllSteps && stepIndex > activeStep) return
+      if (stepIndex === activeStep) return
+      goToStep(stepIndex)
+      onStepChange?.(stepIndex)
     }
 
     const colors = React.useMemo(() => {
-      let userColor
-      let fgColor
+      let userColor: string
+      let fgColor: string
 
       const colorsVars = [
         '[--active-fg-color:var(--step-fg-color)]',
@@ -93,10 +67,6 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
       ]
 
       switch (color) {
-        case 'primary':
-          userColor = '[--step-color:hsl(var(--heroui-primary))]'
-          fgColor = '[--step-fg-color:hsl(var(--heroui-primary-foreground))]'
-          break
         case 'secondary':
           userColor = '[--step-color:hsl(var(--heroui-secondary))]'
           fgColor = '[--step-fg-color:hsl(var(--heroui-secondary-foreground))]'
@@ -117,6 +87,7 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
           userColor = '[--step-color:hsl(var(--heroui-default))]'
           fgColor = '[--step-fg-color:hsl(var(--heroui-default-foreground))]'
           break
+        case 'primary':
         default:
           userColor = '[--step-color:hsl(var(--heroui-primary))]'
           fgColor = '[--step-fg-color:hsl(var(--heroui-primary-foreground))]'
@@ -135,19 +106,18 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
         <nav aria-label='Progress' className='-my-4 max-w-fit overflow-x-auto py-4'>
           <ol className={cn('flex flex-row flex-nowrap ', colors, className)}>
             {steps?.map((step, stepIdx) => {
-              const status = currentStep === stepIdx ? 'active' : currentStep < stepIdx ? 'inactive' : 'complete'
+              const status = activeStep === stepIdx ? 'active' : activeStep < stepIdx ? 'inactive' : 'complete'
 
               return (
                 <li key={stepIdx} className='relative flex w-full items-center pr-12 last:pr-0' aria-label={`${step.title}`}>
                   <button
-                    key={stepIdx}
                     ref={ref}
                     aria-current={status === 'active' ? 'step' : undefined}
                     className={cn(
                       'group rounded-large flex w-full cursor-pointer flex-row items-center justify-center py-2.5',
                       stepClassName
                     )}
-                    onClick={() => handleClick(stepIdx, status)}
+                    onClick={() => handleClick(stepIdx)}
                     {...props}
                   >
                     <div className='h-ful relative flex items-center'>
@@ -204,16 +174,13 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
                       <div
                         aria-hidden='true'
                         className='pointer-events-none absolute right-0 w-12 flex-none items-center'
-                        style={{
-                          // @ts-expect-error CSS variable
-                          '--idx': stepIdx
-                        }}
+                        style={{ '--idx': stepIdx } as React.CSSProperties}
                       >
                         <div
                           className={cn(
                             'relative h-0.5 w-full bg-(--inactive-bar-color) transition-colors duration-300',
                             "after:absolute after:block after:h-full after:w-0 after:bg-(--active-border-color) after:transition-[width] after:duration-300 after:content-['']",
-                            { 'after:w-full': stepIdx < currentStep }
+                            { 'after:w-full': stepIdx < activeStep }
                           )}
                         />
                       </div>
@@ -225,9 +192,7 @@ const RowSteps = React.forwardRef<HTMLButtonElement, RowStepsProps>(
           </ol>
         </nav>
 
-        <footer className={`text-${color} font-bold text-center text-lg`}>
-          {steps[currentStep > steps.length - 1 ? 0 : currentStep].title}{' '}
-        </footer>
+        <footer className={`text-${color} font-bold text-center text-lg`}>{steps[activeStep]?.title}</footer>
       </section>
     )
   }

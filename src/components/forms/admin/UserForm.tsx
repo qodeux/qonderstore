@@ -7,7 +7,10 @@ import { useSelector } from 'react-redux'
 import type { RootState } from '../../../store/store'
 import { userRoles } from '../../../types/users'
 
-const UserForm = () => {
+type Props = {
+  fromAccount?: boolean
+}
+const UserForm = ({ fromAccount }: Props) => {
   const {
     control,
     formState: { errors, dirtyFields },
@@ -19,7 +22,7 @@ const UserForm = () => {
   } = useFormContext()
 
   const [showPass, setShowPass] = useState(false)
-  const isEditing = useSelector((state: RootState) => state.users.isEditing)
+  const isEditing = useSelector((state: RootState) => state.ui.isEditing)
   const [changePassword, setChangePassword] = useState(false)
 
   // Determina si lo único sucio es 'password'
@@ -100,6 +103,7 @@ const UserForm = () => {
             errorMessage={fieldState.error?.message as string}
             disallowEmptySelection
             classNames={{ base: 'bg-white' }}
+            isDisabled={fromAccount}
           >
             {userRoles
               .filter((profile) => profile.key !== 'customer')
@@ -107,25 +111,6 @@ const UserForm = () => {
                 <SelectItem key={profile.key}>{profile.label}</SelectItem>
               ))}
           </Select>
-        )}
-      />
-
-      <Controller
-        name='user_name'
-        control={control}
-        render={({ field }) => (
-          <Input
-            label='Usuario'
-            type='text'
-            size='sm'
-            variant='bordered'
-            onChange={(e) => field.onChange(handleUserNameChange(e.target.value))}
-            value={field.value || ''}
-            maxLength={30}
-            isInvalid={!!errors.user_name}
-            errorMessage={errors.user_name?.message as string}
-            classNames={{ inputWrapper: 'bg-white' }}
-          />
         )}
       />
 
@@ -143,6 +128,24 @@ const UserForm = () => {
             isReadOnly={isEditing}
             isInvalid={!!fieldState.error}
             errorMessage={fieldState.error?.message}
+            classNames={{ inputWrapper: 'bg-white' }}
+          />
+        )}
+      />
+      <Controller
+        name='user_name'
+        control={control}
+        render={({ field }) => (
+          <Input
+            label='Usuario'
+            type='text'
+            size='sm'
+            variant='bordered'
+            onChange={(e) => field.onChange(handleUserNameChange(e.target.value))}
+            value={field.value || ''}
+            maxLength={30}
+            isInvalid={!!errors.user_name}
+            errorMessage={errors.user_name?.message as string}
             classNames={{ inputWrapper: 'bg-white' }}
           />
         )}
@@ -243,15 +246,23 @@ const UserForm = () => {
       />
 
       <div className='flex justify-between items-center p-1'>
-        <Controller
-          name='is_active'
-          control={control}
-          render={({ field }) => (
-            <Switch {...field} aria-label='Activo' size='sm' onChange={(isSelected) => field.onChange(isSelected)} isSelected={field.value}>
-              Activo
-            </Switch>
-          )}
-        />
+        {!fromAccount && (
+          <Controller
+            name='is_active'
+            control={control}
+            render={({ field }) => (
+              <Switch
+                {...field}
+                aria-label='Activo'
+                size='sm'
+                onChange={(isSelected) => field.onChange(isSelected)}
+                isSelected={field.value}
+              >
+                Activo
+              </Switch>
+            )}
+          />
+        )}
         {isEditing && (
           <button type='button' className='flex items-center text-sm gap-1' onClick={handleToggleChangePassword}>
             <RotateCcwKey size='20' />

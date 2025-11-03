@@ -1,17 +1,14 @@
 import { Tooltip } from '@heroui/react'
-import { ChevronRight, ImageOff, PackageMinus, PackagePlus, Star, TriangleAlert } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { ChevronRight, PackageMinus, PackagePlus, Star, TriangleAlert } from 'lucide-react'
+import { useMemo } from 'react'
 import { NumericFormat } from 'react-number-format'
 import { useSelector } from 'react-redux'
-import Lightbox from 'yet-another-react-lightbox'
-import Inline from 'yet-another-react-lightbox/plugins/inline'
-import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails'
 import 'yet-another-react-lightbox/plugins/thumbnails.css'
 import 'yet-another-react-lightbox/styles.css'
-import { usePresignedImages } from '../../../../hooks/usePresignedImages'
 import type { BulkDetailsForPayload, DetailsForPayload, ProductRpcPayload } from '../../../../schemas/productsPayload.schema'
 import type { RootState } from '../../../../store/store'
 import { bulkUnitsAvailable, saleTypes, saleUnitsAvailable, type RawUnitEntry } from '../../../../types/products'
+import ProductLightboxGallery from '../../../common/light-box/ProductLightbox'
 
 type Props = {
   data?: {
@@ -68,21 +65,6 @@ const Confirmation = ({ data }: Props) => {
   const orderedImages = useMemo(() => {
     return mainImage ? [mainImage, ...images.filter((img: string) => img !== mainImage)] : images
   }, [images, mainImage])
-
-  // Usa el hook de presigned URLs (depende de images)
-  const { urls, loading } = usePresignedImages(images, 200)
-
-  // Memoiza los slides del Lightbox
-  const slides = useMemo(
-    () =>
-      orderedImages.map((key) => ({
-        src: urls[key] || '/placeholder.png'
-      })),
-    [urls, orderedImages]
-  )
-
-  const [open, setOpen] = useState(false)
-  const [index, setIndex] = useState(0)
 
   // Enriquecer unidades SOLO si es bulk
   // Enriquecer unidades SOLO si es bulk
@@ -144,63 +126,19 @@ const Confirmation = ({ data }: Props) => {
   return (
     <div className='flex gap-4'>
       <section className='w-2/4'>
-        {data.product.images && data.product.images.length > 0 ? (
-          <>
-            {loading && <p className='text-sm text-gray-500'>Cargando imágenes...</p>}
-            <div className='relative border-1 border-gray-400 rounded-lg overflow-hidden'>
-              <div className='absolute top-0 right-0 z-50 rounded-full bg-white border p-1 m-2 shadow-md '>
-                <Tooltip content='Producto destacado' placement='left'>
-                  <Star fill='#ffde55' stroke='#ce7f00' />
-                </Tooltip>
-              </div>
-              <Lightbox
-                index={index}
-                slides={slides}
-                plugins={[Inline]}
-                on={{
-                  view: ({ index: current }) => {
-                    if (open === false) setIndex(current)
-                  },
-                  click: () => setOpen(true)
-                }}
-                carousel={{ padding: 0, spacing: 0, imageFit: 'cover' }}
-                inline={{
-                  style: { width: '100%', maxWidth: '900px', aspectRatio: '1/1', margin: '0 auto' }
-                }}
-                styles={{
-                  button: {
-                    color: 'black',
-                    filter: 'none',
-                    padding: 1,
-                    background: 'white',
-                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
-                  },
-                  container: { backgroundColor: 'white' }
-                }}
-              />
-            </div>
-
-            <Lightbox
-              open={open}
-              close={() => setOpen(false)}
-              index={index}
-              slides={slides}
-              on={{
-                view: ({ index: current }) => {
-                  if (open === true) setIndex(current)
-                }
-              }}
-              animation={{ fade: 0 }}
-              controller={{ closeOnPullDown: true, closeOnBackdropClick: true }}
-              plugins={[Thumbnails]}
-            />
-          </>
-        ) : (
-          <figure className='aspect-square border-1 border-gray-400 flex items-center justify-center text-gray-400 bg-gray-200 rounded-lg  flex-col'>
-            <ImageOff size={64} className='text-gray-300' />
-            Sin imágenes
-          </figure>
-        )}
+        <div className='relative border-1 border-gray-400 rounded-lg overflow-hidden'>
+          <div className='absolute top-0 right-0 z-50 rounded-full bg-white border p-1 m-2 shadow-md '>
+            <Tooltip content='Producto destacado' placement='left'>
+              <Star fill='#ffde55' stroke='#ce7f00' />
+            </Tooltip>
+          </div>
+          <ProductLightboxGallery
+            mainImage={data.product.main_image}
+            images={orderedImages} // array de keyPaths
+            showThumbnails
+            maxWidth={900}
+          />
+        </div>
 
         <div className='flex items-center justify-between'>
           <p className='flex flex-col'>
