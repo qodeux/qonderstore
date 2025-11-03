@@ -5,6 +5,7 @@ interface UIState {
   isEditing: boolean
   loading: boolean
   modalOpen: boolean
+  modalName?: string | null
   wizardCurrentIndex: number
   wizardJumpToStep: number | null
   layoutOutletHeight?: number | null
@@ -34,6 +35,9 @@ const uiSlice = createSlice({
     closeSidebar(state) {
       state.sidebarOpen = false
     },
+    setEditMode(state, action: PayloadAction<boolean>) {
+      state.isEditing = action.payload
+    },
     setLoading(state, action) {
       state.loading = action.payload
     },
@@ -42,6 +46,9 @@ const uiSlice = createSlice({
     },
     closeModal(state) {
       state.modalOpen = false
+    },
+    setModal(state, action: PayloadAction<string | null>) {
+      state.modalName = action.payload
     },
     setWizardCurrentStep(state, action) {
       state.wizardCurrentIndex = action.payload
@@ -67,6 +74,8 @@ export const {
   setLoading,
   openModal,
   closeModal,
+  setModal,
+  setEditMode,
   setWizardCurrentStep,
   requestJumpToStep,
   clearJumpToStep,

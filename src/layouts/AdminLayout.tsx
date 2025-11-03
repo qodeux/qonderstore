@@ -1,13 +1,15 @@
+import { useDisclosure } from '@heroui/react'
 import { useEffect, useRef } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Outlet, useLocation } from 'react-router'
 import AdminFooter from '../components/common/AdminFooter'
 import AdminSidebar from '../components/common/AdminSidebar'
 import Header from '../components/common/Header'
+import AccountModal from '../components/modals/admin/AccountModal'
 import { useProviders } from '../hooks/useProviders'
 import { useRequests } from '../hooks/useRequests'
 import { setLayoutOutletHeight } from '../store/slices/uiSlice'
-import type { AppDispatch } from '../store/store'
+import type { AppDispatch, RootState } from '../store/store'
 
 const AdminLayout = () => {
   useProviders()
@@ -15,6 +17,8 @@ const AdminLayout = () => {
   const dispatch = useDispatch<AppDispatch>()
   const contentRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
+  const { isOpen, onOpenChange, onOpen, onClose } = useDisclosure()
+  const { modalName, modalOpen } = useSelector((state: RootState) => state.ui)
 
   useEffect(() => {
     const updateSize = () => {
@@ -26,6 +30,12 @@ const AdminLayout = () => {
     window.addEventListener('resize', updateSize)
     return () => window.removeEventListener('resize', updateSize)
   }, [dispatch])
+
+  useEffect(() => {
+    if (modalName === 'account' && modalOpen) {
+      onOpen()
+    }
+  }, [modalName, modalOpen, onOpen])
 
   return (
     <main className='flex min-h-screen flex-col'>
@@ -43,6 +53,7 @@ const AdminLayout = () => {
           <AdminFooter />
         </div>
       </section>
+      <AccountModal isOpen={isOpen} onOpenChange={onOpenChange} />
     </main>
   )
 }
