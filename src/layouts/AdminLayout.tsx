@@ -8,12 +8,14 @@ import Header from '../components/common/Header'
 import AccountModal from '../components/modals/admin/AccountModal'
 import { useProviders } from '../hooks/useProviders'
 import { useRequests } from '../hooks/useRequests'
+import { useSupplyOrders } from '../hooks/useSupplyOrders'
 import { setLayoutOutletHeight } from '../store/slices/uiSlice'
 import type { AppDispatch, RootState } from '../store/store'
 
 const AdminLayout = () => {
   useProviders()
   useRequests()
+  useSupplyOrders()
   const dispatch = useDispatch<AppDispatch>()
   const contentRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
