@@ -7,11 +7,11 @@ import FrontwebLayout from '../layouts/FrontwebLayout'
 import NotFound from '../pages/404'
 import Categories from '../pages/admin/Categories'
 import Dashboard from '../pages/admin/Dashboard'
-import PedidosProveedores from '../pages/admin/PedidosProveedores'
 import Products from '../pages/admin/Products'
 import Promos from '../pages/admin/Promos'
 import Providers from '../pages/admin/Providers'
 import Requests from '../pages/admin/Requests'
+import SupplyOrders from '../pages/admin/SupplyOrders'
 import Users from '../pages/admin/Users'
 import Login from '../pages/auth/Login'
 import Category from '../pages/Category'
@@ -66,7 +66,7 @@ const AppRoutes: React.FC = () => (
       <Route path='productos' element={<Products />} />
       <Route path='promociones' element={<Promos />} />
       <Route path='proveedores' element={<Providers />} />
-      <Route path='pedidos-proveedores' element={<PedidosProveedores />} />
+      <Route path='pedidos-proveedores' element={<SupplyOrders />} />
       <Route path='solicitudes-acceso' element={<Requests />} />
       <Route
         path='usuarios'

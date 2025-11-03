@@ -28,7 +28,6 @@ import { Controller } from 'react-hook-form'
 import { useSelector } from 'react-redux'
 import { entityRegistry, type EntityAdapter, type EntityKind, type MenuAction } from '../../services/entityRegistry'
 import type { RootState } from '../../store/store'
-import { request_status } from '../../types/requests'
 import { formatDate, formatRelativeTime, toDate } from '../../utils/date'
 
 export type PresetKey = 'is_active' | 'featured' | 'actions' | 'input' | 'date' | 'money' | 'type'
@@ -50,8 +49,14 @@ export type DateConfig = {
   timeZone?: string
 }
 
+type TypeColor = ChipVariantProps['color']
+type TypeMappedObj<V> = {
+  label: V
+  color?: TypeColor
+}
+
 export type TypeConfig<K extends PropertyKey = string, V = React.ReactNode> = {
-  map: Record<K, V>
+  map: Record<K, V> | Record<K, TypeMappedObj<V>>
   wrapper?: { type: 'chip'; variant: ChipVariantProps['variant'] } | { type: 'checkbox' }
   fallback?: V | ((raw: unknown, row: any) => V)
   keyTransform?: (raw: unknown) => K
@@ -277,41 +282,37 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
   const renderPreset = (preset: PresetKey, row: T, column: Key): ReactElement | null => {
     switch (preset) {
       case 'type': {
-        // 1) Encuentra la columna y estrecha por preset
         const col = columns.find((c) => String(c.key) === String(column))
         if (!col || col.preset !== 'type') {
-          // Si no la encuentra o no coincide el preset, muestra el valor crudo
           const raw = (row as any)[String(column)]
           return <>{raw ?? ''}</>
         }
 
-        // 2) Ya es ColumnType<T>; presetConfig es TypeConfig
         const cfg = col.presetConfig
-
-        // 3) Obtén el valor crudo
         const raw = (row as any)[String(col.key)]
-
-        // 4) Normaliza la clave si te pasaron keyTransform
         const k = cfg.keyTransform ? cfg.keyTransform(raw) : (raw as PropertyKey)
 
-        // 5) Busca el label en el map tipado
-        const label = (cfg.map as any)[k as any]
+        let label: React.ReactNode | undefined
+        let color: ChipVariantProps['color'] | undefined
 
-        let color
-        switch (col.key) {
-          case 'status': {
-            color = request_status.find((s) => s.key === k)?.color
-          }
+        const entry = (cfg.map as Record<PropertyKey, unknown>)[k]
+
+        if (entry !== undefined && entry !== null && typeof entry === 'object' && 'label' in (entry as any)) {
+          // Forma K -> { label, color? }
+          const obj = entry as { label: React.ReactNode; color?: ChipVariantProps['color'] }
+          label = obj.label
+          color = obj.color
+        } else {
+          // Forma K -> V
+          label = entry as React.ReactNode
         }
 
-        // 7) Si hay wrapper, envuelve el label
         if (cfg.wrapper) {
-          const content = <>{label}</>
-
+          const content = <>{label ?? ''}</>
           switch (cfg.wrapper.type) {
             case 'chip':
               return (
-                <Chip variant={cfg.wrapper.variant} color={color} size='sm'>
+                <Chip variant={cfg.wrapper.variant} color={color ?? 'default'} size='sm'>
                   {content}
                 </Chip>
               )
@@ -320,7 +321,6 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
           }
         }
 
-        // 7) Resuelve label o fallback
         if (label != null) return <>{label}</>
         if (typeof cfg.fallback === 'function') return <>{cfg.fallback(raw, row)}</>
         return <>{cfg.fallback ?? ''}</>
