@@ -35,6 +35,9 @@ const uiSlice = createSlice({
     closeSidebar(state) {
       state.sidebarOpen = false
     },
+    setEditMode(state, action: PayloadAction<boolean>) {
+      state.isEditing = action.payload
+    },
     setLoading(state, action) {
       state.loading = action.payload
     },
@@ -72,6 +75,7 @@ export const {
   openModal,
   closeModal,
   setModal,
+  setEditMode,
   setWizardCurrentStep,
   requestJumpToStep,
   clearJumpToStep,

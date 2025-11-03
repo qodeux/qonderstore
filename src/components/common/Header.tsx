@@ -16,7 +16,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
 import Logo from '../../assets/logo-full-Q.svg?react'
 import { logoutUser } from '../../store/slices/authSlice'
-import { openModal, setModal } from '../../store/slices/uiSlice'
+import { openModal, setEditMode, setModal } from '../../store/slices/uiSlice'
 import type { AppDispatch, RootState } from '../../store/store'
 
 const Header = () => {
@@ -38,6 +38,7 @@ const Header = () => {
     // Aquí puedes agregar la lógica para abrir el modal de cuenta
     console.log('Abriendo modal de cuenta...')
     dispatch(setModal('account'))
+    dispatch(setEditMode(true))
     dispatch(openModal())
   }
 

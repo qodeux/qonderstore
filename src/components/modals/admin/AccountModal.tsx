@@ -19,7 +19,7 @@ const AccountModal = ({ isOpen, onOpenChange }: Props) => {
 
   const userForm = useForm({
     resolver: zodResolver(userInputUpdateSchema),
-    shouldUnregister: true,
+    shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange'
   })
@@ -72,14 +72,14 @@ const AccountModal = ({ isOpen, onOpenChange }: Props) => {
             <ModalBody>
               <Tabs aria-label='Options' disableAnimation color='primary'>
                 <Tab key='data' title='Datos de la cuenta'>
-                  <FormProvider {...userForm}>
+                  <FormProvider {...userForm} key={isOpen ? (user?.id ?? 'new') : 'closed'}>
                     <UserForm fromAccount />
                   </FormProvider>
                 </Tab>
                 {/* <Tab key='config' title='Configuración' /> */}
               </Tabs>
             </ModalBody>
-            <ModalFooter>
+            <ModalFooter className='pt-0'>
               <Button color='danger' variant='light' onPress={onClose} tabIndex={-1}>
                 Cerrar
               </Button>

@@ -22,7 +22,7 @@ const UserForm = ({ fromAccount }: Props) => {
   } = useFormContext()
 
   const [showPass, setShowPass] = useState(false)
-  const isEditing = useSelector((state: RootState) => state.users.isEditing)
+  const isEditing = useSelector((state: RootState) => state.ui.isEditing)
   const [changePassword, setChangePassword] = useState(false)
 
   // Determina si lo único sucio es 'password'
@@ -115,25 +115,6 @@ const UserForm = ({ fromAccount }: Props) => {
       />
 
       <Controller
-        name='user_name'
-        control={control}
-        render={({ field }) => (
-          <Input
-            label='Usuario'
-            type='text'
-            size='sm'
-            variant='bordered'
-            onChange={(e) => field.onChange(handleUserNameChange(e.target.value))}
-            value={field.value || ''}
-            maxLength={30}
-            isInvalid={!!errors.user_name}
-            errorMessage={errors.user_name?.message as string}
-            classNames={{ inputWrapper: 'bg-white' }}
-          />
-        )}
-      />
-
-      <Controller
         name='email'
         control={control}
         render={({ field, fieldState }) => (
@@ -147,6 +128,24 @@ const UserForm = ({ fromAccount }: Props) => {
             isReadOnly={isEditing}
             isInvalid={!!fieldState.error}
             errorMessage={fieldState.error?.message}
+            classNames={{ inputWrapper: 'bg-white' }}
+          />
+        )}
+      />
+      <Controller
+        name='user_name'
+        control={control}
+        render={({ field }) => (
+          <Input
+            label='Usuario'
+            type='text'
+            size='sm'
+            variant='bordered'
+            onChange={(e) => field.onChange(handleUserNameChange(e.target.value))}
+            value={field.value || ''}
+            maxLength={30}
+            isInvalid={!!errors.user_name}
+            errorMessage={errors.user_name?.message as string}
             classNames={{ inputWrapper: 'bg-white' }}
           />
         )}
