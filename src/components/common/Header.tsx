@@ -1,5 +1,6 @@
 import {
   Avatar,
+  Badge,
   Button,
   Dropdown,
   DropdownItem,
@@ -9,14 +10,18 @@ import {
   Navbar,
   NavbarBrand,
   NavbarContent,
-  NavbarItem
+  NavbarItem,
+  NavbarMenu,
+  NavbarMenuItem,
+  NavbarMenuToggle
 } from '@heroui/react'
-import { Power } from 'lucide-react'
+import { HelpCircle, HomeIcon, Power, Settings, ShoppingCart, Truck, User } from 'lucide-react'
+import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
 import Logo from '../../assets/logo-full-Q.svg?react'
 import { logoutUser } from '../../store/slices/authSlice'
-import { openModal, setEditMode, setModal } from '../../store/slices/uiSlice'
+import { openModal, setCartOpen, setEditMode, setModal } from '../../store/slices/uiSlice'
 import type { AppDispatch, RootState } from '../../store/store'
 
 const Header = () => {
@@ -25,47 +30,80 @@ const Header = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
+  const { totalQuantity } = useSelector((state: RootState) => state.cart)
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+
   const isLoginPage = location.pathname === '/login'
+  const isOpenCart = useSelector((state: RootState) => state.ui.cartOpen)
 
   const handleLogout = () => {
-    // Aquí puedes agregar la lógica para manejar el cierre de sesión
     console.log('Cerrando sesión...')
     dispatch(logoutUser())
     navigate('/login')
   }
 
   const handleAccountModalOpen = () => {
-    // Aquí puedes agregar la lógica para abrir el modal de cuenta
     console.log('Abriendo modal de cuenta...')
     dispatch(setModal('account'))
     dispatch(setEditMode(true))
     dispatch(openModal())
   }
 
+  const handleToggleCart = () => {
+    console.log('Abriendo carrito...')
+    dispatch(setCartOpen(!isOpenCart))
+    // Lógica para abrir el carrito
+  }
+
+  const menuItems = [
+    { icon: <HomeIcon />, label: 'Tienda', link: '/tienda' },
+    { icon: <ShoppingCart />, label: 'Productos', link: '/tienda/productos' },
+    { icon: <User />, label: 'Mi cuenta', link: '/mi-cuenta' },
+    { icon: <Settings />, label: 'Configuracion', link: '/configuracion' },
+    { icon: <Truck />, label: 'Envios', link: '/envios' },
+    { icon: <HelpCircle />, label: 'Ayuda y soporte', link: '/ayuda' },
+    { icon: <Power />, label: 'Cerrar sesión', link: '/logout' }
+  ]
+
   return (
-    <Navbar className='bg-black text-white fixed top-0 z-50 h-16' maxWidth={isAuthenticated ? 'full' : '2xl'}>
+    <Navbar
+      onMenuOpenChange={setIsMenuOpen}
+      className='bg-black text-white fixed top-0 z-60 h-16'
+      maxWidth={isAuthenticated ? 'full' : '2xl'}
+    >
+      <NavbarMenuToggle aria-label={isMenuOpen ? 'Close menu' : 'Open menu'} className='sm:hidden' />
       <NavbarBrand>
         <Link href={isAuthenticated ? (user && ['admin', 'staff'].includes(user.role) ? '/admin' : '/tienda') : '/'}>
-          <Logo className='h-10 text-white max-w-48' />
+          <Logo className='h-6 md:h-10 text-white max-w-48' />
         </Link>
       </NavbarBrand>
-      {isAuthenticated && (
-        <NavbarContent className='hidden sm:flex gap-4 ' justify='center'>
-          <NavbarItem>
-            <Link href='/'>Home</Link>
-          </NavbarItem>
-          <NavbarItem>
-            <Link href='/tienda'>Tienda</Link>
-          </NavbarItem>
-          <NavbarItem>
-            <Link href='/tienda/productos'>Productos</Link>
-          </NavbarItem>
-        </NavbarContent>
-      )}
+
       <NavbarContent justify='end'>
-        <NavbarItem>
-          {isAuthenticated ? (
-            <>
+        {isAuthenticated ? (
+          <>
+            <NavbarItem>
+              <Link href='/tienda'>Tienda</Link>
+            </NavbarItem>
+            <NavbarItem>
+              <Link href='/tienda/productos'>Productos</Link>
+            </NavbarItem>
+            <NavbarItem>
+              <Badge
+                className='dark'
+                color='danger'
+                content={totalQuantity}
+                shape='circle'
+                classNames={{ badge: 'absolute bottom-3' }}
+                placement='bottom-right'
+                isInvisible={totalQuantity === 0}
+              >
+                <Button isIconOnly variant='light' onPress={handleToggleCart} className='text-white' radius='full'>
+                  <ShoppingCart />
+                </Button>
+              </Badge>
+            </NavbarItem>
+            <NavbarItem>
               <Dropdown placement='bottom-start'>
                 <DropdownTrigger>
                   <Avatar
@@ -94,16 +132,32 @@ const Header = () => {
                   </DropdownItem>
                 </DropdownMenu>
               </Dropdown>
-            </>
-          ) : (
-            !isLoginPage && (
+            </NavbarItem>
+          </>
+        ) : (
+          !isLoginPage && (
+            <NavbarItem>
               <Button size='sm' as={Link} color='primary' href='/login' variant='ghost'>
                 Login
               </Button>
-            )
-          )}
-        </NavbarItem>
+            </NavbarItem>
+          )
+        )}
       </NavbarContent>
+      <NavbarMenu className='dark bg-black/90 h-auto max-h-fit'>
+        {menuItems.map((item, index) => (
+          <NavbarMenuItem key={`${item}-${index}`}>
+            <Link
+              className='w-full gap-2'
+              color={index === 2 ? 'primary' : index === menuItems.length - 1 ? 'danger' : 'foreground'}
+              href={item.link}
+              size='lg'
+            >
+              {item.icon} {item.label}
+            </Link>
+          </NavbarMenuItem>
+        ))}
+      </NavbarMenu>
     </Navbar>
   )
 }
