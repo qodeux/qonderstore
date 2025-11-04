@@ -28,8 +28,7 @@ const store = configureStore({
     promotions: promotionReducer,
     requestAccess: requestAccessReducer,
     productFilters: productFiltersReducer,
-    cart: cartReducer
-    productFilters: productFiltersReducer,
+    cart: cartReducer,
     supplyOrders: supplyOrdersReducer
   }
 })
