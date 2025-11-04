@@ -12,6 +12,7 @@ import Products from '../pages/admin/Products'
 import Promos from '../pages/admin/Promos'
 import Providers from '../pages/admin/Providers'
 import Requests from '../pages/admin/Requests'
+import SupplyOrders from '../pages/admin/SupplyOrders'
 import Users from '../pages/admin/Users'
 import Login from '../pages/auth/Login'
 import Catalog from '../pages/Catalog'
@@ -78,7 +79,23 @@ const AppRoutes: React.FC = () => (
       <Route path='categorias' element={<Categories />} />
       <Route path='productos' element={<Products />} />
       <Route path='promociones' element={<Promos />} />
-      <Route path='proveedores' element={<Providers />} />
+
+      <Route
+        path='proveedores'
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Providers />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='pedidos-proveedores'
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <SupplyOrders />
+          </ProtectedRoute>
+        }
+      />
       <Route path='solicitudes-acceso' element={<Requests />} />
       <Route
         path='usuarios'

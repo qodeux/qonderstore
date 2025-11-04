@@ -1,11 +1,22 @@
 import React, { useEffect, useState } from 'react'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { Boxes, ChevronRight, CirclePercent, ClipboardList, Combine, Layers, LayoutDashboard, Package, Users } from 'lucide-react'
-import { useDispatch, useSelector } from 'react-redux'
+import {
+  BookMarked,
+  Boxes,
+  ChevronRight,
+  CirclePercent,
+  ClipboardList,
+  Combine,
+  Layers,
+  LayoutDashboard,
+  Package,
+  SendToBack,
+  Users
+} from 'lucide-react'
+import { useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
-import { performLogout } from '../../store/slices/authSlice'
-import type { AppDispatch, RootState } from '../../store/store'
+import type { RootState } from '../../store/store'
 
 interface AdminSidebarProps {
   isOpen: boolean
@@ -46,7 +57,11 @@ const menuItems: MenuItem[] = [
   {
     label: 'Proveedores',
     icon: <Boxes className='w-5 h-5' />,
-    href: '/admin/proveedores'
+    submenu: [
+      { label: 'Directorio', href: '/admin/proveedores', icon: <BookMarked className='w-4 h-4' /> },
+      { label: 'Pedidos', href: '/admin/pedidos-proveedores', icon: <SendToBack className='w-4 h-4' /> }
+    ],
+    allowedRoles: ['admin']
   },
   {
     label: 'Solicitudes',
@@ -85,17 +100,11 @@ const menuItems: MenuItem[] = [
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const dispatch = useDispatch<AppDispatch>()
   const [expandedItem, setExpandedItem] = useState<string | null>(null)
   const { user } = useSelector((state: RootState) => state.auth)
 
   const toggleExpand = (label: string) => {
     setExpandedItem(expandedItem === label ? null : label)
-  }
-
-  const handleLogout = () => {
-    dispatch(performLogout())
-    navigate('/login')
   }
 
   const matchBySegment = (base: string, path: string) => path === base || path.startsWith(base + '/')
@@ -111,7 +120,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
   useEffect(() => {
     const activeParent = menuItems.find((mi) => mi.submenu && isSubmenuActive(mi.submenu))
     if (activeParent) setExpandedItem(activeParent.label)
+    //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname])
+
+  if (!user) return null
 
   return (
     <aside
@@ -125,7 +137,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
         <ul className='space-y-2'>
           {/* Solo mostrar items permitidos por rol */}
           {menuItems
-            //.filter((item) => !item.allowedRoles || item.allowedRoles.includes(user?.role))
+            .filter((item) => !item.allowedRoles || item.allowedRoles.includes(user?.role))
             .map((item, index) => (
               <li key={index}>
                 {item.submenu ? (
@@ -188,15 +200,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
                 )}
               </li>
             ))}
-          {/* <li>
-            <button
-              onClick={handleLogout}
-              className='flex items-center w-full gap-2 px-4 py-2 text-red-600 rounded hover:bg-red-50 transition-colors duration-200'
-            >
-              <LogOut className='w-5 h-5' />
-              <span>Cerrar Sesión</span>
-            </button>
-          </li> */}
         </ul>
       </nav>
     </aside>

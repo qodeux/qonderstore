@@ -14,6 +14,8 @@ import requestAccessReducer from './slices/requestAccessSlice'
 
 import cartReducer from './slices/cartSlice'
 
+import supplyOrdersReducer from './slices/supplyOrdersSlice'
+
 const store = configureStore({
   reducer: {
     ui: uiReducer,
@@ -27,6 +29,8 @@ const store = configureStore({
     requestAccess: requestAccessReducer,
     productFilters: productFiltersReducer,
     cart: cartReducer
+    productFilters: productFiltersReducer,
+    supplyOrders: supplyOrdersReducer
   }
 })
 
