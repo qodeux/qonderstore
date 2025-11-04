@@ -1,12 +1,12 @@
-// UnitSelector.tsx
 import { Select, SelectItem, type Selection } from '@heroui/react'
 import { useMemo, useState } from 'react'
 import type { BulkUnits } from '../../schemas/products.schema'
+import { bulkUnitsAvailable } from '../../types/products'
 
 type UnitSelectorProps = {
   quantity: number
   baseUnit?: string
-  units?: BulkUnits
+  units?: BulkUnits // OBJETO (no array)
   value?: string
   onChange?: (unitId: string) => void
   className?: string
@@ -21,16 +21,27 @@ const LABELS: Record<string, { sing: string; plural: string }> = {
 const titleCase = (s?: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '')
 
 export default function UnitSelector({ quantity, baseUnit, units, value, onChange, className }: UnitSelectorProps) {
-  // 1) Solo claves provenientes de units + baseUnit (si no estaba)
-  const keys = useMemo(() => {
-    console.log(units)
+  const orderMap = useMemo(() => Object.fromEntries(bulkUnitsAvailable.map((u, i) => [u.key, i])) as Record<string, number>, [])
 
+  // Claves desde units + baseUnit (si no estaba)
+  const rawKeys = useMemo(() => {
     const fromUnits = Object.keys(units ?? {})
     const maybeBase = baseUnit ? [baseUnit] : []
     return Array.from(new Set([...fromUnits, ...maybeBase]))
   }, [units, baseUnit])
 
-  // 2) Construir opciones usando LABELS solo para los textos (no para agregar claves)
+  // Ordenar: gr → oz → lb (desconocidas al final)
+  const keys = useMemo(
+    () =>
+      [...rawKeys].sort((a, b) => {
+        const ia = orderMap[a] ?? Number.POSITIVE_INFINITY
+        const ib = orderMap[b] ?? Number.POSITIVE_INFINITY
+        return ia - ib
+      }),
+    [rawKeys, orderMap]
+  )
+
+  // Opciones con labels
   const options = useMemo(
     () =>
       keys.map((key) => {
@@ -42,7 +53,7 @@ export default function UnitSelector({ quantity, baseUnit, units, value, onChang
     [keys]
   )
 
-  // 3) Fallback de selección
+  // Selección (controlado/semicontrolado)
   const firstKey = options[0]?.key
   const [local, setLocal] = useState<string | undefined>(value ?? baseUnit ?? firstKey)
   const selected = value ?? local ?? baseUnit ?? firstKey
@@ -60,6 +71,7 @@ export default function UnitSelector({ quantity, baseUnit, units, value, onChang
       label='Unidad'
       size='sm'
       className={className ?? 'w-full md:max-w-[160px]'}
+      classNames={{ trigger: 'bg-white border-black' }}
       selectedKeys={selectedKeys}
       onSelectionChange={handleSelection}
       variant='bordered'

@@ -6,7 +6,7 @@ export type CartItem = {
   id: number
   title: string
   basePrice: number
-  price: number // precio unitario base
+  price: number // precio unitario (congelado al agregar)
   discount?: number // descuento unitario (monto)
   quantity: number
   stock: number
@@ -22,31 +22,13 @@ type CartState = {
   items: CartItem[]
   totalQuantity: number
   totalPrice: number // total a pagar (ya con descuento)
-  subtotal: number // suma sin descuento (opcional para UI)
-  totalDiscount: number // ahorro total (opcional para UI)
+  subtotal: number // suma sin descuento
+  totalDiscount: number // ahorro total
 }
 
 const STORAGE_KEY = 'qonderstore_cart_v1'
 
-const loadInitialState = (): CartState => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) throw new Error('no cart')
-    const items: CartItem[] = JSON.parse(raw)
-    return computeTotals(items)
-  } catch {
-    return { items: [], totalQuantity: 0, totalPrice: 0, subtotal: 0, totalDiscount: 0 }
-  }
-}
-
-const saveState = (items: CartItem[]) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
-  } catch {
-    // ignore write errors
-  }
-}
-
+// ====== Utils ======
 const toCents = (n: number) => Math.round((n ?? 0) * 100)
 const fromCents = (c: number) => Number((c / 100).toFixed(2))
 const ceilPrice = (n: number) => Math.ceil(Number.isFinite(n) ? n : 0)
@@ -54,8 +36,6 @@ const ceilPrice = (n: number) => Math.ceil(Number.isFinite(n) ? n : 0)
 const unitFinalCents = (it: CartItem) => {
   const base = toCents(it.price)
   const disc = toCents(it.discount ?? 0)
-
-  // evita negativos si el descuento supera al precio
   return Math.max(0, base - Math.max(0, disc))
 }
 
@@ -87,6 +67,33 @@ export const computeTotals = (items: CartItem[]): CartState => {
   }
 }
 
+const loadInitialState = (): CartState => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) throw new Error('no cart')
+    const items: CartItem[] = JSON.parse(raw).map((it: any, i: number) => ({
+      lineId: it.lineId ?? `${it.id}-${it.unitSelected ?? it.base_unit ?? ''}-${i}-${Date.now()}`,
+      ...it
+    }))
+    return computeTotals(items)
+  } catch {
+    return { items: [], totalQuantity: 0, totalPrice: 0, subtotal: 0, totalDiscount: 0 }
+  }
+}
+
+const saveState = (items: CartItem[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+  } catch {
+    // ignore
+  }
+}
+
+// ====== Helpers ======
+const sameLine = (a: CartItem, b: CartItem) =>
+  a.id === b.id && (a.unitSelected ?? a.base_unit ?? null) === (b.unitSelected ?? b.base_unit ?? null)
+
+// ====== Slice ======
 const initialState: CartState = loadInitialState()
 
 const cartSlice = createSlice({
@@ -95,34 +102,34 @@ const cartSlice = createSlice({
   reducers: {
     addItem(state, action: PayloadAction<CartItem>) {
       const incoming = { ...action.payload }
+      // Normaliza unidad entrante
+      incoming.unitSelected = incoming.unitSelected ?? incoming.base_unit
       const addQty = Math.max(1, incoming.quantity ?? 1)
 
-      const idx = state.items.findIndex((it) => it.id === incoming.id)
+      const idx = state.items.findIndex((it) => sameLine(it, incoming))
 
       if (idx >= 0) {
         const item = state.items[idx]
-        const stock = item.stock ?? 0 // ajusta si manejas stock indefinido
-        const newQty = item.quantity + addQty
+        const stock = Number.isFinite(item.stock) ? item.stock : Infinity
+        const nextQ = item.quantity + addQty
 
-        if (newQty > stock) {
-          // Excede stock: marca error y NO cambies la cantidad
+        if (nextQ > stock) {
           item.error = 'Stock insuficiente para agregar más unidades'
         } else {
-          // Dentro de stock: limpia error y actualiza cantidad
-          item.quantity = newQty
+          item.quantity = nextQ
           item.error = undefined
+          // Opcional: actualizar precio a la promo/unidad más reciente
+          // item.price = ceilPrice(incoming.price)
+          // item.basePrice = incoming.basePrice ?? incoming.price
         }
       } else {
-        const stock = incoming.stock ?? 0
-        if (addQty > stock) {
-          // No lo agregues si ya excede el stock de entrada
-          return
-        }
+        const stock = Number.isFinite(incoming.stock) ? incoming.stock : Infinity
+        if (addQty > stock) return
         state.items.push({
           ...incoming,
           price: ceilPrice(incoming.price),
           basePrice: incoming.basePrice ?? incoming.price,
-          unitSelected: incoming.unitSelected ?? incoming.base_unit, // opcional
+          unitSelected: incoming.unitSelected,
           quantity: addQty,
           error: undefined
         })
@@ -132,40 +139,35 @@ const cartSlice = createSlice({
       state.items = updated.items
       state.totalQuantity = updated.totalQuantity
       state.totalPrice = updated.totalPrice
-
       saveState(state.items)
     },
 
-    removeItem(state, action: PayloadAction<{ id: number }>) {
-      const { id } = action.payload
-      state.items = state.items.filter((it) => !(it.id === id))
+    removeItem(state, action: PayloadAction<{ id: number; unitSelected?: string }>) {
+      const { id, unitSelected } = action.payload
+      state.items = state.items.filter(
+        (it) => !(it.id === id && (it.unitSelected ?? it.base_unit ?? null) === (unitSelected ?? it.base_unit ?? null))
+      )
       const updated = computeTotals(state.items)
       state.totalQuantity = updated.totalQuantity
       state.totalPrice = updated.totalPrice
       saveState(state.items)
     },
 
-    updateQuantity(state, action: PayloadAction<{ id: number; quantity: number }>) {
-      const { id, quantity } = action.payload
-      const idx = state.items.findIndex((it) => it.id === id)
-
+    updateQuantity(state, action: PayloadAction<{ id: number; unitSelected?: string; quantity: number }>) {
+      const { id, unitSelected, quantity } = action.payload
+      const idx = state.items.findIndex(
+        (it) => it.id === id && (it.unitSelected ?? it.base_unit ?? null) === (unitSelected ?? it.base_unit ?? null)
+      )
       if (idx >= 0) {
         const item = state.items[idx]
-        const stock = item.stock ?? 0
-
-        if (quantity <= 0) {
-          // Eliminar si la cantidad es 0 o menor
-          state.items.splice(idx, 1)
-        } else if (quantity > stock) {
-          // No permitir exceder el stock
-          item.error = 'Stock insuficiente, no se actualizó la cantidad'
-        } else {
-          // Actualizar cantidad válida
+        const stock = Number.isFinite(item.stock) ? item.stock : Infinity
+        if (quantity <= 0) state.items.splice(idx, 1)
+        else if (quantity > stock) item.error = 'Stock insuficiente, no se actualizó la cantidad'
+        else {
           item.quantity = quantity
           item.error = undefined
         }
       }
-
       const updated = computeTotals(state.items)
       state.items = updated.items
       state.totalQuantity = updated.totalQuantity
@@ -173,7 +175,7 @@ const cartSlice = createSlice({
       saveState(state.items)
     },
 
-    updateUnit(state, action: PayloadAction<{ id: string | number; unit: string; unitsMap?: BulkUnits }>) {
+    updateUnit(state, action: PayloadAction<{ id: number; unit: string; unitsMap?: BulkUnits }>) {
       const { id, unit, unitsMap } = action.payload
       const idx = state.items.findIndex((it) => it.id === id)
       if (idx < 0) return
@@ -185,18 +187,13 @@ const cartSlice = createSlice({
       let nextPrice: number | undefined
 
       if (unit === baseUnit) {
-        // 1) Si la base existe en el mapa, úsala; si no, usa el precio base guardado
         const fromMap = baseUnit ? source[baseUnit]?.price : undefined
-        nextPrice = Number.isFinite(fromMap) ? fromMap : item.basePrice
+        nextPrice = Number.isFinite(fromMap as number) ? (fromMap as number) : item.basePrice
       } else {
-        // 2) Unidades alternativas siempre vienen del mapa
         nextPrice = source?.[unit]?.price
       }
 
-      if (!Number.isFinite(nextPrice as number)) {
-        // opcional: item.error = 'Precio inválido para la unidad seleccionada'
-        return
-      }
+      if (!Number.isFinite(nextPrice as number)) return
 
       item.price = ceilPrice(nextPrice as number)
       item.unitSelected = unit

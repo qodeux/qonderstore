@@ -1,59 +1,185 @@
-import { Button, NumberInput, Progress, Select, SelectItem } from '@heroui/react'
+import { Button, Progress } from '@heroui/react'
 import { Rating } from '@smastrom/react-rating'
 import '@smastrom/react-rating/style.css'
-import { ChevronRight, HeartPlus, Minus, Plus } from 'lucide-react'
-
+import { AnimatePresence, motion } from 'framer-motion'
+import { ChevronRight, HeartPlus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useParams } from 'react-router'
 
 import ProductLightboxGallery from '../components/common/light-box/ProductLightbox'
 import ProductItem from '../components/store/ProductItem'
-import { makeSelectProductWithPromoBySlug, selectProductsWithBestPromo } from '../store/selectors/productsWithPromo'
+import QuantitySelector from '../components/store/QuantitySelector'
+import UnitSelector from '../components/store/UnitSelector'
+import { makeSelectProductWithPromoBySlug, selectProductsWithBestPromo, type ProductWithPromo } from '../store/selectors/productsWithPromo'
+import { addItem } from '../store/slices/cartSlice'
+import { setCartOpen } from '../store/slices/uiSlice'
 import type { RootState } from '../store/store'
 import { formatMoney } from '../utils/money'
 
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyRecord = Record<string, any>
+
 const Product = () => {
   const { slug } = useParams()
+  const dispatch = useDispatch()
 
   const categories = useSelector((state: RootState) => state.categories.items)
   const brands = useSelector((state: RootState) => state.products.brands)
   const selectBySlug = makeSelectProductWithPromoBySlug(slug ?? '')
   const product = useSelector(selectBySlug)
-  const products = useSelector(selectProductsWithBestPromo)
+  const products = useSelector(selectProductsWithBestPromo).filter((p) => p.is_active)
+  const cartItems = useSelector((s: RootState) => s.cart.items)
 
   const rating = 4
   const [quantity, setQuantity] = useState(1)
-  const price = product?.price ?? 0
-  const [total, setTotal] = useState(0)
+  const [stockLeftPercent, setStockLeftPercent] = useState<number | null>(null)
+  const [QuantityError, setQuantityError] = useState<string | null>(null)
 
+  // ---------- IMÁGENES ----------
   const images = useMemo(() => product?.images ?? [], [product?.images])
   const mainImage = product?.main_image ?? null
-
   const orderedImages = useMemo(() => (mainImage ? [mainImage, ...images.filter((img) => img !== mainImage)] : images), [images, mainImage])
 
-  const handleSetQuantity = (action: 'add' | 'remove') => {
-    setQuantity((prev) => (action === 'add' ? prev + 1 : Math.max(1, prev - 1)))
+  // ---------- UNIDADES & PRECIOS ----------
+  const unitKeys = useMemo(() => Object.keys(product?.units ?? {}), [product?.units])
+  const defaultUnit = (product?.base_unit as string) || unitKeys[0] || null
+  const [unitSelected, setUnitSelected] = useState<string | null>(defaultUnit)
+
+  useEffect(() => {
+    const nextDefault = (product?.base_unit as string) || (Object.keys(product?.units ?? {})[0] ?? null)
+    setUnitSelected((prev) => prev ?? nextDefault)
+  }, [product?.base_unit, product?.units])
+
+  const baseFinalPrice = Number(product?.finalPrice ?? product?.price ?? 0)
+  const baseOriginalPrice = Number(product?.price ?? 0)
+
+  const resolveUnitPriceFrom = (base: number, unitKey: string | null): number => {
+    if (!unitKey || !product) return Math.ceil(base)
+    const u = (product as AnyRecord).units?.[unitKey]
+    if (u == null) return Math.ceil(base)
+    if (typeof u === 'number') return Math.ceil(Number(u))
+    const p = Number(u?.price)
+    const f = Number(u?.factor)
+    if (Number.isFinite(p)) return Math.ceil(p)
+    if (Number.isFinite(f)) return Math.ceil(base * f)
+    return Math.ceil(base)
   }
 
-  useEffect(() => setTotal(price * quantity), [quantity, price])
+  const unitPrice = useMemo(() => resolveUnitPriceFrom(baseFinalPrice, unitSelected), [baseFinalPrice, unitSelected])
+  const unitOriginalPrice = useMemo(() => resolveUnitPriceFrom(baseOriginalPrice, unitSelected), [baseOriginalPrice, unitSelected])
+
+  const hasPromo = Boolean(product?.hasPromotion) && unitOriginalPrice > unitPrice
+  const total = useMemo(() => unitPrice * quantity, [unitPrice, quantity])
+
+  // ---------- DISPONIBILIDAD ----------
+  const getUnitFactor = (unitKey: string | null, prod: AnyRecord) => {
+    if (!unitKey || !prod?.units) return 1
+    const u = prod.units[unitKey]
+    if (!u) return 1
+    if (typeof u === 'number') return 1
+    const f = Number(u?.factor)
+    return Number.isFinite(f) && f > 0 ? f : 1
+  }
+
+  const stockTotal = Number(product?.stock ?? 0)
+  const currentFactor = useMemo(
+    () => getUnitFactor(unitSelected ?? product?.base_unit ?? null, product as AnyRecord),
+    [unitSelected, product]
+  )
+
+  // 🔸 Solo descontamos lo YA agregado al carrito
+  const reservedInCartBase = useMemo(() => {
+    if (!product) return 0
+    return cartItems
+      .filter((it) => it.id === product.id && (it.unitSelected ?? it.base_unit ?? null) === (unitSelected ?? product.base_unit ?? null))
+      .reduce((sum, it) => sum + (it.quantity || 0) * currentFactor, 0)
+  }, [cartItems, product, unitSelected, currentFactor])
+
+  const remainingNow = Math.max(0, stockTotal - reservedInCartBase)
+
+  // ✅ Evita NaN o 0 erróneo
+  const safeFactor = Number.isFinite(currentFactor) && currentFactor > 0 ? currentFactor : 1
+  const maxSelectableQty = Math.max(0, Math.floor(remainingNow / safeFactor))
+
+  useEffect(() => {
+    if (product?.stock == null) {
+      setStockLeftPercent(null)
+      return
+    }
+    const percent = stockTotal > 0 ? Math.round((remainingNow / stockTotal) * 100) : 0
+    setStockLeftPercent(percent)
+  }, [product?.stock, stockTotal, remainingNow])
+
+  // ✅ Mantén quantity dentro de [0/1, maxSelectableQty] al cambiar stock/unidad/carrito
+  useEffect(() => {
+    const safeMax = Number.isFinite(maxSelectableQty) ? maxSelectableQty : 0
+    setQuantity((q) => {
+      if (safeMax === 0) return 0
+      if (q < 1) return 1
+      if (q > safeMax) return safeMax
+      return q
+    })
+  }, [maxSelectableQty])
+
+  // ---------- RELACIONADOS ----------
+  const relatedProducts = useMemo(() => {
+    if (!product) return []
+    return products
+      .filter((p) => p.id !== product.id)
+      .slice()
+      .sort((a, b) => a.id - b.id)
+      .slice(0, 4)
+  }, [products, product])
+
+  // ---------- CARRITO ----------
+  const handleAddToCart = () => {
+    if (!product) return
+    if (quantity > maxSelectableQty || maxSelectableQty === 0) {
+      setQuantityError('No hay existencias suficientes')
+      return
+    }
+
+    const unitKey = unitSelected ?? product.base_unit
+    dispatch(
+      addItem({
+        id: product.id,
+        title: product.name,
+        image: product.main_image ?? orderedImages[0],
+        saleType: product.sale_type,
+        units: product.units,
+        base_unit: product.base_unit,
+        unitSelected: unitKey ?? undefined,
+        basePrice: Number(product.price ?? 0),
+        price: unitPrice,
+        discount: 0,
+        quantity,
+        stock: Number(product.stock ?? Number.POSITIVE_INFINITY)
+      })
+    )
+    dispatch(setCartOpen(true))
+  }
+
+  useEffect(() => {
+    if (!QuantityError) return
+    const timer = setTimeout(() => setQuantityError(null), 2000)
+    return () => clearTimeout(timer)
+  }, [QuantityError])
 
   if (!product) return <div>Producto no encontrado</div>
+
+  // ✅ Estado explícito para el botón
+  const canAdd = maxSelectableQty > 0 && quantity >= 1 && quantity <= maxSelectableQty
 
   return (
     <>
       <section className='container flex flex-col md:flex-row gap-8 mx-auto'>
-        {/* === IMAGEN PRINCIPAL / GALERÍA === */}
+        {/* === GALERÍA === */}
         <div className='w-full md:w-1/2 rounded-xl overflow-hidden border border-neutral-300'>
-          <ProductLightboxGallery
-            mainImage={product.main_image}
-            images={orderedImages} // array de keyPaths
-            showThumbnails
-            maxWidth={900}
-          />
+          <ProductLightboxGallery mainImage={product.main_image} images={orderedImages} showThumbnails maxWidth={900} />
         </div>
 
-        {/* === DETALLES DEL PRODUCTO === */}
+        {/* === DETALLES === */}
         <div className='w-full md:w-1/2 space-y-4'>
           <header>
             <div className='flex items-center gap-2'>
@@ -69,12 +195,14 @@ const Product = () => {
                 </>
               )}
             </div>
+
             <div className='flex items-center justify-between'>
               <h2 className='text-3xl md:text-4xl font-bold'>{product.name}</h2>
               <Button isIconOnly radius='full' size='md'>
                 <HeartPlus size={36} className='m-2' />
               </Button>
             </div>
+
             {product.brand && (
               <div className='flex flex-col'>
                 <span className='text-xl font-medium'>{brands.find((b) => b.id === product.brand)?.name}</span>
@@ -83,34 +211,41 @@ const Product = () => {
             )}
           </header>
 
-          <div className='flex items-center gap-8'>
+          {/* === STOCK === */}
+          <div className='flex items-center gap-8 justify-between'>
             <div className='flex flex-col max-w-1/2 md:max-w-1/3'>
               <Rating className='pr-5' value={rating} />
               <span>Opiniones (999)</span>
             </div>
+
             {(product.stock ?? 0) > 0 ? (
               <Progress
                 aria-label='Disponibilidad'
                 label='Quedan'
-                size='sm'
-                value={((product.stock ?? 0) * 10) / 2}
+                size='md'
+                value={stockLeftPercent ?? 0}
                 showValueLabel
-                className='w-full max-w-1/2  md:max-w-1/3'
-                valueLabel={`${product.stock ?? 0} unidades`}
-                color={product.stock && product.stock > 5 ? 'success' : 'danger'}
+                className='w-full max-w-1/2 md:max-w-1/3'
+                valueLabel={`${remainingNow}  unidades`}
+                color={remainingNow > 5 ? 'success' : 'danger'}
               />
             ) : (
-              <span className='text-red-600 font-semibold'>Producto agotado</span>
+              <span className='text-danger font-semibold'>Producto agotado</span>
             )}
           </div>
 
           <p>{product.description}</p>
 
+          {/* === PRECIOS === */}
           <div className='flex items-center justify-between'>
             <div className='flex flex-col'>
-              <span className='text-3xl font-bold'>{formatMoney(price)}</span>
+              <div className='flex items-baseline gap-3'>
+                <span className='text-3xl font-bold'>{formatMoney(unitPrice)}</span>
+                {hasPromo && <span className='text-lg line-through text-neutral-500'>{formatMoney(unitOriginalPrice)}</span>}
+              </div>
               <span>Precio</span>
             </div>
+
             {quantity > 1 && (
               <div className='flex flex-col'>
                 <span className='text-3xl font-bold'>{formatMoney(total)}</span>
@@ -120,49 +255,68 @@ const Product = () => {
           </div>
 
           {(product.stock ?? 0) > 0 && (
-            <section className='flex flex-col lg:flex-row gap-6 md:gap-2'>
-              <div className='flex items-center gap-2 w-full'>
-                <div className='flex items-center max-w-fit'>
-                  <Button
-                    isIconOnly
-                    size='lg'
-                    className='rounded-r-none bg-black text-white'
-                    variant='ghost'
-                    onPress={() => handleSetQuantity('remove')}
-                  >
-                    <Minus />
-                  </Button>
-                  <NumberInput
-                    size='sm'
-                    maxLength={3}
-                    aria-label='Cantidad'
-                    minValue={1}
-                    value={quantity}
-                    onValueChange={(value) => setQuantity(value || 1)}
-                    radius='none'
-                    classNames={{ mainWrapper: 'w-14', input: 'text-center' }}
-                    hideStepper
-                  />
-                  <Button
-                    isIconOnly
-                    size='lg'
-                    className='rounded-l-none bg-black text-white'
-                    variant='ghost'
-                    onPress={() => handleSetQuantity('add')}
-                  >
-                    <Plus />
-                  </Button>
+            <>
+              <section className='flex flex-col lg:flex-row gap-6 md:gap-2'>
+                <div className='flex items-center gap-2 w-full'>
+                  <AnimatePresence>
+                    {remainingNow > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, type: 'spring' }}
+                        exit={{ opacity: 0, y: 20 }}
+                      >
+                        <QuantitySelector
+                          quantity={quantity}
+                          setQuantity={(q) => {
+                            const safeMax = Number.isFinite(maxSelectableQty) ? maxSelectableQty : 0
+                            const minAllowed = safeMax > 0 ? 1 : 0
+                            const next = Math.max(minAllowed, Math.min(q, safeMax))
+                            setQuantity(next)
+                            if (q > safeMax) setQuantityError('No hay existencias suficientes')
+                          }}
+                          maxQuantity={maxSelectableQty}
+                          onError={setQuantityError}
+                        />
+                      </motion.div>
+                    )}
+                    {product.sale_type === 'bulk' && remainingNow > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3, type: 'spring' }}
+                        className='w-full'
+                      >
+                        <UnitSelector
+                          quantity={quantity}
+                          baseUnit={product.base_unit ?? ''}
+                          units={product.units}
+                          value={unitSelected ?? product.base_unit ?? unitKeys[0] ?? ''}
+                          onChange={setUnitSelected}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-                <Select label='Unidad' size='sm' className='w-full md:max-w-[160px]' defaultSelectedKeys={['oz']}>
-                  <SelectItem key='gr'>{quantity > 1 ? 'Gramos' : 'Gramo'}</SelectItem>
-                  <SelectItem key='oz'>{quantity > 1 ? 'Onzas' : 'Onza'}</SelectItem>
-                  <SelectItem key='lb'>{quantity > 1 ? 'Libras' : 'Libra'}</SelectItem>
-                </Select>
-              </div>
-              <Button className='bg-black text-white hover:bg-neutral-800' size='lg'>
-                Agregar
-              </Button>
-            </section>
+                <Button className='bg-black text-white hover:bg-neutral-800' size='lg' onPress={handleAddToCart} isDisabled={!canAdd}>
+                  Agregar
+                </Button>
+              </section>
+              <AnimatePresence>
+                {QuantityError && (
+                  <motion.section
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2, type: 'spring', stiffness: 500, damping: 30 }}
+                    className='mt-2 text-sm text-danger font-medium'
+                  >
+                    {QuantityError}
+                  </motion.section>
+                )}
+              </AnimatePresence>
+            </>
           )}
         </div>
       </section>
@@ -173,13 +327,9 @@ const Product = () => {
           <h3 className='text-2xl font-semibold'>Productos relacionados</h3>
         </header>
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8'>
-          {products
-            .filter((p) => p.id !== product.id)
-            .sort(() => 0.5 - Math.random())
-            .slice(0, 4)
-            .map((item) => (
-              <ProductItem key={item.id} item={item} isRelated />
-            ))}
+          {relatedProducts.map((item: ProductWithPromo) => (
+            <ProductItem key={item.id} item={item} isRelated />
+          ))}
         </div>
       </section>
     </>
