@@ -10,9 +10,6 @@ import type { RootState } from '../store/store'
 const Store: React.FC = () => {
   const products = useSelector(selectProductsWithBestPromo)
   const categories = useSelector((state: RootState) => state.categories.items)
-
-  console.log(products)
-
   return (
     <main className='w-full flex flex-col'>
       <section className='w-full text-white'>
@@ -73,7 +70,7 @@ const Store: React.FC = () => {
             {products
               .filter((p) => p.featured === true)
               .map((item) => (
-                <ProductItem item={item} />
+                <ProductItem item={item} key={`feat-${item.id}`} />
               ))}
           </div>
         </section>
@@ -84,9 +81,9 @@ const Store: React.FC = () => {
 
           <div className='grid grid-cols-2 sm:grid-cols-4 gap-6'>
             {categories
-              .filter((c) => c.parent === null && (c.total_products ?? 0) > 0)
+              .filter((c) => c.parent === null && (c.total_products_active ?? 0) > 0)
               .map((cat) => (
-                <CategoryItem category={cat} />
+                <CategoryItem category={cat} key={`cat-${cat.slug_id}`} />
               ))}
           </div>
         </section>

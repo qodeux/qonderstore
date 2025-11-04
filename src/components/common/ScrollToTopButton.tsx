@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 
 type Props = {
   /** referencia al contenedor con scroll */
-  targetRef: React.RefObject<HTMLElement | null>
+  targetRef?: React.RefObject<HTMLElement | null> // 👈 ahora es opcional
   /** opcional: distancia (px) desde el top para mostrar el botón */
   threshold?: number
 }
@@ -15,28 +15,50 @@ const ScrollToTopButton = ({ targetRef, threshold = 300 }: Props) => {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const el = targetRef.current
-    if (!el) return
+    // Si no hay ref, usa el window
+    const el = targetRef?.current
+    //const scrollTarget = el ?? window
+
+    const getScrollTop = () => {
+      return el ? el.scrollTop : window.scrollY || document.documentElement.scrollTop
+    }
+
+    const getScrollHeight = () => {
+      return el ? el.scrollHeight - el.clientHeight : document.documentElement.scrollHeight - window.innerHeight
+    }
 
     const updateVisibility = () => {
-      const hasOverflow = el.scrollHeight > el.clientHeight
-      const past = el.scrollTop > threshold
+      const hasOverflow = getScrollHeight() > 0
+      const past = getScrollTop() > threshold
       setVisible(hasOverflow && past)
     }
 
-    el.addEventListener('scroll', updateVisibility, { passive: true })
+    if (el) {
+      el.addEventListener('scroll', updateVisibility, { passive: true })
+    } else {
+      window.addEventListener('scroll', updateVisibility, { passive: true })
+    }
+
     window.addEventListener('resize', updateVisibility)
     updateVisibility()
 
     return () => {
-      el.removeEventListener('scroll', updateVisibility)
+      if (el) {
+        el.removeEventListener('scroll', updateVisibility)
+      } else {
+        window.removeEventListener('scroll', updateVisibility)
+      }
       window.removeEventListener('resize', updateVisibility)
     }
   }, [targetRef, threshold])
 
   const handleClick = () => {
-    const el = targetRef.current
-    el?.scrollTo({ top: 0, behavior: 'smooth' })
+    const el = targetRef?.current
+    if (el) {
+      el.scrollTo({ top: 0, behavior: 'smooth' })
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }
 
   return (
@@ -44,7 +66,7 @@ const ScrollToTopButton = ({ targetRef, threshold = 300 }: Props) => {
       {visible && (
         <motion.div
           key='scrollTop'
-          className='absolute bottom-2 right-3 z-40'
+          className='fixed bottom-4 right-4 z-40' // 👈 fixed en vez de absolute para el caso window
           initial={{ opacity: 0, y: 50, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 450, damping: 30 } }}
           exit={{ opacity: 0, y: 20, scale: 0.8, transition: { duration: 0.2, ease: 'easeOut' } }}

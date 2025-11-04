@@ -6,10 +6,11 @@ import AdminFooter from '../components/common/AdminFooter'
 import AdminSidebar from '../components/common/AdminSidebar'
 import Header from '../components/common/Header'
 import AccountModal from '../components/modals/admin/AccountModal'
+import CartSidebar from '../components/store/CartSidebar'
 import { useProviders } from '../hooks/useProviders'
 import { useRequests } from '../hooks/useRequests'
 import { useSupplyOrders } from '../hooks/useSupplyOrders'
-import { setLayoutOutletHeight } from '../store/slices/uiSlice'
+import { setCartOpen, setLayoutOutletHeight } from '../store/slices/uiSlice'
 import type { AppDispatch, RootState } from '../store/store'
 
 const AdminLayout = () => {
@@ -19,8 +20,9 @@ const AdminLayout = () => {
   const dispatch = useDispatch<AppDispatch>()
   const contentRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
-  const { isOpen, onOpenChange, onOpen, onClose } = useDisclosure()
+  const { isOpen, onOpenChange, onOpen } = useDisclosure()
   const { modalName, modalOpen } = useSelector((state: RootState) => state.ui)
+  const isOpenCart = useSelector((s: RootState) => s.ui.cartOpen)
 
   useEffect(() => {
     const updateSize = () => {
@@ -55,6 +57,18 @@ const AdminLayout = () => {
           <AdminFooter />
         </div>
       </section>
+      <div
+        className={`fixed inset-0 z-30 bg-black/40 transition-opacity duration-300 ${isOpenCart ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+        onClick={() => dispatch(setCartOpen(false))}
+        aria-hidden
+      />
+      <aside
+        className={`fixed right-0 top-16 z-50 h-[calc(100dvh-4rem)] w-full md:max-w-sm bg-white shadow-xl transition-transform duration-300 ${isOpenCart ? 'translate-x-0' : 'translate-x-full'}`}
+        role='dialog'
+        aria-modal='true'
+      >
+        <CartSidebar isOpen={isOpenCart} />
+      </aside>
       <AccountModal isOpen={isOpen} onOpenChange={onOpenChange} />
     </main>
   )

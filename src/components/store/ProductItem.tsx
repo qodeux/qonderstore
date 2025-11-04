@@ -1,7 +1,10 @@
 import { Button, Card, CardBody, CardFooter, CardHeader } from '@heroui/react'
-import { Star } from 'lucide-react'
+import { Rating } from '@smastrom/react-rating'
+import { useDispatch } from 'react-redux'
 import { Link } from 'react-router'
 import type { ProductWithPromo } from '../../store/selectors/productsWithPromo'
+import { addItem } from '../../store/slices/cartSlice'
+import { setCartOpen } from '../../store/slices/uiSlice'
 import { formatMoney } from '../../utils/money'
 import PresignedImage from '../common/cloudflare-r2/PresignedImage'
 
@@ -9,7 +12,32 @@ type ProductItemProps = {
   item: ProductWithPromo
   isRelated?: boolean
 }
+
 const ProductItem = ({ item, isRelated }: ProductItemProps) => {
+  const dispatch = useDispatch()
+
+  const rating = 4
+  const handleAddToCart = () => {
+    // Lógica para agregar el producto al carrito
+
+    dispatch(
+      addItem({
+        id: item.id,
+        title: item.name,
+        quantity: 1,
+        price: item.price,
+        stock: item.stock,
+        discount: item.hasPromotion ? item.discountAmount : 0,
+        image: item.main_image,
+        saleType: item.sale_type,
+        units: item.units,
+        base_unit: item.base_unit,
+        basePrice: item.price
+      })
+    )
+    dispatch(setCartOpen(true))
+  }
+
   return (
     <Card key={item.id} shadow='sm' className='border border-neutral-300'>
       <CardHeader className='p-0'>
@@ -20,23 +48,17 @@ const ProductItem = ({ item, isRelated }: ProductItemProps) => {
         </Link>
       </CardHeader>
 
-      <CardBody className='px-3 py-3 text-neutral-900 text-sm leading-tight'>
-        <p className='font-medium text-lg'>{item.name}</p>
-
-        <div className='flex items-center gap-1 text-[11px] text-neutral-800 mt-1'>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Star key={i} className='h-3 w-3 fill-black stroke-black' />
-          ))}
-        </div>
+      <CardBody className='px-3 py-3 text-neutral-900 text-sm '>
+        <p className='font-medium text-lg mb-2'>{item.name}</p>
 
         <div>
           {item.hasPromotion ? (
-            <div className='flex items-center justify-between'>
-              <div className='flex items-center text-green-600'>Promo -{item.discountPercent}% </div>
-              <div className='flex items-center justify-end gap-2'>
-                <del className='text-sm  mt-1'>{formatMoney(item.price)}</del>
-                <span className='text-2xl font-semibold  mt-1'>{formatMoney(item.finalPrice)}</span>
+            <div className='flex items-center justify-end gap-2'>
+              <div className='text-right'>
+                <del className='text-sm  mt-1 leading-0'>{formatMoney(item.price)}</del>
+                <div className='text-xs text-green-600 leading-3'>Promo -{item.discountPercent}% </div>
               </div>
+              <span className='text-2xl font-semibold'>{formatMoney(item.finalPrice)}</span>
             </div>
           ) : (
             <p className='text-2xl font-semibold text-neutral-900 mt-1 text-right'>{formatMoney(item.price)}</p>
@@ -45,7 +67,16 @@ const ProductItem = ({ item, isRelated }: ProductItemProps) => {
       </CardBody>
 
       <CardFooter className='flex items-center justify-end gap-2 px-3 pb-4 pt-0'>
-        <Button radius='sm' className='bg-black text-white leading-none hover:bg-neutral-800'>
+        <div>
+          <Rating className='max-w-2/3' value={rating} />
+          <span className='text-sm ml-1'>95 Opiniones</span>
+        </div>
+        <Button
+          radius='sm'
+          className='bg-black text-white leading-none hover:bg-neutral-800'
+          onPress={handleAddToCart}
+          isDisabled={item.stock === 0}
+        >
           Agregar
         </Button>
       </CardFooter>

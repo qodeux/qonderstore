@@ -117,7 +117,7 @@ const ProductUnitForm = () => {
             </Select>
           )}
         />
-
+        //TODO [UN-95]: El staff no debe ver este campo
         <Controller
           name='base_cost'
           control={control}
@@ -153,7 +153,6 @@ const ProductUnitForm = () => {
             />
           )}
         />
-
         <Controller
           name='public_price'
           control={control}
@@ -189,7 +188,6 @@ const ProductUnitForm = () => {
             />
           )}
         />
-
         <section className='space-y-1'>
           <div className='flex items-center justify-between'>
             <Controller
@@ -222,7 +220,7 @@ const ProductUnitForm = () => {
                 <NumberInput
                   key={minSaleSwitch ? 'min-on' : 'min-off'}
                   aria-label='Compra mínima'
-                  value={minSaleSwitch ? field.value ?? undefined : undefined}
+                  value={minSaleSwitch ? (field.value ?? undefined) : undefined}
                   isDisabled={!minSaleSwitch}
                   size='sm'
                   className='max-w-20 text-center'
@@ -240,7 +238,6 @@ const ProductUnitForm = () => {
 
           <div className='text-xs text-center w-full text-gray-500'>Compra mínima</div>
         </section>
-
         <section className='space-y-1'>
           <div className='flex items-center justify-between'>
             <Controller
@@ -273,7 +270,7 @@ const ProductUnitForm = () => {
                 <NumberInput
                   key={maxSaleSwitch ? 'max-on' : 'max-off'}
                   aria-label='Compra máxima'
-                  value={maxSaleSwitch ? field.value ?? undefined : undefined}
+                  value={maxSaleSwitch ? (field.value ?? undefined) : undefined}
                   isDisabled={!maxSaleSwitch}
                   size='sm'
                   className='max-w-20 text-center'
@@ -289,7 +286,6 @@ const ProductUnitForm = () => {
           </div>
           <div className='text-xs text-center w-full text-gray-500 '>Compra máxima</div>
         </section>
-
         <section className='space-y-1'>
           <div className='flex items-center justify-between'>
             <Controller
@@ -323,7 +319,7 @@ const ProductUnitForm = () => {
                 <NumberInput
                   key={lowStockSwitch ? 'low-on' : 'low-off'}
                   aria-label='Alerta de stock bajo'
-                  value={lowStockSwitch ? field.value ?? undefined : undefined}
+                  value={lowStockSwitch ? (field.value ?? undefined) : undefined}
                   isDisabled={!lowStockSwitch}
                   size='sm'
                   className='max-w-20 text-center'

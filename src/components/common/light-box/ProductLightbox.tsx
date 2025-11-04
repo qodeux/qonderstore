@@ -1,4 +1,3 @@
-// components/ProductGallery.tsx
 import { useMemo, useState } from 'react'
 import Lightbox, { type Slide } from 'yet-another-react-lightbox'
 import Inline from 'yet-another-react-lightbox/plugins/inline'
@@ -57,103 +56,99 @@ export default function ProductLightboxGallery({
     [ordered]
   )
 
-  const hasImages = ordered.length > 0
-
   return (
-    <div className={`relative   overflow-hidden ${className}`}>
-      {/* Placeholder cuando no hay imagen */}
-      {!hasImages && (
-        <figure className='w-full aspect-square bg-neutral-100   flex items-center justify-center text-neutral-500 text-lg'>
+    <div className={`relative overflow-hidden ${className}`}>
+      {/* Placeholder cuando no hay NINGUNA imagen */}
+      {ordered.length === 0 && (
+        <figure className='w-full aspect-square bg-neutral-100 flex items-center justify-center text-neutral-500 text-lg'>
           Sin imagen
         </figure>
       )}
 
-      {/* Si hay 1 imagen: figura clickeable que abre el modal */}
-      {hasImages && ordered.length === 1 && (
+      {/* 1 sola imagen: figura clickeable que abre el modal */}
+      {ordered.length === 1 && (
         <figure onClick={() => setLightboxOpen(true)} className='cursor-zoom-in'>
           <PresignedImage keyPath={ordered[0]} expires={180} />
         </figure>
       )}
 
-      {/* Si hay +1 imagen: lightbox en modo inline + modal separado */}
-      {hasImages && ordered.length > 1 && (
-        <>
-          <Lightbox
-            index={index}
-            slides={slides}
-            plugins={[Inline]}
-            on={{
-              view: ({ index: current }) => !lightboxOpen && setIndex(current)
-              // ❌ quita el click global; está bloqueando todo
-              // click: ({ event }) => {
-              //   event?.preventDefault()
-              //   event?.stopPropagation()
-              //   setLightboxOpen(true)
-              // }
-            }}
-            carousel={{ padding: 0, spacing: 0, imageFit: 'cover', finite: true }}
-            inline={{ style: { width: '100%', maxWidth: `${maxWidth}px`, aspectRatio: '1/1', margin: '0 auto' } }}
-            styles={{
-              button: {
-                color: 'black',
-                filter: 'none',
-                padding: 1,
-                background: 'white',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
-              },
-              container: { backgroundColor: 'white' }
-            }}
-            render={{
-              slide: ({ slide, rect }) => {
-                const s = slide as SlideWithKeyPath
-                return (
-                  // ✅ Abre el modal SOLO al click sobre la imagen renderizada
-                  <div
-                    onClick={() => setLightboxOpen(true)}
-                    style={{ width: rect.width, height: rect.height, cursor: 'zoom-in' }}
-                    // no hacemos stopPropagation aquí: el inline controla este click
-                  >
-                    <PresignedImage keyPath={s.keyPath} expires={180} />
-                  </div>
-                )
-              }
-            }}
-          />
+      {/* 2+ imágenes: lightbox en modo inline */}
+      {ordered.length > 1 && (
+        <Lightbox
+          index={index}
+          slides={slides}
+          plugins={[Inline]}
+          on={{
+            view: ({ index: current }) => !lightboxOpen && setIndex(current)
+          }}
+          carousel={{ padding: 0, spacing: 0, imageFit: 'cover', finite: true }}
+          inline={{ style: { width: '100%', maxWidth: `${maxWidth}px`, aspectRatio: '1/1', margin: '0 auto' } }}
+          styles={{
+            button: {
+              color: 'black',
+              filter: 'none',
+              padding: 1,
+              background: 'white',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
+            },
+            container: { backgroundColor: 'white' }
+          }}
+          render={{
+            slide: ({ slide, rect }) => {
+              const s = slide as SlideWithKeyPath
+              return (
+                <div onClick={() => setLightboxOpen(true)} style={{ width: rect.width, height: rect.height, cursor: 'zoom-in' }}>
+                  <PresignedImage keyPath={s.keyPath} expires={180} />
+                </div>
+              )
+            }
+          }}
+        />
+      )}
 
-          {/* Modal Lightbox */}
-          <Lightbox
-            open={lightboxOpen}
-            close={() => setLightboxOpen(false)}
-            index={index}
-            slides={slides}
-            on={{
-              view: ({ index: current }) => lightboxOpen && setIndex(current)
-            }}
-            animation={{ fade: 0 }}
-            controller={{ closeOnPullDown: true, closeOnBackdropClick: true }}
-            plugins={showThumbnails ? [Thumbnails] : []}
-            styles={{ container: { backgroundColor: 'black' } }}
-            carousel={{ finite: true, padding: 0, spacing: 0, imageFit: 'contain' }} // 👈 evita loop
-            render={{
-              slide: ({ slide }) => {
-                const s = slide as SlideWithKeyPath
-                return (
-                  <div className=' max-w-[800px]'>
-                    <PresignedImage keyPath={s.keyPath} expires={180} />
-                  </div>
-                )
-              },
-              thumbnail: ({ slide }) => {
-                const s = slide as SlideWithKeyPath
-                return (
-                  <div className='w-20 h-20'>
-                    <PresignedImage keyPath={s.keyPath} expires={120} />
-                  </div>
-                )
-              }
-            }}
-          />
-        </>
+      {/* Modal Lightbox: SIEMPRE que haya al menos 1 imagen */}
+      {ordered.length > 0 && (
+        <Lightbox
+          open={lightboxOpen}
+          close={() => setLightboxOpen(false)}
+          index={index}
+          slides={slides}
+          on={{
+            view: ({ index: current }) => lightboxOpen && setIndex(current)
+          }}
+          animation={{ fade: 0 }}
+          controller={{ closeOnPullDown: true, closeOnBackdropClick: true }}
+          plugins={showThumbnails && ordered.length > 1 ? [Thumbnails] : []}
+          styles={{
+            container: { backgroundColor: 'black' },
+            button: {
+              color: 'white',
+              filter: 'none',
+              padding: 1,
+              background: '#333333',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
+            }
+          }}
+          carousel={{ finite: true, padding: 0, spacing: 0, imageFit: 'contain' }}
+          render={{
+            slide: ({ slide }) => {
+              const s = slide as SlideWithKeyPath
+              return (
+                <div className='max-w-[700px]'>
+                  <PresignedImage keyPath={s.keyPath} expires={180} />
+                </div>
+              )
+            },
+            thumbnail: ({ slide }) => {
+              const s = slide as SlideWithKeyPath
+              return (
+                <div className='w-20 h-20'>
+                  <PresignedImage keyPath={s.keyPath} expires={120} />
+                </div>
+              )
+            }
+          }}
+        />
       )}
     </div>
   )

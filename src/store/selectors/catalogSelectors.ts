@@ -50,9 +50,7 @@ const tagsMatch = (p: ProductWithPromo, { types }: Pick<ProductFiltersState, 'ty
  */
 const inSelectedParents = createSelector([selectCategories], (cats) => {
   const parentSlugToName = new Map<string, string>() // slug_id(parent) => name(parent)
-  for (const c of cats) {
-    if (c.parent === null) parentSlugToName.set(String(c.slug_id), String(c.name))
-  }
+  for (const c of cats) if (c.parent === null) parentSlugToName.set(String(c.slug_id), String(c.name))
   return parentSlugToName
 })
 
@@ -63,7 +61,6 @@ const categoryMatch = (p: ProductWithPromo, selectedParentSlugs: string[], paren
   return selectedParentNames.includes(productParentName)
 }
 
-/** Marca: product.brand (o brand_id) es SIEMPRE numérico en tu modelo */
 const brandMatch = (p: ProductWithPromo, ids: number[]) => {
   if (!ids.length) return true
   const brandId = Number((p as any).brand ?? (p as any).brand_id)
@@ -78,14 +75,7 @@ const priceMatch = (p: ProductWithPromo, min: number | null, max: number | null)
   return true
 }
 
-/** === Ordenadores ===
- * price: finalPrice
- * popularity: views_count / popularity_score
- * rating: rating_avg
- * newest: created_at
- * discount: discountPercent
- * name: name
- */
+/** === Ordenadores === */
 const sorters = {
   relevance: (_a: ProductWithPromo, _b: ProductWithPromo) => 0,
   price: (a: ProductWithPromo, b: ProductWithPromo) => Number(a.finalPrice ?? a.price ?? 0) - Number(b.finalPrice ?? b.price ?? 0),
@@ -98,34 +88,54 @@ const sorters = {
   name: (a: ProductWithPromo, b: ProductWithPromo) => String(a.name ?? '').localeCompare(String(b.name ?? ''))
 } as const
 
-/** === Dominio de precios (para slider), usando finalPrice === */
+/** ========= NUEVO: Visibles SIN precio (base para dominio) ========= */
+export const selectVisibleProductsExcludingPrice = createSelector(
+  [selectProductsWithBestPromo, selectCatalogFilters, inSelectedParents],
+  (products, f, parentSlugToName) => {
+    return products.filter(
+      (p) => textMatch(p, f.query) && tagsMatch(p, f) && categoryMatch(p, f.categorySlugs, parentSlugToName) && brandMatch(p, f.brandIds)
+    )
+  }
+)
+
+/** === Dominio de precios desde los visibles (sin precio) === */
+export const selectPriceDomainFromVisible = createSelector([selectVisibleProductsExcludingPrice], (list) => {
+  const vals = list.map((p) => Number(p.finalPrice ?? p.price ?? 0)).filter((n) => Number.isFinite(n)) as number[]
+  if (!vals.length) return { min: 0, max: 0 }
+
+  const rawMin = Math.min(...vals)
+  const rawMax = Math.max(...vals)
+
+  // Opcional: redondeo “bonito” (p.ej., múltiplos de 50)
+  const step = 50
+  const roundDown = (v: number) => Math.floor(v / step) * step
+  const roundUp = (v: number) => Math.ceil(v / step) * step
+
+  return { min: roundDown(rawMin), max: roundUp(rawMax) }
+})
+
+/** === (Opcional) mantiene el viejo export, pero ahora global si lo sigues usando en otros lados === */
 export const selectPriceDomain = createSelector([selectProductsWithBestPromo], (list) => {
   const vals = list.map((p) => Number(p.finalPrice ?? p.price ?? 0)).filter((n) => Number.isFinite(n)) as number[]
   if (!vals.length) return { min: 0, max: 0 }
   return { min: Math.floor(Math.min(...vals)), max: Math.ceil(Math.max(...vals)) }
 })
 
-/** === Resultado final: productos visibles con filtros + orden === */
-export const selectVisibleProducts = createSelector(
-  [selectProductsWithBestPromo, selectCatalogFilters, inSelectedParents],
-  (products, f, parentSlugToName) => {
-    // 1) Filtrar
-    let out = products.filter(
-      (p) =>
-        textMatch(p, f.query) &&
-        tagsMatch(p, f) &&
-        categoryMatch(p, f.categorySlugs, parentSlugToName) &&
-        brandMatch(p, f.brandIds) &&
-        priceMatch(p, f.priceMin, f.priceMax)
-    )
-
-    // 2) Ordenar (relevance = sin tocar orden de entrada)
-    const sorter = sorters[f.sortBy] ?? sorters.relevance
-    if (f.sortBy !== 'relevance') {
-      out = [...out].sort(sorter)
-      if (f.sortDir === 'desc') out.reverse()
-    }
-
-    return out
+/** === Visibles FINALES: base (sin precio) + filtro de precio + orden === */
+export const selectVisibleProducts = createSelector([selectVisibleProductsExcludingPrice, selectCatalogFilters], (base, f) => {
+  // 1) Aplica precio (si hay)
+  let out = base
+  const hasMin = f.priceMin != null
+  const hasMax = f.priceMax != null
+  if (hasMin || hasMax) {
+    out = base.filter((p) => priceMatch(p, f.priceMin, f.priceMax))
   }
-)
+
+  // 2) Ordenar
+  const sorter = sorters[f.sortBy] ?? sorters.relevance
+  if (f.sortBy !== 'relevance') {
+    out = [...out].sort(sorter)
+    if (f.sortDir === 'desc') out.reverse()
+  }
+  return out
+})

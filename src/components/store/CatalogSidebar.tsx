@@ -1,9 +1,8 @@
-// components/store/CatalogSidebar.tsx
 import { Accordion, AccordionItem, Button, Checkbox, CheckboxGroup, Listbox, ListboxItem, ScrollShadow, Slider } from '@heroui/react'
 import { Circle } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { selectCatalogFilters, selectPriceDomain } from '../../store/selectors/catalogSelectors'
+import { selectCatalogFilters, selectPriceDomainFromVisible } from '../../store/selectors/catalogSelectors'
 import { setBrandIds, setCategorySlugs, setPriceRange, setTypes } from '../../store/slices/productFiltersSlice'
 import type { RootState } from '../../store/store'
 import { arrayToSelection, selectionToArray } from '../../utils/selection'
@@ -18,13 +17,41 @@ const ProductTypeSearch = [
 
 const CatalogSidebar = ({ isOpen }: Props) => {
   const dispatch = useDispatch()
-  const categories = useSelector((s: RootState) => s.categories.items)
+  const categories = useSelector((s: RootState) => s.categories.items).filter((c) => (c.total_products ?? 0) > 0)
   const brands = useSelector((s: RootState) => s.products.brands)
 
   const filters = useSelector(selectCatalogFilters)
-  const priceDomain = useSelector(selectPriceDomain) // {min,max} global
+  // 👇 NUEVO: dominio basado solo en los visibles (sin precio)
+  const priceDomain = useSelector(selectPriceDomainFromVisible)
 
-  // Estado controlado del slider (lee filtro; si null, usa dominio completo)
+  // 1) Si el dominio cambia (por marca/categoría/tipo/búsqueda),
+  //    realiza clamp de los valores actuales de precio si quedaron fuera
+  useEffect(() => {
+    if (priceDomain.max <= priceDomain.min) return
+
+    const curMin = filters.priceMin ?? priceDomain.min
+    const curMax = filters.priceMax ?? priceDomain.max
+
+    let nextMin = Math.max(curMin, priceDomain.min)
+    let nextMax = Math.min(curMax, priceDomain.max)
+    if (nextMin > nextMax) {
+      // si se cruzaron, resetea al dominio
+      nextMin = priceDomain.min
+      nextMax = priceDomain.max
+    }
+
+    const changed = nextMin !== curMin || nextMax !== curMax
+    if (changed) {
+      dispatch(
+        setPriceRange({
+          min: nextMin === priceDomain.min ? null : nextMin,
+          max: nextMax === priceDomain.max ? null : nextMax
+        })
+      )
+    }
+  }, [priceDomain.min, priceDomain.max]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Estado controlado del slider (si null, usa dominio)
   const currentMin = filters.priceMin ?? priceDomain.min
   const currentMax = filters.priceMax ?? priceDomain.max
   const sliderValue: [number, number] = [currentMin, currentMax]

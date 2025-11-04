@@ -1,12 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { Outlet } from 'react-router'
 import Footer from '../components/common/Footer'
 import Header from '../components/common/Header'
+import ScrollToTopButton from '../components/common/ScrollToTopButton'
+import CartSidebar from '../components/store/CartSidebar'
+import { setCartOpen } from '../store/slices/uiSlice'
+import type { RootState } from '../store/store'
 
 const FrontwebLayout = () => {
   const footerRef = useRef<HTMLDivElement | null>(null)
   const spacerRef = useRef<HTMLDivElement | null>(null)
   const [underlay, setUnderlay] = useState(true)
+  const dispatch = useDispatch()
+  const isOpenCart = useSelector((s: RootState) => s.ui.cartOpen)
+
+  const scrollRef = useRef<HTMLDivElement | null>(null)
 
   // Detecta si es mobile o desktop
   useEffect(() => {
@@ -78,7 +87,7 @@ const FrontwebLayout = () => {
         <section className='flex-1 flex min-h-0'>
           <div className='flex-1 flex min-h-screen'>
             {/* Fondo y contenido*/}
-            <div key={location.pathname + location.search} className='h-full w-full bg-gray-100 p-4 md:px-8 pt-24 '>
+            <div key={location.pathname + location.search} ref={scrollRef} className='h-full w-full bg-gray-100 p-4 md:px-8 pt-24 '>
               {/* Padding top ajustado para el alto del header + el padding del contenedor */}
               <Outlet />
             </div>
@@ -88,6 +97,21 @@ const FrontwebLayout = () => {
         {/* Spacer: solo visible en mobile */}
         <div ref={spacerRef} className='block md:hidden w-full' />
       </main>
+
+      <div
+        className={`fixed inset-0 z-30 bg-black/40 transition-opacity duration-300 ${isOpenCart ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+        onClick={() => dispatch(setCartOpen(false))}
+        aria-hidden
+      />
+      <aside
+        className={`fixed right-0 top-16 z-50 h-[calc(100dvh-4rem)] w-full md:max-w-sm bg-white shadow-xl transition-transform duration-300 ${isOpenCart ? 'translate-x-0' : 'translate-x-full'}`}
+        role='dialog'
+        aria-modal='true'
+      >
+        <CartSidebar isOpen={isOpenCart} />
+      </aside>
+
+      <ScrollToTopButton />
 
       {/* Footer: underlay en mobile, normal en desktop */}
       <div ref={footerRef} className={underlay ? 'fixed inset-x-0 bottom-0 z-0' : 'relative z-0'}>
