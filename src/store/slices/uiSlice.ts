@@ -5,6 +5,7 @@ interface UIState {
   isEditing: boolean
   loading: boolean
   modalOpen: boolean
+  cartOpen: boolean
   modalName?: string | null
   wizardCurrentIndex: number
   wizardJumpToStep: number | null
@@ -22,7 +23,8 @@ const initialState: UIState = {
   wizardJumpToStep: null,
   layoutOutletHeight: null,
   layoutToolbarSpace: 140,
-  wizardNavDir: 0
+  wizardNavDir: 0,
+  cartOpen: false
 }
 
 const uiSlice = createSlice({
@@ -34,6 +36,9 @@ const uiSlice = createSlice({
     },
     closeSidebar(state) {
       state.sidebarOpen = false
+    },
+    setCartOpen(state, action: PayloadAction<boolean>) {
+      state.cartOpen = action.payload
     },
     setEditMode(state, action: PayloadAction<boolean>) {
       state.isEditing = action.payload
@@ -73,6 +78,7 @@ export const {
   closeSidebar,
   setLoading,
   openModal,
+  setCartOpen,
   closeModal,
   setModal,
   setEditMode,
