@@ -79,7 +79,7 @@ const FrontwebLayout = () => {
   return (
     <div className='relative min-h-screen'>
       {/* Contenido principal */}
-      <main className='relative z-10 flex min-h-[100dvh] flex-col'>
+      <main className='relative flex min-h-[100dvh] flex-col'>
         {/* Header fijo/normal */}
         <Header />
 
@@ -99,7 +99,7 @@ const FrontwebLayout = () => {
       </main>
 
       <div
-        className={`fixed inset-0 z-30 bg-black/40 transition-opacity duration-300 ${isOpenCart ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+        className={`fixed inset-0 z-10 bg-black/40 transition-opacity duration-300 ${isOpenCart ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
         onClick={() => dispatch(setCartOpen(false))}
         aria-hidden
       />

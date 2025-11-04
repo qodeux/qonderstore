@@ -82,12 +82,14 @@ const Header = () => {
       <NavbarContent justify='end'>
         {isAuthenticated ? (
           <>
-            <NavbarItem>
-              <Link href='/tienda'>Tienda</Link>
-            </NavbarItem>
-            <NavbarItem>
-              <Link href='/tienda/productos'>Productos</Link>
-            </NavbarItem>
+            <div className='hidden md:flex gap-4'>
+              <NavbarItem>
+                <Link href='/tienda'>Tienda</Link>
+              </NavbarItem>
+              <NavbarItem>
+                <Link href='/tienda/productos'>Productos</Link>
+              </NavbarItem>
+            </div>
             <NavbarItem>
               <Badge
                 className='dark'
@@ -144,7 +146,7 @@ const Header = () => {
           )
         )}
       </NavbarContent>
-      <NavbarMenu className='dark bg-black/90 h-auto max-h-fit'>
+      <NavbarMenu className='dark bg-black/90 h-auto max-h-fit z-70'>
         {menuItems.map((item, index) => (
           <NavbarMenuItem key={`${item}-${index}`}>
             <Link
