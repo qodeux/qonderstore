@@ -1,5 +1,5 @@
 import { Button, Tooltip } from '@heroui/react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Outlet } from 'react-router'
 import Footer from '../components/common/Footer'
@@ -154,8 +154,8 @@ const SidebarLayout = () => {
               style={{ left: isOpen ? `calc(${sidebarW} - 0.5rem)` : '0.5rem' }}
             >
               <Tooltip content={isOpen ? 'Cerrar filtros' : 'Abrir filtros'} placement='right'>
-                <Button isIconOnly onPress={toggleWithLock}>
-                  {isOpen ? <ChevronLeft /> : <ChevronRight />}
+                <Button isIconOnly onPress={toggleWithLock} className={`${isOpen && '-rotate-180 '} transition-all duration-300`}>
+                  <ChevronRight />
                 </Button>
               </Tooltip>
             </div>

@@ -79,8 +79,23 @@ const AppRoutes: React.FC = () => (
       <Route path='categorias' element={<Categories />} />
       <Route path='productos' element={<Products />} />
       <Route path='promociones' element={<Promos />} />
-      <Route path='proveedores' element={<Providers />} />
-      <Route path='pedidos-proveedores' element={<SupplyOrders />} />
+
+      <Route
+        path='proveedores'
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Providers />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path='pedidos-proveedores'
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <SupplyOrders />
+          </ProtectedRoute>
+        }
+      />
       <Route path='solicitudes-acceso' element={<Requests />} />
       <Route
         path='usuarios'
