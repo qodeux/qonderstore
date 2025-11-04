@@ -128,7 +128,7 @@ const ProviderOrderNewModal = ({ isOpen, onOpenChange }: Props) => {
           <ModalHeader className='flex flex-col gap-1 px-0'>Nuevo pedido para: {selectedProvider?.name}</ModalHeader>
 
           <Wizard
-            header={<RowSteps currentStep={wizardCurrentIndex} onStepChange={onStepClick} steps={WizardSteps} />}
+            header={<RowSteps onStepChange={onStepClick} steps={WizardSteps} />}
             footer={<WizardFooter getStepForm={(idx) => WizardSteps[idx]?.form} onConfirm={onConfirm} />}
             wrapper={<AnimatePresence initial={false} mode='wait' />}
           >
