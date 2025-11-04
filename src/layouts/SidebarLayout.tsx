@@ -1,24 +1,30 @@
 import { Button, Tooltip } from '@heroui/react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { Outlet } from 'react-router'
 import Footer from '../components/common/Footer'
 import Header from '../components/common/Header'
 import ScrollToTopButton from '../components/common/ScrollToTopButton'
+import CartSidebar from '../components/store/CartSidebar'
 import CatalogSidebar from '../components/store/CatalogSidebar'
+import { setCartOpen } from '../store/slices/uiSlice'
+import type { RootState } from '../store/store'
 
 const SidebarLayout = () => {
   // Footer solo se mide en mobile (underlay=true)
   const footerRef = useRef<HTMLDivElement | null>(null)
+  const dispatch = useDispatch()
 
   const [isDesktop, setIsDesktop] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true
     return window.matchMedia('(min-width: 768px)').matches
   })
-  const [isOpen, setIsOpen] = useState(true) // sidebar abierto/cerrado
+  const [isOpenFilters, setIsOpenFilters] = useState(true) // sidebar abierto/cerrado
   const [underlay, setUnderlay] = useState(false) // reveal del footer (solo mobile)
   const [footerPx, setFooterPx] = useState(0) // alto footer para spacer (mobile)
 
+  const isOpenCart = useSelector((s: RootState) => s.ui.cartOpen)
   // 🔒 Lock de z-index mientras dura la animación
   const [lockZ, setLockZ] = useState(false)
 
@@ -36,11 +42,11 @@ const SidebarLayout = () => {
   // }
   const closeWithLock = () => {
     setLockZ(true)
-    setIsOpen(false)
+    setIsOpenFilters(false)
   }
   const toggleWithLock = () => {
     setLockZ(true)
-    setIsOpen((v) => !v)
+    setIsOpenFilters((v) => !v)
   }
 
   // Breakpoint + flags
@@ -50,7 +56,7 @@ const SidebarLayout = () => {
       const desktop = mql.matches
       setIsDesktop(desktop)
       setUnderlay(!desktop) // solo mobile usa underlay
-      setIsOpen(desktop ? true : false)
+      setIsOpenFilters(desktop ? true : false)
       setLockZ(false) // seguridad al cambiar layout
     }
     onChange()
@@ -96,11 +102,11 @@ const SidebarLayout = () => {
 
   // Bloquea scroll del body cuando drawer mobile está abierto
   useEffect(() => {
-    if (!isDesktop) document.body.style.overflow = isOpen ? 'hidden' : ''
+    if (!isDesktop) document.body.style.overflow = isOpenFilters ? 'hidden' : ''
     return () => {
       document.body.style.overflow = ''
     }
-  }, [isDesktop, isOpen])
+  }, [isDesktop, isOpenFilters])
 
   // 🔔 Libera lockZ cuando termina la transición del GRID (desktop)
   useEffect(() => {
@@ -127,10 +133,10 @@ const SidebarLayout = () => {
   }, [])
 
   const sidebarW = '16rem'
-  const reveal = isOpen ? sidebarW : '0px'
+  const reveal = isOpenFilters ? sidebarW : '0px'
 
   // 👇 z-index del main: encima cuando está cerrado o mientras anima
-  const mainZ = !isOpen || lockZ ? 'z-30' : 'z-0'
+  const mainZ = !isOpenFilters || lockZ ? 'z-30' : 'z-0'
 
   return (
     <div className='relative min-h-screen'>
@@ -141,7 +147,7 @@ const SidebarLayout = () => {
         <>
           {/* Sidebar fijo detrás */}
           <div
-            className={`fixed left-0 top-16 z-10 h-[calc(100dvh-4rem)] w-64 overflow-hidden bg-white shadow-sm ${!isOpen ? 'pointer-events-none' : ''}`}
+            className={`fixed left-0 top-16 z-10 h-[calc(100dvh-4rem)] w-64 overflow-hidden bg-white shadow-sm ${!isOpenFilters ? 'pointer-events-none' : ''}`}
           >
             <CatalogSidebar isOpen />
           </div>
@@ -151,11 +157,11 @@ const SidebarLayout = () => {
             {/* Botón de borde reveal */}
             <div
               className='absolute bottom-2 z-40 transition-all duration-300'
-              style={{ left: isOpen ? `calc(${sidebarW} - 0.5rem)` : '0.5rem' }}
+              style={{ left: isOpenFilters ? `calc(${sidebarW} - 0.5rem)` : '0.5rem' }}
             >
-              <Tooltip content={isOpen ? 'Cerrar filtros' : 'Abrir filtros'} placement='right'>
+              <Tooltip content={isOpenFilters ? 'Cerrar filtros' : 'Abrir filtros'} placement='right'>
                 <Button isIconOnly onPress={toggleWithLock}>
-                  {isOpen ? <ChevronLeft /> : <ChevronRight />}
+                  {isOpenFilters ? <ChevronLeft /> : <ChevronRight />}
                 </Button>
               </Tooltip>
             </div>
@@ -207,7 +213,7 @@ const SidebarLayout = () => {
 
           {/* Overlay del drawer */}
           <div
-            className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+            className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 ${isOpenFilters ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
             onClick={closeWithLock}
             aria-hidden
           />
@@ -215,18 +221,18 @@ const SidebarLayout = () => {
           {/* Drawer del sidebar flotante */}
           <aside
             ref={mobileDrawerRef}
-            className={`fixed left-0 top-16 z-50 h-[calc(100dvh-4rem)] w-[80vw] max-w-72 bg-white shadow-xl transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+            className={`fixed left-0 top-16 z-50 h-[calc(100dvh-4rem)] w-[80vw] max-w-72 bg-white shadow-xl transition-transform duration-300 ${isOpenFilters ? 'translate-x-0' : '-translate-x-full'}`}
             role='dialog'
             aria-modal='true'
           >
-            <div className={`absolute bottom-2 z-40 transition-all duration-300 ${isOpen ? '-right-6' : '-right-25 '}`}>
-              <Tooltip content={isOpen ? 'Cerrar filtros' : 'Abrir filtros'} placement='right'>
+            <div className={`absolute bottom-2 z-40 transition-all duration-300 ${isOpenFilters ? '-right-6' : '-right-25 '}`}>
+              <Tooltip content={isOpenFilters ? 'Cerrar filtros' : 'Abrir filtros'} placement='right'>
                 <Button
                   onPress={toggleWithLock}
-                  className={`${!isOpen ? 'rounded-l-none' : '-rotate-180 '} transition-all duration-300`}
-                  isIconOnly={isOpen}
+                  className={`${!isOpenFilters ? 'rounded-l-none' : '-rotate-180 '} transition-all duration-300`}
+                  isIconOnly={isOpenFilters}
                 >
-                  {!isOpen && 'Filtros'}
+                  {!isOpenFilters && 'Filtros'}
                   <ChevronRight />
                 </Button>
               </Tooltip>
@@ -240,6 +246,20 @@ const SidebarLayout = () => {
           </div>
         </>
       )}
+
+      <div
+        className={`fixed inset-0 z-30 bg-black/40 transition-opacity duration-300 ${isOpenCart ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+        onClick={() => dispatch(setCartOpen(false))}
+        aria-hidden
+      />
+      <aside
+        //ref={mobileDrawerRef}
+        className={`fixed right-0 top-16 z-50 h-[calc(100dvh-4rem)] w-full md:max-w-sm bg-white shadow-xl transition-transform duration-300 ${isOpenCart ? 'translate-x-0' : 'translate-x-full'}`}
+        role='dialog'
+        aria-modal='true'
+      >
+        <CartSidebar isOpen={isOpenCart} />
+      </aside>
 
       <ScrollToTopButton targetRef={isDesktop ? desktopScrollRef : mobileScrollRef} />
     </div>

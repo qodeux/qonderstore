@@ -28,7 +28,7 @@ const containerVariants = {
 const Catalog = () => {
   const dispatch = useDispatch()
   const filters = useSelector(selectCatalogFilters)
-  const products = useSelector(selectVisibleProducts)
+  const products = useSelector(selectVisibleProducts).filter((p) => p.is_active)
   const { types, categorySlugs, brandIds, priceMax, priceMin } = useSelector((state: RootState) => state.productFilters)
 
   const debouncedQuery = useDebouncedSearch((val: string) => dispatch(setQuery(val)), 300)
@@ -84,12 +84,14 @@ const Catalog = () => {
             />
             <OrderBy />
 
-            <Button isIconOnly radius='sm' variant='light' aria-label='Vista de cuadrícula'>
-              <LayoutGrid />
-            </Button>
-            <Button isIconOnly radius='sm' variant='light' aria-label='Vista de lista'>
-              <List />
-            </Button>
+            <div className='hidden md:flex items-center'>
+              <Button isIconOnly radius='sm' variant='light' aria-label='Vista de cuadrícula'>
+                <LayoutGrid />
+              </Button>
+              <Button isIconOnly radius='sm' variant='light' aria-label='Vista de lista'>
+                <List />
+              </Button>
+            </div>
           </div>
         </div>
 
