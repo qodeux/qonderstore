@@ -169,6 +169,7 @@ const unitValueSchema = z.object({
 })
 
 const unitsSchema = z.preprocess((v) => (v == null ? {} : v), z.record(z.string(), unitValueSchema))
+export type BulkUnits = z.output<typeof unitsSchema>
 
 // NOTA: no restrinjas la llave del record con enum, usa string “libre”
 export const productBulkInputSchema = z
@@ -330,8 +331,11 @@ export const productSchema = z.object({
   subcategory: z.string().optional(),
   description: z.string().optional(),
   sale_type: z.enum(['unit', 'bulk']),
+  units: unitsSchema.optional(),
+  base_unit: z.string().optional(),
+  unit: z.string().optional(),
   price: z.number(),
-  stock: z.number().optional(),
+  stock: z.number(),
   featured: z.boolean(),
   is_active: z.boolean(),
   brand: z.string().optional(),
