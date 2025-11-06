@@ -59,7 +59,7 @@ const CartItemBox = ({ item, isLast, listRef }: CartItemBoxProps) => {
           {item.image ? <PresignedImage keyPath={item.image} expires={300} /> : 'Sin imagen'}
         </figure>
         <section className='flex flex-col w-2/3 justify-between'>
-          <h3 className='text-lg font-semibold'>{item.title}</h3>
+          <h3 className='md:text-lg font-semibold'>{item.title}</h3>
           <div className='text-gray-600 text-right text-sm'>
             <div>Precio: {formatMoney(item.price)}</div>
             {(item.discount ?? 0) > 0 && <div className='text-green-600'>Descuento: -{formatMoney(item.discount ?? 0)}</div>}
