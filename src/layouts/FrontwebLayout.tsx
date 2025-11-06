@@ -79,9 +79,9 @@ const FrontwebLayout = () => {
   return (
     <div className='relative min-h-screen'>
       {/* Contenido principal */}
-      <main className='relative flex min-h-[100dvh] flex-col'>
+      <Header />
+      <main className='relative flex min-h-[100dvh] flex-col z-10'>
         {/* Header fijo/normal */}
-        <Header />
 
         {/* Contenido */}
         <section className='flex-1 flex min-h-0'>
@@ -115,7 +115,7 @@ const FrontwebLayout = () => {
 
       {/* Footer: underlay en mobile, normal en desktop */}
       <div ref={footerRef} className={underlay ? 'fixed inset-x-0 bottom-0 z-0' : 'relative z-0'}>
-        <Footer />
+        <Footer variant={underlay ? 'full' : 'compact'} />
       </div>
     </div>
   )

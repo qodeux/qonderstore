@@ -33,9 +33,9 @@ const toCents = (n: number) => Math.round((n ?? 0) * 100)
 const fromCents = (c: number) => Number((c / 100).toFixed(2))
 const ceilPrice = (n: number) => Math.ceil(Number.isFinite(n) ? n : 0)
 
-const unitFinalCents = (it: CartItem) => {
-  const base = toCents(it.price)
-  const disc = toCents(it.discount ?? 0)
+const unitFinalCents = (item: CartItem) => {
+  const base = toCents(item.price)
+  const disc = toCents(item.discount ?? 0)
   return Math.max(0, base - Math.max(0, disc))
 }
 
@@ -45,12 +45,12 @@ export const computeTotals = (items: CartItem[]): CartState => {
   let totalCents = 0
   let totalDiscountCents = 0
 
-  for (const it of items) {
-    const q = Math.max(0, it.quantity || 0)
+  for (const item of items) {
+    const q = Math.max(0, item.quantity || 0)
     if (q === 0) continue
 
-    const base = toCents(it.price)
-    const finalUnit = unitFinalCents(it)
+    const base = toCents(item.price)
+    const finalUnit = unitFinalCents(item)
 
     qty += q
     subtotalCents += base * q
@@ -71,9 +71,8 @@ const loadInitialState = (): CartState => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) throw new Error('no cart')
-    const items: CartItem[] = JSON.parse(raw).map((it: any, i: number) => ({
-      lineId: it.lineId ?? `${it.id}-${it.unitSelected ?? it.base_unit ?? ''}-${i}-${Date.now()}`,
-      ...it
+    const items: CartItem[] = JSON.parse(raw).map((item: CartItem) => ({
+      ...item
     }))
     return computeTotals(items)
   } catch {
@@ -106,7 +105,7 @@ const cartSlice = createSlice({
       incoming.unitSelected = incoming.unitSelected ?? incoming.base_unit
       const addQty = Math.max(1, incoming.quantity ?? 1)
 
-      const idx = state.items.findIndex((it) => sameLine(it, incoming))
+      const idx = state.items.findIndex((item) => sameLine(item, incoming))
 
       if (idx >= 0) {
         const item = state.items[idx]
@@ -145,7 +144,7 @@ const cartSlice = createSlice({
     removeItem(state, action: PayloadAction<{ id: number; unitSelected?: string }>) {
       const { id, unitSelected } = action.payload
       state.items = state.items.filter(
-        (it) => !(it.id === id && (it.unitSelected ?? it.base_unit ?? null) === (unitSelected ?? it.base_unit ?? null))
+        (item) => !(item.id === id && (item.unitSelected ?? item.base_unit ?? null) === (unitSelected ?? item.base_unit ?? null))
       )
       const updated = computeTotals(state.items)
       state.totalQuantity = updated.totalQuantity
@@ -156,7 +155,7 @@ const cartSlice = createSlice({
     updateQuantity(state, action: PayloadAction<{ id: number; unitSelected?: string; quantity: number }>) {
       const { id, unitSelected, quantity } = action.payload
       const idx = state.items.findIndex(
-        (it) => it.id === id && (it.unitSelected ?? it.base_unit ?? null) === (unitSelected ?? it.base_unit ?? null)
+        (item) => item.id === id && (item.unitSelected ?? item.base_unit ?? null) === (unitSelected ?? item.base_unit ?? null)
       )
       if (idx >= 0) {
         const item = state.items[idx]
@@ -177,7 +176,7 @@ const cartSlice = createSlice({
 
     updateUnit(state, action: PayloadAction<{ id: number; unit: string; unitsMap?: BulkUnits }>) {
       const { id, unit, unitsMap } = action.payload
-      const idx = state.items.findIndex((it) => it.id === id)
+      const idx = state.items.findIndex((item) => item.id === id)
       if (idx < 0) return
 
       const item = state.items[idx]
@@ -207,7 +206,7 @@ const cartSlice = createSlice({
     },
 
     clearError(state, action: PayloadAction<{ id: number }>) {
-      const item = state.items.find((it) => it.id === action.payload.id)
+      const item = state.items.find((item) => item.id === action.payload.id)
       if (item) item.error = undefined
     },
 

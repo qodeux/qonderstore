@@ -4,7 +4,9 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate } from 'react-router'
 import { clearCart } from '../../store/slices/cartSlice'
+import { setCartOpen } from '../../store/slices/uiSlice'
 import type { RootState } from '../../store/store'
 import { formatMoney } from '../../utils/money'
 import CartItemBox from './CartItemBox'
@@ -13,6 +15,7 @@ type Props = { isOpen: boolean }
 
 const CartSidebar = ({ isOpen }: Props) => {
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const { items: cartItems, totalPrice } = useSelector((state: RootState) => state.cart)
 
   const [showApplyCoupon, setShowApplyCoupon] = useState(false)
@@ -38,6 +41,13 @@ const CartSidebar = ({ isOpen }: Props) => {
         el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
       })
     })
+  }
+
+  const handleCheckout = () => {
+    // Lógica de checkout aquí
+    console.log('Checkout iniciado')
+    dispatch(setCartOpen(false))
+    navigate('/tienda/checkout')
   }
 
   useEffect(() => {
@@ -145,7 +155,7 @@ const CartSidebar = ({ isOpen }: Props) => {
                 {!showApplyCoupon && (
                   <motion.span
                     onClick={toggleApplyCoupon}
-                    className='cursor-pointer'
+                    className='cursor-pointer text-sm'
                     whileHover={{ textDecoration: 'underline' }}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -160,7 +170,7 @@ const CartSidebar = ({ isOpen }: Props) => {
               </div>
             </div>
 
-            <Button>Realizar pedido</Button>
+            <Button onPress={handleCheckout}>Realizar pedido</Button>
           </motion.footer>
         )}
       </AnimatePresence>

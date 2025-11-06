@@ -1,0 +1,85 @@
+import supabase from '../lib/supabase'
+import type { CheckoutFormInput } from '../schemas/checkout.schema'
+import type { CartItem } from '../store/slices/cartSlice'
+
+export type Metadata = {
+  ip: string
+  user_agent: string
+}
+
+export type CreateOrderParams = {
+  orderData: CheckoutFormInput
+  items: CartItem[]
+  metadata: Metadata
+  userId?: string
+  cartTotals?: {
+    totalPrice: number
+    totalQuantity: number
+    shippingPrice: number
+  }
+}
+
+export const storeOrderService = {
+  fetchOrders: async () => {
+    const { data, error } = await supabase.from('store_orders').select('*')
+    if (error) {
+      throw new Error('Error fetching orders')
+    }
+    return data
+  },
+  createOrder: async ({ orderData, items, cartTotals, metadata, userId }: CreateOrderParams) => {
+    const omit = <T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> => {
+      return Object.fromEntries(Object.entries(obj).filter(([k]) => !keys.includes(k as K))) as Omit<T, K>
+    }
+
+    const toYYYYMMDD = (date: Date) => date.toISOString().split('T')[0]
+
+    const orderReduced = omit(orderData, ['postal_code_lookup', 'state', 'locality'])
+
+    const mappedOrderData = {
+      ...orderReduced,
+      delivery_date:
+        orderReduced.delivery_date === 'today'
+          ? toYYYYMMDD(new Date()) // hoy en YYYY-MM-DD
+          : toYYYYMMDD(new Date(Date.now() + 24 * 60 * 60 * 1000)) // mañana en YYYY-MM-DD
+    }
+
+    const mappedItems = items.map((item) =>
+      item.saleType === 'bulk'
+        ? { id: item.id, quantity: item.quantity, price: item.price, saleType: item.saleType, unitSelected: item.unitSelected ?? null }
+        : { id: item.id, quantity: item.quantity, price: item.price, saleType: item.saleType }
+    )
+
+    const mappedCartTotals = cartTotals
+      ? {
+          total_price: cartTotals.totalPrice,
+          total_items: cartTotals.totalQuantity,
+          shipping_price: cartTotals.shippingPrice
+        }
+      : undefined
+
+    // const insertData = {
+    //   orderData: mappedOrderData,
+    //   items: mappedItems,
+    //   metadata,
+    //   user_id: userId,
+    //   cart_totals: mappedCartTotals
+    // }
+
+    const insertData = {
+      ...mappedOrderData,
+      items: mappedItems,
+      ...metadata,
+      user_id: userId,
+      ...mappedCartTotals
+    }
+
+    console.log(insertData)
+
+    const { data, error } = await supabase.from('store_orders').insert(insertData).select().single()
+    if (error) {
+      throw new Error('Error creating order: ' + error.message)
+    }
+    return data
+  }
+}
