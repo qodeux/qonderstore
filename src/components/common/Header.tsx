@@ -35,6 +35,8 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const isLoginPage = location.pathname === '/login'
+  const isCheckoutPage = location.pathname === '/tienda/checkout'
+
   const isOpenCart = useSelector((state: RootState) => state.ui.cartOpen)
 
   const handleLogout = () => {
@@ -90,21 +92,23 @@ const Header = () => {
                 <Link href='/tienda/productos'>Productos</Link>
               </NavbarItem>
             </div>
-            <NavbarItem>
-              <Badge
-                className='dark'
-                color='danger'
-                content={totalQuantity}
-                shape='circle'
-                classNames={{ badge: 'absolute bottom-3' }}
-                placement='bottom-right'
-                isInvisible={totalQuantity === 0}
-              >
-                <Button isIconOnly variant='light' onPress={handleToggleCart} className='text-white' radius='full'>
-                  <ShoppingCart />
-                </Button>
-              </Badge>
-            </NavbarItem>
+            {!isCheckoutPage && (
+              <NavbarItem>
+                <Badge
+                  className='dark'
+                  color='danger'
+                  content={totalQuantity}
+                  shape='circle'
+                  classNames={{ badge: 'absolute bottom-3' }}
+                  placement='bottom-right'
+                  isInvisible={totalQuantity === 0}
+                >
+                  <Button isIconOnly variant='light' onPress={handleToggleCart} className='text-white' radius='full'>
+                    <ShoppingCart />
+                  </Button>
+                </Badge>
+              </NavbarItem>
+            )}
             <NavbarItem>
               <Dropdown placement='bottom-start'>
                 <DropdownTrigger>
