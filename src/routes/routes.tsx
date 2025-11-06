@@ -17,8 +17,10 @@ import Users from '../pages/admin/Users'
 import Login from '../pages/auth/Login'
 import Catalog from '../pages/Catalog'
 import Category from '../pages/Category'
+import Checkout from '../pages/Checkout'
 import CreateAccount from '../pages/CreateAccount'
 import Home from '../pages/Home'
+import OrderConfirmation from '../pages/OrderConfirmation'
 import Product from '../pages/Product'
 import FAQ from '../pages/public/FAQ'
 import MailVerify from '../pages/public/MailVerify'
@@ -62,6 +64,8 @@ const AppRoutes: React.FC = () => (
       <Route path='categoria/:slug' element={<Category />} />
       <Route path='categoria/:category/producto/:slug' element={<Product />} />
       <Route path='producto/:slug' element={<Product />} />
+      <Route path='checkout' element={<Checkout />} />
+      <Route path='checkout/confirmacion/:oid' element={<OrderConfirmation />} />
 
       <Route path='*' element={<NotFound />} />
     </Route>
