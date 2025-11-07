@@ -13,6 +13,7 @@ import {
   Package,
   SendToBack,
   ShoppingBag,
+  Truck,
   Users
 } from 'lucide-react'
 import { useSelector } from 'react-redux'
@@ -68,6 +69,11 @@ const menuItems: MenuItem[] = [
     label: 'Órdenes',
     icon: <ShoppingBag className='w-5 h-5' />,
     href: '/admin/ordenes'
+  },
+  {
+    label: 'Envíos',
+    icon: <Truck className='w-5 h-5' />,
+    href: '/admin/envios'
   },
   {
     label: 'Usuarios',

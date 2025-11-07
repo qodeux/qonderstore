@@ -13,6 +13,7 @@ import Promos from '../pages/admin/Promos'
 import Providers from '../pages/admin/Providers'
 import Requests from '../pages/admin/Requests'
 import PedidosTienda from '../pages/admin/StoreOrders'
+import EnviosTienda from '../pages/admin/StoreShipments'
 import SupplyOrders from '../pages/admin/SupplyOrders'
 import Users from '../pages/admin/Users'
 import Login from '../pages/auth/Login'
@@ -85,6 +86,7 @@ const AppRoutes: React.FC = () => (
       <Route path='productos' element={<Products />} />
       <Route path='promociones' element={<Promos />} />
       <Route path='ordenes' element={<PedidosTienda />} />
+      <Route path='envios' element={<EnviosTienda />} />
 
       <Route
         path='proveedores'
