@@ -116,27 +116,6 @@ const EnviosTienda = () => {
               onPress: (row) => {
                 console.log('Ver detalle', row)
               }
-            },
-            {
-              key: 'register_payment',
-              label: 'Registrar pago',
-              onPress: (row) => {
-                console.log('Registrar pago', row)
-              }
-            },
-            {
-              key: 'prove_payment',
-              label: 'Acreditar pago',
-              onPress: (row) => {
-                console.log('Registrar pago', row)
-              }
-            },
-            {
-              key: 'cancelled',
-              label: 'Cancelar orden',
-              onPress: (row) => {
-                console.log('Registrar pago', row)
-              }
             }
           ]
         }}
