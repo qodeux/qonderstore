@@ -81,5 +81,13 @@ export const storeOrderService = {
       throw new Error('Error creating order: ' + error.message)
     }
     return data
+  },
+  fetchStoreOrders: async () => {
+    const { data, error } = await supabase.from('store_orders').select('*')
+    if (error) {
+      console.error('Error fetching orders:', error)
+      return { error }
+    }
+    return { data }
   }
 }
