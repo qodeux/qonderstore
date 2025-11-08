@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid'
 import { useEffect } from 'react'
 import { Controller, useFieldArray, useFormContext } from 'react-hook-form'
 import { NumericFormat } from 'react-number-format'
+import { useAppSelector } from '../../../../store/store'
 
 export type WholeSalePrice = {
   min: number | undefined
@@ -13,6 +14,8 @@ export type WholeSalePrice = {
 export type WholeSaleRow = { id?: string; min?: number; price?: number }
 
 const ProductUnitForm = () => {
+  const { user } = useAppSelector((state) => state.auth)
+
   const {
     control,
     register,
@@ -92,9 +95,11 @@ const ProductUnitForm = () => {
   const canAdd = wholesaleSwitch && (wholesaleRows?.length ? last?.min != null && last?.price != null : true)
   // -------------------------------------------------------------------------------
 
+  if (!user) return null
+
   return (
     <form className='space-y-2' name='product-unit-form'>
-      <section className='grid grid-cols-3 gap-2'>
+      <section className='flex items-start gap-2'>
         <Controller
           name='unit'
           control={control}
@@ -117,42 +122,43 @@ const ProductUnitForm = () => {
             </Select>
           )}
         />
-        //TODO [UN-95]: El staff no debe ver este campo
-        <Controller
-          name='base_cost'
-          control={control}
-          render={({ field, fieldState }) => (
-            <NumericFormat
-              label='Costo base'
-              value={field.value ?? ''}
-              onValueChange={(v) => field.onChange(v.floatValue ?? undefined)}
-              onBlur={field.onBlur}
-              name={field.name}
-              getInputRef={field.ref}
-              thousandSeparator
-              decimalScale={2}
-              fixedDecimalScale
-              allowNegative={false}
-              prefix='$ '
-              inputMode='decimal'
-              customInput={Input}
-              size='sm'
-              isInvalid={!!fieldState.error}
-              errorMessage={fieldState.error?.message}
-              onFocus={(e) => {
-                setTimeout(() => e.currentTarget.select(), 0)
-              }}
-              onPointerDown={(e) => {
-                const el = e.currentTarget as HTMLInputElement
-                if (document.activeElement !== el) {
-                  e.preventDefault()
-                  el.focus()
-                  el.select()
-                }
-              }}
-            />
-          )}
-        />
+        {user.role === 'admin' && (
+          <Controller
+            name='base_cost'
+            control={control}
+            render={({ field, fieldState }) => (
+              <NumericFormat
+                label='Costo base'
+                value={field.value ?? ''}
+                onValueChange={(v) => field.onChange(v.floatValue ?? undefined)}
+                onBlur={field.onBlur}
+                name={field.name}
+                getInputRef={field.ref}
+                thousandSeparator
+                decimalScale={2}
+                fixedDecimalScale
+                allowNegative={false}
+                prefix='$ '
+                inputMode='decimal'
+                customInput={Input}
+                size='sm'
+                isInvalid={!!fieldState.error}
+                errorMessage={fieldState.error?.message}
+                onFocus={(e) => {
+                  setTimeout(() => e.currentTarget.select(), 0)
+                }}
+                onPointerDown={(e) => {
+                  const el = e.currentTarget as HTMLInputElement
+                  if (document.activeElement !== el) {
+                    e.preventDefault()
+                    el.focus()
+                    el.select()
+                  }
+                }}
+              />
+            )}
+          />
+        )}
         <Controller
           name='public_price'
           control={control}
@@ -188,6 +194,8 @@ const ProductUnitForm = () => {
             />
           )}
         />
+      </section>
+      <section className='grid grid-cols-3 gap-2'>
         <section className='space-y-1'>
           <div className='flex items-center justify-between'>
             <Controller
