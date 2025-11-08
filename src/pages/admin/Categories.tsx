@@ -17,9 +17,11 @@ const Categories = () => {
     id: number
     name: string
     slug_id: string
+    slug: string
     total_products?: number
     parent?: number
     parent_name?: string | null
+    last_update: string
     is_active: boolean
     color?: string
   }
@@ -30,21 +32,32 @@ const Categories = () => {
       allowsSorting: true
     },
     {
-      key: 'total_products',
-      label: 'Productos',
-      allowsSorting: true,
-      align: 'center'
-    },
-    {
       key: 'slug_id',
       label: 'Clave',
       allowsSorting: true,
       align: 'center'
     },
     {
+      key: 'slug',
+      label: 'Slug',
+      allowsSorting: true
+    },
+    {
       key: 'parent_name',
       label: 'Categoria principal',
       allowsSorting: true
+    },
+    {
+      key: 'total_products',
+      label: 'Productos',
+      allowsSorting: true,
+      align: 'center'
+    },
+    {
+      key: 'last_update',
+      label: 'Última actualización',
+      allowsSorting: true,
+      preset: 'date'
     },
     {
       key: 'is_active',
