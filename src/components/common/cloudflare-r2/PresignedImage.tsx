@@ -4,6 +4,8 @@ type Props = {
   keyPath: string // key en R2
   /** segundos de vigencia que le pides a tu función (coincide con ?expires=) */
   expires?: number // default 60
+  imgSize?: 'cover' | 'contain' // default 'cover'
+  aspect?: 'free' | 'square' // default 'fixed'
 }
 
 /** Cache global por keyPath (persiste entre montajes) */
@@ -15,7 +17,7 @@ const RENEW_MARGIN_S = 10
 /** Espera mínima por si alguien pone expires muy bajo (ms) */
 const MIN_RENEW_DELAY_MS = 15_000
 
-const PresignedImage = ({ keyPath, expires = 60 }: Props) => {
+const PresignedImage = ({ keyPath, expires = 60, imgSize = 'cover', aspect = 'square' }: Props) => {
   const [url, setUrl] = useState<string>()
   const [error, setError] = useState<string>()
   const [loading, setLoading] = useState(true)
@@ -122,11 +124,15 @@ const PresignedImage = ({ keyPath, expires = 60 }: Props) => {
   }, [keyPath, expires])
 
   if (loading && !url) {
-    return <div className='w-full aspect-square animate-pulse rounded-xl bg-gray-200' />
+    return <div className={`w-full ${aspect === 'square' ? 'aspect-square' : ''} animate-pulse rounded-xl bg-gray-200`} />
   }
   if (error && !url) {
     return (
-      <div className='w-full aspect-square rounded-xl bg-red-50 text-red-600 text-xs flex items-center justify-center p-2'>{error}</div>
+      <div
+        className={`w-full ${aspect === 'square' ? 'aspect-square' : ''} rounded-xl bg-red-50 text-red-600 text-xs flex items-center justify-center p-2`}
+      >
+        {error}
+      </div>
     )
   }
 
@@ -134,7 +140,7 @@ const PresignedImage = ({ keyPath, expires = 60 }: Props) => {
     <img
       src={url}
       alt=''
-      className='w-full aspect-square object-cover '
+      className={`w-full ${aspect === 'square' ? 'aspect-square' : ''} object-${imgSize}`}
       loading='lazy'
       decoding='async'
       fetchPriority='low'

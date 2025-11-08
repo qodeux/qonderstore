@@ -9,7 +9,13 @@ type CategoryItemProps = {
 
 const CategoryItem = ({ category }: CategoryItemProps) => {
   return (
-    <Card key={category.slug_id} shadow='sm' isPressable className='relative aspect-square overflow-hidden border border-neutral-400 p-0'>
+    <Card
+      key={category.slug_id}
+      radius='sm'
+      shadow='none'
+      isPressable
+      className='relative aspect-square overflow-hidden border border-neutral-400 p-0 w-full shadow-sm'
+    >
       <Link to={`/tienda/categoria/${category.slug_id}`}>
         <figure>
           {category.main_image ? (

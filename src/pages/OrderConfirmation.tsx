@@ -4,7 +4,7 @@ const OrderConfirmation = () => {
   const { oid } = useParams()
 
   return (
-    <div>
+    <div className='container mx-auto p-8'>
       <h1>Tu orden ha sido confirmada</h1>
       <p>El ID de tu orden es: {oid}</p>
 
