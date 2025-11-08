@@ -110,8 +110,7 @@ const Categories = () => {
         <ToolbarTable<Row>
           rows={categories}
           searchFilter={['name']}
-          // filters={[{ label: 'Categoría', column: 'category', multiple: true }]}
-
+          filters={[{ label: 'Categoría', column: 'parent_name', multiple: true }]}
           buttons={[
             {
               label: 'Agregar categoría',
