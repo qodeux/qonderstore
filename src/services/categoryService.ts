@@ -1,3 +1,4 @@
+import { addToast } from '@heroui/react'
 import supabase from '../lib/supabase'
 import type { CategoryInput } from '../schemas/category.schema'
 
@@ -18,6 +19,7 @@ export const categoryService = {
           parent: categoryData.parent,
           color: categoryData.color,
           slug_id: categoryData.slug_id,
+          slug: categoryData.slug,
           is_active: true,
           featured: false
         }
@@ -44,7 +46,9 @@ export const categoryService = {
         color: categoryData.color,
         slug_id: categoryData.slug_id,
         is_active: categoryData.is_active,
-        featured: categoryData.featured
+        featured: categoryData.featured,
+        last_update: new Date().toISOString(),
+        slug: categoryData.slug
       })
       .eq('id', categoryData.id)
       .select()
@@ -62,5 +66,13 @@ export const categoryService = {
     if (error) {
       console.error('Error deleting category:', error)
     }
+
+    addToast({
+      title: 'Categoría eliminada',
+      description: `La categoría ha sido eliminada correctamente.`,
+      color: 'danger',
+      variant: 'bordered',
+      shouldShowTimeoutProgress: true
+    })
   }
 }
