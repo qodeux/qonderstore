@@ -6,7 +6,7 @@ import { useSelector } from 'react-redux'
 import 'yet-another-react-lightbox/plugins/thumbnails.css'
 import 'yet-another-react-lightbox/styles.css'
 import type { BulkDetailsForPayload, DetailsForPayload, ProductRpcPayload } from '../../../../schemas/productsPayload.schema'
-import type { RootState } from '../../../../store/store'
+import { useAppSelector, type RootState } from '../../../../store/store'
 import { bulkUnitsAvailable, saleTypes, saleUnitsAvailable, type RawUnitEntry } from '../../../../types/products'
 import ProductLightboxGallery from '../../../common/light-box/ProductLightbox'
 
@@ -36,6 +36,7 @@ type EnrichedUnitItem = {
 }
 
 const Confirmation = ({ data }: Props) => {
+  const user = useAppSelector((state) => state.auth.user)
   const categories = useSelector((state: RootState) => state.categories.items)
   const brands = useSelector((state: RootState) => state.products.brands)
 
@@ -122,6 +123,8 @@ const Confirmation = ({ data }: Props) => {
   const details = data.details
   const unitDetails = details.type === 'unit' ? details : null
   const bulkDetails = details.type === 'bulk' ? details : null
+
+  if (!user) return <p>No tienes permisos para ver esta información.</p>
 
   return (
     <div className='flex gap-4'>
@@ -222,7 +225,7 @@ const Confirmation = ({ data }: Props) => {
         {unitDetails && (
           <section>
             <div className='flex items-center gap-8 mt-1'>
-              {unitDetails.base_cost != null && (
+              {unitDetails.base_cost != null && user.role === 'admin' && (
                 <div className='flex flex-col'>
                   <div className='flex items-center gap-1 '>
                     <NumericFormat
