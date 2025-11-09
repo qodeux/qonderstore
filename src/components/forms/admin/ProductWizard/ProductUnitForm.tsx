@@ -1,4 +1,4 @@
-import { Button, Input, NumberInput, Select, SelectItem, Switch } from '@heroui/react'
+import { Button, Input, NumberInput, Select, SelectItem, Switch, Tooltip } from '@heroui/react'
 import { PackageMinus, PackagePlus, TriangleAlert, X } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { useEffect } from 'react'
@@ -107,6 +107,8 @@ const ProductUnitForm = () => {
             <Select
               label='Unidad de venta'
               size='sm'
+              variant='bordered'
+              classNames={{ trigger: 'bg-white' }}
               selectedKeys={field.value ? [String(field.value)] : []}
               onSelectionChange={(keys) => {
                 const value = Array.from(keys)[0]
@@ -128,6 +130,8 @@ const ProductUnitForm = () => {
             control={control}
             render={({ field, fieldState }) => (
               <NumericFormat
+                variant='bordered'
+                classNames={{ inputWrapper: 'bg-white' }}
                 label='Costo base'
                 value={field.value ?? ''}
                 onValueChange={(v) => field.onChange(v.floatValue ?? undefined)}
@@ -164,6 +168,8 @@ const ProductUnitForm = () => {
           control={control}
           render={({ field, fieldState }) => (
             <NumericFormat
+              variant='bordered'
+              classNames={{ inputWrapper: 'bg-white' }}
               label='Precio público'
               value={field.value ?? ''}
               onValueChange={(v) => field.onChange(v.floatValue ?? undefined)}
@@ -228,6 +234,8 @@ const ProductUnitForm = () => {
                 <NumberInput
                   key={minSaleSwitch ? 'min-on' : 'min-off'}
                   aria-label='Compra mínima'
+                  variant='bordered'
+                  classNames={{ inputWrapper: 'bg-white' }}
                   value={minSaleSwitch ? (field.value ?? undefined) : undefined}
                   isDisabled={!minSaleSwitch}
                   size='sm'
@@ -276,6 +284,8 @@ const ProductUnitForm = () => {
               control={control}
               render={({ field }) => (
                 <NumberInput
+                  variant='bordered'
+                  classNames={{ inputWrapper: 'bg-white' }}
                   key={maxSaleSwitch ? 'max-on' : 'max-off'}
                   aria-label='Compra máxima'
                   value={maxSaleSwitch ? (field.value ?? undefined) : undefined}
@@ -325,6 +335,8 @@ const ProductUnitForm = () => {
               control={control}
               render={({ field }) => (
                 <NumberInput
+                  variant='bordered'
+                  classNames={{ inputWrapper: 'bg-white' }}
                   key={lowStockSwitch ? 'low-on' : 'low-off'}
                   aria-label='Alerta de stock bajo'
                   value={lowStockSwitch ? (field.value ?? undefined) : undefined}
@@ -385,6 +397,8 @@ const ProductUnitForm = () => {
                   control={control}
                   render={({ field, fieldState }) => (
                     <NumberInput
+                      variant='bordered'
+                      classNames={{ inputWrapper: 'bg-white' }}
                       label='Mínimo'
                       size='sm'
                       minValue={1}
@@ -405,6 +419,8 @@ const ProductUnitForm = () => {
                   control={control}
                   render={({ field, fieldState }) => (
                     <NumericFormat
+                      variant='bordered'
+                      classNames={{ inputWrapper: 'bg-white' }}
                       thousandSeparator
                       decimalScale={2}
                       fixedDecimalScale
@@ -426,9 +442,11 @@ const ProductUnitForm = () => {
                 />
 
                 {fields.length > 1 && (
-                  <Button variant='ghost' color='danger' size='sm' onPress={() => remove(index)} isIconOnly>
-                    <X />
-                  </Button>
+                  <Tooltip content='Eliminar precio' placement='left'>
+                    <Button variant='ghost' color='danger' size='sm' onPress={() => remove(index)} isIconOnly>
+                      <X />
+                    </Button>
+                  </Tooltip>
                 )}
               </div>
             ))}
