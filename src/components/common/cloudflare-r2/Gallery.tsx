@@ -4,10 +4,11 @@
  */
 
 // Gallery.tsx
-import { Tooltip } from '@heroui/react'
+import { Tooltip, useDisclosure } from '@heroui/react'
 import { CircleX } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
+import OnConfirmModal from '../../modals/common/onConfirmModal'
 import PresignedImage from './PresignedImage'
 
 type Props = {
@@ -26,9 +27,20 @@ const Gallery = ({ mode, publicBaseUrl, expires, onDelete }: Props) => {
   } = useFormContext()
   const imagesRaw = useWatch({ control, name: 'images' }) as string[] | undefined
   const images = useMemo(() => imagesRaw ?? [], [imagesRaw])
+  const [imageToDelete, setImageToDelete] = useState<string | null>(null)
 
   const mainImageRaw = useWatch({ control, name: 'main_image' }) as string | undefined
   const mainImage = useMemo(() => mainImageRaw ?? '', [mainImageRaw])
+
+  const { isOpen: isOpenConfirm, onOpenChange: onOpenChangeConfirm, onOpen: onOpenConfirm } = useDisclosure()
+
+  const confirmDelete = () => {
+    if (imageToDelete) {
+      handleRemove(imageToDelete)
+      setImageToDelete(null)
+      onOpenChangeConfirm()
+    }
+  }
 
   const removeFromForm = (key: string) => {
     const next = images.filter((k) => k !== key)
@@ -38,7 +50,7 @@ const Gallery = ({ mode, publicBaseUrl, expires, onDelete }: Props) => {
   }
 
   async function handleRemove(key: string) {
-    if (!confirm('¿Seguro que quieres eliminar esta imagen?')) return
+    // if (!confirm('¿Seguro que quieres eliminar esta imagen?')) return
     try {
       const res = await fetch('/.netlify/functions/r2-delete', {
         method: 'DELETE',
@@ -65,8 +77,9 @@ const Gallery = ({ mode, publicBaseUrl, expires, onDelete }: Props) => {
     }
     if (!mainImage || !images.includes(mainImage)) {
       setValue('main_image', images[0])
+      clearErrors('main_image')
     }
-  }, [images, mainImage, setValue])
+  }, [images, mainImage, setValue, clearErrors])
 
   if (mode === 'public') {
     return (
@@ -82,7 +95,8 @@ const Gallery = ({ mode, publicBaseUrl, expires, onDelete }: Props) => {
                     className='absolute top-1 right-1 text-danger'
                     onClick={(e) => {
                       e.stopPropagation()
-                      handleRemove(val)
+                      setImageToDelete(val)
+                      onOpenConfirm()
                     }}
                   >
                     <CircleX />
@@ -106,24 +120,35 @@ const Gallery = ({ mode, publicBaseUrl, expires, onDelete }: Props) => {
       <ul className='grid grid-cols-2 md:grid-cols-4 gap-3 mb-4'>
         {images.map((key, i) => (
           <li key={`${key}-${i}`} className='relative' onClick={() => selectMainImage(key)}>
-            <figure className={mainImage === key ? 'ring-4 ring-blue-500 rounded-xl p-1' : 'p-1'}>
+            <figure className={mainImage === key ? 'ring-4 ring-blue-500 rounded-xl p-1 ' : 'p-1 '}>
               <Tooltip content='Eliminar imagen'>
                 <button
                   className='flex items-center gap-1 text-white text-xs absolute -top-3 -right-3 m-1 bg-red-500 rounded-full hover:bg-red-600 z-10'
                   onClick={(e) => {
                     e.stopPropagation()
-                    handleRemove(key)
+                    setImageToDelete(key)
+                    onOpenConfirm()
                   }}
                 >
                   <CircleX />
                 </button>
               </Tooltip>
-              <PresignedImage keyPath={key} expires={expires} />
+              <div className='border-1 border-neutral-300 rounded-xl overflow-hidden'>
+                <PresignedImage keyPath={key} expires={expires} />
+              </div>
             </figure>
           </li>
         ))}
       </ul>
       {errors?.main_image && <p className='text-sm text-red-600 mt-1 text-center'>{String(errors.main_image.message)}</p>}
+      <OnConfirmModal
+        isOpen={isOpenConfirm}
+        onOpenChange={onOpenChangeConfirm}
+        title='Eliminar imagen'
+        action='delete'
+        message='¿Estás seguro de que quieres eliminar esta imagen? '
+        onConfirm={confirmDelete}
+      />
     </div>
   )
 }

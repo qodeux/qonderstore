@@ -155,6 +155,8 @@ const ProductBulkForm = () => {
           control={control}
           render={({ field }) => (
             <Select
+              variant='bordered'
+              classNames={{ trigger: 'bg-white' }}
               label='Unidad base'
               size='sm'
               items={selectedUnits}
@@ -179,6 +181,8 @@ const ProductBulkForm = () => {
           control={control}
           render={({ field, fieldState }) => (
             <NumericFormat
+              variant='bordered'
+              classNames={{ inputWrapper: 'bg-white' }}
               label='Precio público'
               value={field.value ?? ''}
               onValueChange={(v) => field.onChange(v.floatValue ?? undefined)}
@@ -243,9 +247,11 @@ const ProductBulkForm = () => {
             control={control}
             render={({ field }) => (
               <NumberInput
+                variant='bordered'
+                classNames={{ inputWrapper: 'bg-white' }}
                 key={minSaleSwitch ? 'min-on' : 'min-off'}
                 aria-label='Compra mínima'
-                value={minSaleSwitch ? field.value ?? undefined : undefined}
+                value={minSaleSwitch ? (field.value ?? undefined) : undefined}
                 isDisabled={!minSaleSwitch}
                 size='sm'
                 className='max-w-20 text-center'
@@ -292,9 +298,11 @@ const ProductBulkForm = () => {
             control={control}
             render={({ field }) => (
               <NumberInput
+                variant='bordered'
+                classNames={{ inputWrapper: 'bg-white' }}
                 key={maxSaleSwitch ? 'max-on' : 'max-off'}
                 aria-label='Compra máxima'
-                value={maxSaleSwitch ? field.value ?? undefined : undefined}
+                value={maxSaleSwitch ? (field.value ?? undefined) : undefined}
                 isDisabled={!maxSaleSwitch}
                 size='sm'
                 className='max-w-20 text-center'
@@ -316,7 +324,7 @@ const ProductBulkForm = () => {
 
       {selectedUnits.length > 1 && publicPrice != null && baseUnit && (
         <>
-          <p className='text-medium text-foreground-500'>Ajuste por unidad</p>
+          <p className='text-medium text-foreground-500'>Precios por unidad</p>
 
           <section className='grid grid-cols-2 gap-2'>
             {selectedUnits
@@ -347,6 +355,8 @@ const ProductBulkForm = () => {
                       control={control}
                       render={({ field, fieldState }) => (
                         <NumericFormat
+                          variant='bordered'
+                          classNames={{ inputWrapper: 'bg-white' }}
                           customInput={Input}
                           value={field.value ?? ''}
                           onBlur={() => setEditing(unit.key, null)}
@@ -399,9 +409,21 @@ const ProductBulkForm = () => {
                       control={control}
                       render={({ field, fieldState }) => (
                         <NumericFormat
+                          variant='bordered'
+                          classNames={{ inputWrapper: 'bg-white' }}
                           label='Precio'
                           value={field.value ?? ''}
-                          onFocus={() => setEditing(unit.key, 'price')}
+                          onFocus={(e) => {
+                            setTimeout(() => e.currentTarget.select(), 0)
+                          }}
+                          onPointerDown={(e) => {
+                            const el = e.currentTarget as HTMLInputElement
+                            if (document.activeElement !== el) {
+                              e.preventDefault()
+                              el.focus()
+                              el.select()
+                            }
+                          }}
                           onBlur={() => {
                             // al terminar de escribir, ahora sí calcula margen desde el precio
                             const num = watch(`units.${unit.key}.price`) as number | undefined
@@ -441,11 +463,6 @@ const ProductBulkForm = () => {
                           customInput={Input}
                           size='sm'
                           isInvalid={!!fieldState.error}
-                          isClearable
-                          onClear={() => {
-                            setValue(field.name, undefined, { shouldValidate: true, shouldDirty: true, shouldTouch: true })
-                            setValue(`units.${unit.key}.margin`, undefined, { shouldValidate: true, shouldDirty: true, shouldTouch: true })
-                          }}
                         />
                       )}
                     />
