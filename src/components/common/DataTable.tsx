@@ -77,6 +77,7 @@ type ColumnBase<T> = {
   render?: (row: T) => React.ReactNode
   sortAccessor?: (row: T) => string | number
   align?: AlignPreset
+  hidden?: boolean
 }
 
 type ColumnDate<T> = ColumnBase<T> & { preset: 'date'; presetConfig?: DateConfig }
@@ -596,6 +597,9 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
     [canRowAction, rowMap, handleRowActivate]
   )
 
+  //TODO: Ocultar columnas , pero permitir ordenamiento por columnas ocultas.
+  const visibleColumns = useMemo(() => columns.filter((c) => !c.hidden), [columns])
+
   return (
     <>
       <section
@@ -632,7 +636,7 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
           }}
           ref={tableRef}
         >
-          <TableHeader columns={columns}>
+          <TableHeader columns={visibleColumns}>
             {(column) => (
               <TableColumn key={String(column.key)} allowsSorting={!!column.allowsSorting} align={column.align ?? 'start'}>
                 {column.label}
