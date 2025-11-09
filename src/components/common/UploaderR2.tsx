@@ -188,9 +188,11 @@ const RHF_R2Uploader: React.FC<Props> = ({
         ) : (
           <>
             <p className='font-medium'>Arrastra y suelta, o haz clic para seleccionar</p>
-            <p className='text-xs text-gray-500'>Para mejores resultados, usa imágenes cuadradas de mínimo 800px</p>
+            <p className='text-xs text-gray-500'>
+              Para mejores resultados, usa imágenes <strong>cuadradas</strong> de mínimo <strong>800px</strong> en formato jpg
+            </p>
             <p className='text-xs text-gray-500 mt-1'>
-              Hasta {maxFiles} imágenes de máximo {(maxSize / (1024 * 1024)).toFixed(0)}MB cada una.
+              Hasta {maxFiles} imágenes de máximo <strong>{(maxSize / (1024 * 1024)).toFixed(0)}MB</strong> cada una.
             </p>
           </>
         )}
@@ -223,7 +225,7 @@ const RHF_R2Uploader: React.FC<Props> = ({
                 <figure>
                   <Tooltip content='Eliminar archivo'>
                     <button
-                      className='text-danger bg-gray-50 absolute top-0 right-0 rounded-full rounded-tr-none p-1 hover:bg-danger hover:text-white'
+                      className='text-danger bg-white absolute top-0 right-0 rounded-full rounded-tr-none p-1 hover:bg-danger hover:text-white '
                       onClick={() => removeFile(idx)}
                       disabled={uploading}
                       type='button'
@@ -234,7 +236,7 @@ const RHF_R2Uploader: React.FC<Props> = ({
                   <img
                     src={preview}
                     alt={file.name}
-                    className='h-32 w-full object-cover rounded-xl'
+                    className='h-32 w-full object-cover rounded-xl border-1 border-neutral-300'
                     onLoad={(e) => {
                       // Solo calcular para imágenes y solo en la sección local
                       if (file.type?.startsWith('image/')) {
