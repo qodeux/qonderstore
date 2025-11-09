@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux'
 import { DataTable, type ColumnDef } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import type { RootState } from '../../store/store'
-import { storeOrdersStatusMap } from '../../types/storeOrders'
+import { deliveryTypesMap, storeOrder_status } from '../../types/storeOrders'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const PedidosTienda = () => {
@@ -13,50 +13,66 @@ const PedidosTienda = () => {
   type Row = {
     id: string
     name: string
-    postal_code: string
+
     delivery_type: string
     delivery_date: string
     total_price: number
+    shipping_price: number
     order_status: string
+    order_total: number
+    total_items: number
+    created_at: string
   }
 
   const columns: ColumnDef<Row>[] = [
-    {
-      key: 'id',
-      label: 'ID orden',
-      allowsSorting: false
-    },
     {
       key: 'name',
       label: 'Nombre',
       allowsSorting: false
     },
     {
-      key: 'postal_code',
-      label: 'Código postal',
-      allowsSorting: false
+      key: 'total_items',
+      label: 'Productos',
+      allowsSorting: false,
+      align: 'center'
     },
+
+    {
+      key: 'created_at',
+      label: 'Fecha compra',
+      allowsSorting: true,
+      preset: 'date'
+    },
+    {
+      key: 'last_update',
+      label: 'Actualizado',
+      allowsSorting: true,
+      preset: 'date',
+      hidden: true
+    },
+
     {
       key: 'delivery_type',
       label: 'Tipo de entrega',
-      allowsSorting: true
+      allowsSorting: true,
+      align: 'center',
+      preset: 'type',
+      presetConfig: { map: deliveryTypesMap }
     },
     {
-      key: 'delivery_date',
-      label: 'Fecha de entrega',
-      allowsSorting: true
+      key: 'order_total',
+      label: 'Precio total',
+      allowsSorting: true,
+      preset: 'money',
+      align: 'end'
     },
+
     {
-      key: 'total_price',
-      label: 'Total orden',
-      allowsSorting: false
-    },
-    {
-      key: 'status',
+      key: 'order_status',
       label: 'Status de la orden',
       allowsSorting: true,
       preset: 'type',
-      presetConfig: { map: storeOrdersStatusMap, wrapper: { type: 'chip', variant: 'flat' } }
+      presetConfig: { map: storeOrder_status, wrapper: { type: 'chip', variant: 'flat' } }
     },
     {
       key: 'actions',
@@ -74,7 +90,7 @@ const PedidosTienda = () => {
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]))
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: 'delivery_date',
+    column: 'last_update',
     direction: 'descending'
   })
 
@@ -87,7 +103,10 @@ const PedidosTienda = () => {
       <ToolbarTable<Row>
         rows={storeOrders}
         searchFilter={['name']}
-        //filters={[{ label: 'Categoría', column: 'category', multiple: true }]}
+        filters={[
+          { label: 'Tipo de entrega', column: 'delivery_type', multiple: false },
+          { label: 'Status de la orden', column: 'order_status', multiple: true }
+        ]}
         //buttons={toolbarButtons}
         onCriteriaChange={setCriteria}
       />
