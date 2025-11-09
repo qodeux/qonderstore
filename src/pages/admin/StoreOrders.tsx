@@ -1,13 +1,17 @@
 import type { Selection, SortDescriptor } from '@heroui/react'
 import { useMemo, useState } from 'react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate } from 'react-router'
 import { DataTable, type ColumnDef } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
+import { setSelectedOrder } from '../../store/slices/storeOrdersSlice'
 import type { RootState } from '../../store/store'
 import { deliveryTypesMap, storeOrder_status } from '../../types/storeOrders'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const PedidosTienda = () => {
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
   const storeOrders = useSelector((state: RootState) => state.storeOrders.items)
 
   type Row = {
@@ -121,6 +125,11 @@ const PedidosTienda = () => {
         onSortChange={setSortDescriptor}
         getRowKey={(row) => row.id as string} //en number no funciona y quitando
         adapterOverrides={{
+          edit: (row) => {
+            console.log('Editar orden de tienda', row)
+            dispatch(setSelectedOrder(row.id))
+            navigate(`/admin/orden/${row.id}`)
+          },
           actions: [
             {
               key: 'details',

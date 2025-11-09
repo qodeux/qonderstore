@@ -19,3 +19,20 @@ export const deliveryTypes = [
 
 export type DeliveryTypes = (typeof deliveryTypes)[number]['key']
 export const deliveryTypesMap = toRecord(deliveryTypes)
+
+export type IPGeolocation = {
+  query: string
+  status: 'success' | 'fail'
+  country: string
+  countryCode: string
+  region: string
+  regionName: string
+  city: string
+  zip: string
+  lat: number
+  lon: number
+  timezone: string
+  isp: string
+  org: string
+  as: string
+}

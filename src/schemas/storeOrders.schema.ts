@@ -35,7 +35,8 @@ export const storeOrderSchema = z.object({
     'canceled'
   ]),
   order_total: z.number(),
-  total_price: z.number()
+  total_price: z.number(),
+  email: z.email()
 })
 
 export type storeOrder = z.infer<typeof storeOrderSchema>
