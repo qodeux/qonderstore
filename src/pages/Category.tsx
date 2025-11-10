@@ -22,11 +22,11 @@ const Category = () => {
   const subcategories = categories.filter((c) => c.parent === categories.find((cat) => cat.slug_id == slug)?.id)
 
   return (
-    <div className='w-full container mx-auto px-4 py-10 flex flex-col gap-12'>
-      <header className='mb-6 flex items-center justify-between'>
-        <div>
-          <Button size='lg' variant='ghost' onPress={() => navigate(-1)}>
-            <ChevronLeft /> Regresar
+    <div className='w-full container mx-auto p-6 md:p-8 flex flex-col gap-4 md:gap-8'>
+      <header className='mb-6 flex flex-col md:flex-row items-start md:items-center md:justify-between'>
+        <div className='mb-6 md:mb-0 '>
+          <Button size='md' variant='ghost' onPress={() => navigate(-1)}>
+            <ChevronLeft /> <p className='hidden md:block'>Regresar</p>
           </Button>
         </div>
         <h2 className='text-5xl font-bold text-center'>Categoría {categories.find((c) => c.slug_id == slug)?.name}</h2>
@@ -36,7 +36,7 @@ const Category = () => {
       {hasSubcategories && (
         <section>
           <header>
-            <h3 className='text-3xl font-bold mb-8'>Subcategorías</h3>
+            <h3 className='text-3xl font-bold mb-4'>Subcategorías</h3>
           </header>
           <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6'>
             {subcategories.map((cat) => (
@@ -49,7 +49,7 @@ const Category = () => {
       {featuredProducts.length > 0 && (
         <section>
           <header>
-            <h3 className='text-3xl font-bold mb-8'>Productos destacados</h3>
+            <h3 className='text-3xl font-bold mb-4 text-center md:text-left'>Productos destacados</h3>
           </header>
           <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8'>
             {featuredProducts.map((item) => (
@@ -60,10 +60,10 @@ const Category = () => {
       )}
       {allProducts.length > 0 && (
         <section>
-          <header className='mb-6 flex items-center justify-between'>
-            <h3 className='text-3xl font-bold mb-8'>Todos los productos</h3>
-            <div className='flex items-center '>
-              <Input label='Buscar productos...' size='sm' className='mr-4  w-50' />
+          <header className='mb-6 flex flex-col md:flex-row md:items-center justify-center md:justify-between'>
+            <h3 className='text-3xl font-bold my-4 md:mb-0 text-center md:text-left'>Todos los productos</h3>
+            <div className='flex items-center justify-between  w-full md:max-w-md'>
+              <Input label='Buscar ...' size='sm' className='mr-4  ' variant='bordered' classNames={{ inputWrapper: 'bg-white' }} />
               <OrderBy />
             </div>
           </header>
