@@ -255,7 +255,7 @@ const Checkout = () => {
 
   return (
     <form
-      className='grid grid-cols-1 md:grid-cols-[1fr_350px] lg:grid-cols-[1fr_350px] container mx-auto gap-8'
+      className='grid grid-cols-1 md:grid-cols-[1fr_350px] lg:grid-cols-[1fr_350px] container mx-auto gap-8 mt-8'
       onSubmit={handleCreateOrder}
     >
       {/* Columna izquierda */}
