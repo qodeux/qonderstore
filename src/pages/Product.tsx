@@ -7,14 +7,17 @@ import { useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useParams } from 'react-router'
 
+import { SwiperSlide } from 'swiper/react'
 import ProductLightboxGallery from '../components/common/light-box/ProductLightbox'
+import SwipperSlider from '../components/common/swiper/SwipperSlider'
 import ProductItem from '../components/store/ProductItem'
 import QuantitySelector from '../components/store/QuantitySelector'
 import UnitSelector from '../components/store/UnitSelector'
-import { makeSelectProductWithPromoBySlug, selectProductsWithBestPromo, type ProductWithPromo } from '../store/selectors/productsWithPromo'
+import { makeSelectProductWithPromoBySlug, selectProductsWithBestPromo } from '../store/selectors/productsWithPromo'
 import { addItem } from '../store/slices/cartSlice'
 import { setCartOpen } from '../store/slices/uiSlice'
 import type { RootState } from '../store/store'
+import { saleUnitsAvailable } from '../types/products'
 import { formatMoney } from '../utils/money'
 
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,7 +35,7 @@ const Product = () => {
   const cartItems = useSelector((s: RootState) => s.cart.items)
 
   const rating = 4
-  const [quantity, setQuantity] = useState(1)
+  const [quantity, setQuantity] = useState(product?.min_sale ? product.min_sale : 1)
   const [stockLeftPercent, setStockLeftPercent] = useState<number | null>(null)
   const [QuantityError, setQuantityError] = useState<string | null>(null)
 
@@ -173,12 +176,11 @@ const Product = () => {
 
   if (!product) return <div>Producto no encontrado</div>
 
-  // ✅ Estado explícito para el botón
   const canAdd = maxSelectableQty > 0 && quantity >= 1 && quantity <= maxSelectableQty
 
   return (
     <>
-      <section className='container flex flex-col md:flex-row gap-8 mx-auto'>
+      <section className='container flex flex-col md:flex-row gap-8 mx-auto px-8 mt-8'>
         {/* === GALERÍA === */}
         <div className='w-full md:w-1/2 rounded-xl overflow-hidden border border-neutral-300'>
           <ProductLightboxGallery mainImage={product.main_image} images={orderedImages} showThumbnails maxWidth={900} />
@@ -277,6 +279,7 @@ const Product = () => {
                   <AnimatePresence>
                     {remainingNow > 0 && (
                       <motion.div
+                        key={`qty-selector`}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, type: 'spring' }}
@@ -292,12 +295,30 @@ const Product = () => {
                             if (q > safeMax) setQuantityError('No hay existencias suficientes')
                           }}
                           maxQuantity={maxSelectableQty}
+                          minQuantity={product.min_sale}
                           onError={setQuantityError}
                         />
                       </motion.div>
                     )}
+
+                    {product.sale_type === 'unit' && remainingNow > 0 && (
+                      <motion.div
+                        key={`unit-label`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, type: 'spring' }}
+                        exit={{ opacity: 0, y: 20 }}
+                      >
+                        <span className='font-medium text-lg'>
+                          {saleUnitsAvailable.find((unit) => unit.key === product.unit)?.label}
+                          {quantity && quantity > 1 && 's'}
+                        </span>
+                      </motion.div>
+                    )}
+
                     {product.sale_type === 'bulk' && remainingNow > 0 && (
                       <motion.div
+                        key={`unit-selector`}
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
@@ -338,15 +359,19 @@ const Product = () => {
       </section>
 
       {/* === RELACIONADOS === */}
-      <section className='my-8 container mx-auto'>
+      <section className='my-8 container mx-auto px-8'>
         <header className='mb-4'>
           <h3 className='text-2xl font-semibold'>Productos relacionados</h3>
         </header>
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8'>
-          {relatedProducts.map((item: ProductWithPromo) => (
-            <ProductItem key={item.id} item={item} isRelated />
-          ))}
-        </div>
+        <SwipperSlider showProgress showNavigation showPagination autoplay={10000}>
+          {relatedProducts
+            .filter((p) => p.featured === true)
+            .map((item) => (
+              <SwiperSlide key={`related-${item.id}`}>
+                <ProductItem key={item.id} item={item} isRelated />
+              </SwiperSlide>
+            ))}
+        </SwipperSlider>
       </section>
     </>
   )
