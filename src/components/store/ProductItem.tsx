@@ -39,29 +39,29 @@ const ProductItem = ({ item, isRelated }: ProductItemProps) => {
   }
 
   return (
-    <Card key={item.id} shadow='sm' className='border border-neutral-300'>
+    <Card key={item.id} className='m-0 border-1 border-neutral-400  shadow-sm' radius='sm' shadow='none'>
       <CardHeader className='p-0'>
         <Link to={`${isRelated ? '/tienda/' : ''}producto/${item.slug}`} className='contents'>
-          <div className='w-full aspect-square bg-neutral-100 border-b border-neutral-300 flex items-center justify-center text-neutral-500 text-xs'>
+          <div className='w-full aspect-square bg-neutral-100 border-b border-neutral-400 flex items-center justify-center text-neutral-500 text-xs'>
             {item.main_image ? <PresignedImage keyPath={item.main_image} expires={600} /> : 'Sin imagen'}
           </div>
         </Link>
       </CardHeader>
 
       <CardBody className='px-3 py-3 text-neutral-900 text-sm '>
-        <p className='font-medium text-lg mb-2'>{item.name}</p>
+        <p className='font-medium text-lg mb-2 truncate'>{item.name}</p>
 
         <div>
           {item.hasPromotion ? (
             <div className='flex items-center justify-end gap-2'>
               <div className='text-right'>
-                <del className='text-sm  mt-1 leading-0'>{formatMoney(item.price)}</del>
-                <div className='text-xs text-green-600 leading-3'>Promo -{item.discountPercent}% </div>
+                <del className='text-sm  leading-0'>{formatMoney(item.price)}</del>
+                <div className='text-xs text-green-600 leading-3'>Promo -{item.discountPercent.toFixed(0)}% </div>
               </div>
               <span className='text-2xl font-semibold'>{formatMoney(item.finalPrice)}</span>
             </div>
           ) : (
-            <p className='text-2xl font-semibold text-neutral-900 mt-1 text-right'>{formatMoney(item.price)}</p>
+            <p className='text-2xl font-semibold text-neutral-900  text-right'>{formatMoney(item.price)}</p>
           )}
         </div>
       </CardBody>

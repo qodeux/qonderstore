@@ -7,7 +7,7 @@ import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
 import { requestAccessService } from '../../services/requestAccessService'
 import { setSelectedRequest } from '../../store/slices/requestAccessSlice'
 import type { RootState } from '../../store/store'
-import { requestStatusMap } from '../../types/requests'
+import { request_status } from '../../types/requests'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const Requests = () => {
@@ -51,7 +51,7 @@ const Requests = () => {
       label: 'Estatus',
       allowsSorting: true,
       preset: 'type',
-      presetConfig: { map: requestStatusMap, wrapper: { type: 'chip', variant: 'flat' } }
+      presetConfig: { map: request_status, wrapper: { type: 'chip', variant: 'flat' } }
     },
     {
       key: 'actions',

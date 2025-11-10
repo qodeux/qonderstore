@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   Package,
   SendToBack,
+  ShoppingBag,
   Users
 } from 'lucide-react'
 import { useSelector } from 'react-redux'
@@ -49,11 +50,6 @@ const menuItems: MenuItem[] = [
       { label: 'Promociones', href: '/admin/promociones', icon: <CirclePercent className='w-4 h-4' /> }
     ]
   },
-  //   {
-  //     label: 'Pedidos',
-  //     icon: <ShoppingBag className='w-5 h-5' />,
-  //     href: '/admin/pedidos'
-  //   },
   {
     label: 'Proveedores',
     icon: <Boxes className='w-5 h-5' />,
@@ -67,6 +63,11 @@ const menuItems: MenuItem[] = [
     label: 'Solicitudes',
     icon: <ClipboardList className='w-5 h-5' />,
     href: '/admin/solicitudes-acceso'
+  },
+  {
+    label: 'Órdenes',
+    icon: <ShoppingBag className='w-5 h-5' />,
+    href: '/admin/ordenes'
   },
   {
     label: 'Usuarios',

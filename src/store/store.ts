@@ -15,6 +15,7 @@ import requestAccessReducer from './slices/requestAccessSlice'
 import cartReducer from './slices/cartSlice'
 
 import { useDispatch, useSelector, type TypedUseSelectorHook } from 'react-redux'
+import storeOrdersReducer from './slices/storeOrdersSlice'
 import supplyOrdersReducer from './slices/supplyOrdersSlice'
 
 const store = configureStore({
@@ -30,7 +31,8 @@ const store = configureStore({
     requestAccess: requestAccessReducer,
     productFilters: productFiltersReducer,
     cart: cartReducer,
-    supplyOrders: supplyOrdersReducer
+    supplyOrders: supplyOrdersReducer,
+    storeOrders: storeOrdersReducer
   }
 })
 

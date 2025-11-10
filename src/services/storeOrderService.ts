@@ -20,12 +20,13 @@ export type CreateOrderParams = {
 }
 
 export const storeOrderService = {
-  fetchOrders: async () => {
-    const { data, error } = await supabase.from('store_orders').select('*')
+  fetchStoreOrders: async () => {
+    const { data, error } = await supabase.from('store_orders_view').select('*')
     if (error) {
-      throw new Error('Error fetching orders')
+      console.error('Error fetching orders:', error)
+      return { error }
     }
-    return data
+    return { data }
   },
   createOrder: async ({ orderData, items, cartTotals, metadata, userId }: CreateOrderParams) => {
     const omit = <T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> => {

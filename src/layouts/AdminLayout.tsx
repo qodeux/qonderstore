@@ -9,6 +9,7 @@ import AccountModal from '../components/modals/admin/AccountModal'
 import CartSidebar from '../components/store/CartSidebar'
 import { useProviders } from '../hooks/useProviders'
 import { useRequests } from '../hooks/useRequests'
+import { useStoreOrders } from '../hooks/useStoreOrders'
 import { useSupplyOrders } from '../hooks/useSupplyOrders'
 import { setCartOpen, setLayoutOutletHeight } from '../store/slices/uiSlice'
 import type { AppDispatch, RootState } from '../store/store'
@@ -17,6 +18,7 @@ const AdminLayout = () => {
   useProviders()
   useRequests()
   useSupplyOrders()
+  useStoreOrders()
   const dispatch = useDispatch<AppDispatch>()
   const contentRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
