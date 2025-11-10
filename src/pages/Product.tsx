@@ -1,4 +1,4 @@
-import { Button, Progress } from '@heroui/react'
+import { Button, Chip, Progress } from '@heroui/react'
 import { Rating } from '@smastrom/react-rating'
 import '@smastrom/react-rating/style.css'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -129,7 +129,7 @@ const Product = () => {
       .filter((p) => p.id !== product.id)
       .slice()
       .sort((a, b) => a.id - b.id)
-      .slice(0, 4)
+      .slice(0, 8)
   }, [products, product])
 
   // ---------- CARRITO ----------
@@ -165,6 +165,11 @@ const Product = () => {
     const timer = setTimeout(() => setQuantityError(null), 2000)
     return () => clearTimeout(timer)
   }, [QuantityError])
+
+  useEffect(() => {
+    if (!product) return
+    document.title = `${product?.name} - Qonderstore`
+  }, [product])
 
   if (!product) return <div>Producto no encontrado</div>
 
@@ -225,7 +230,7 @@ const Product = () => {
                 size='md'
                 value={stockLeftPercent ?? 0}
                 showValueLabel
-                className='w-full max-w-1/2 md:max-w-1/3'
+                className='w-full max-w-1/2 md:max-w-2/3 lg:max-w-1/2 xl:max-w-1/3'
                 valueLabel={`${remainingNow}  unidades`}
                 color={remainingNow > 5 ? 'success' : 'danger'}
               />
@@ -243,7 +248,18 @@ const Product = () => {
                 <span className='text-3xl font-bold'>{formatMoney(unitPrice)}</span>
                 {hasPromo && <span className='text-lg line-through text-neutral-500'>{formatMoney(unitOriginalPrice)}</span>}
               </div>
-              <span>Precio</span>
+              {hasPromo ? (
+                <>
+                  <div>
+                    Precio con descuento{' '}
+                    <Chip color='success' variant='flat' size='sm' className='font-medium'>
+                      <span>{product.discountPercent ? `-${product.discountPercent}%` : `$${product.discountAmount}`}</span>
+                    </Chip>
+                  </div>
+                </>
+              ) : (
+                <span>Precio normal</span>
+              )}
             </div>
 
             {quantity > 1 && (
