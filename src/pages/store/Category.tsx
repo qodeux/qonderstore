@@ -2,11 +2,11 @@ import { Button, Input } from '@heroui/react'
 import { ChevronLeft } from 'lucide-react'
 import { useSelector } from 'react-redux'
 import { useNavigate, useParams } from 'react-router'
-import CategoryItem from '../components/store/CategoryItem'
-import OrderBy from '../components/store/OrderBy'
-import ProductItem from '../components/store/ProductItem'
-import { selectProductsWithBestPromo } from '../store/selectors/productsWithPromo'
-import type { RootState } from '../store/store'
+import CategoryItem from '../../components/store/CategoryItem'
+import OrderBy from '../../components/store/OrderBy'
+import ProductItem from '../../components/store/ProductItem'
+import { selectProductsWithBestPromo } from '../../store/selectors/productsWithPromo'
+import type { RootState } from '../../store/store'
 
 const Category = () => {
   const { slug } = useParams()
