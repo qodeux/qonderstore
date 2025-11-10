@@ -25,7 +25,6 @@ export const categorySchema = z.object({
   is_active: z.boolean(),
   color: z.string().optional(),
   main_image: z.string().optional(),
-  slug: z.string(),
   last_update: z.string()
 })
 
