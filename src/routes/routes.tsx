@@ -6,6 +6,7 @@ import AdminLayout from '../layouts/AdminLayout'
 import FrontwebLayout from '../layouts/FrontwebLayout'
 import SidebarLayout from '../layouts/SidebarLayout'
 import NotFound from '../pages/404'
+import Brands from '../pages/admin/Brands'
 import Categories from '../pages/admin/Categories'
 import Dashboard from '../pages/admin/Dashboard'
 import Products from '../pages/admin/Products'
@@ -83,6 +84,7 @@ const AppRoutes: React.FC = () => (
       <Route index element={<Dashboard />} />
       <Route path='dashboard' element={<Dashboard />} />
       <Route path='categorias' element={<Categories />} />
+      <Route path='marcas' element={<Brands />} />
       <Route path='productos' element={<Products />} />
       <Route path='promociones' element={<Promos />} />
       <Route path='ordenes' element={<PedidosTienda />} />
