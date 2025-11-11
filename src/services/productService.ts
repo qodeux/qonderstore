@@ -1,5 +1,6 @@
 import { addToast } from '@heroui/react'
 import supabase from '../lib/supabase'
+import type { BrandInput } from '../schemas/brand.schema'
 import type { Product } from '../schemas/products.schema'
 import type { ProductRpcPayload } from '../schemas/productsPayload.schema'
 
@@ -70,6 +71,57 @@ export const productService = {
     const { error } = await supabase.from('products').delete().eq('id', productId)
     if (error) {
       console.error('Error deleting product:', error)
+    }
+  },
+  createBrand: async (payload: BrandInput) => {
+    const { data, error } = await supabase.from('product_brands').insert(payload).select().single()
+    if (error) {
+      console.error('Error adding brand:', error)
+      throw error
+    }
+
+    addToast({
+      title: 'Marca agregado',
+      description: `La marca "${data.name}" ha sido agregado correctamente.`,
+      color: 'success',
+      variant: 'bordered',
+      shouldShowTimeoutProgress: true
+    })
+
+    return data
+  },
+  fetchBrands: async () => {
+    const { data, error } = await supabase.from('product_brands_view').select('*')
+    if (error) {
+      console.error('Error fetching brands:', error)
+      return { error }
+    }
+    return { data }
+  },
+  updateBrand: async (payload: BrandInput) => {
+    const updatePayload = { ...payload, color: payload.color ?? null }
+    const { data, error } = await supabase.from('product_brands').update(updatePayload).eq('id', payload.id).select().single()
+    if (error) {
+      console.error('Error updating brand:', error)
+      throw error
+    }
+
+    addToast({
+      title: 'Marca actualizado',
+      description: `La marca "${data.name}" ha sido actualizado correctamente.`,
+      color: 'primary',
+      variant: 'bordered',
+      timeout: 4000,
+      shouldShowTimeoutProgress: true
+    })
+
+    return data
+  },
+  deleteBrand: async (id: number) => {
+    const { error } = await supabase.from('product_brands').delete().eq('id', id)
+    if (error) {
+      console.error('Error deleting brand:', error)
+      return { error }
     }
   }
 }

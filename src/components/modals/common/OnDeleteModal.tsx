@@ -1,14 +1,13 @@
 import { addToast, Alert, Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
 import { ShieldAlert } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useSelector } from 'react-redux'
 import { categoryService } from '../../../services/categoryService'
 import { productService } from '../../../services/productService'
 import { promotionService } from '../../../services/promotionService'
 import { providerService } from '../../../services/providerService'
 import { requestAccessService } from '../../../services/requestAccessService'
 import { userService } from '../../../services/userService'
-import type { RootState } from '../../../store/store'
+import { useAppSelector } from '../../../store/store'
 
 export type ItemType = 'product' | 'category' | 'brand' | 'provider' | 'user' | 'promotion' | 'request'
 
@@ -29,14 +28,15 @@ const deleteTypeMap = {
 }
 
 const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) => {
-  const user = useSelector((state: RootState) => state.auth.user)
-  const categories = useSelector((state: RootState) => state.categories.items) ?? []
-  const selectedCategory = useSelector((state: RootState) => state.categories.selectedCategory)
-  const selectedProduct = useSelector((state: RootState) => state.products.selectedProduct)
-  const selectedProvider = useSelector((state: RootState) => state.providers.selectedProvider)
-  const selectedUser = useSelector((state: RootState) => state.users.selectedUser)
-  const selectedPromotion = useSelector((state: RootState) => state.promotions.selectedPromotion)
-  const selectedRequest = useSelector((state: RootState) => state.requestAccess.selectedRequest)
+  const user = useAppSelector((state) => state.auth.user)
+  const categories = useAppSelector((state) => state.categories.items) ?? []
+  const selectedCategory = useAppSelector((state) => state.categories.selectedCategory)
+  const selectedBrand = useAppSelector((state) => state.products.selectedBrand)
+  const selectedProduct = useAppSelector((state) => state.products.selectedProduct)
+  const selectedProvider = useAppSelector((state) => state.providers.selectedProvider)
+  const selectedUser = useAppSelector((state) => state.users.selectedUser)
+  const selectedPromotion = useAppSelector((state) => state.promotions.selectedPromotion)
+  const selectedRequest = useAppSelector((state) => state.requestAccess.selectedRequest)
 
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -47,6 +47,9 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
       break
     case 'category':
       itemToDelete = selectedCategory?.name
+      break
+    case 'brand':
+      itemToDelete = selectedBrand?.name
       break
     case 'provider':
       itemToDelete = selectedProvider?.alias
@@ -76,8 +79,6 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
             variant: 'bordered',
             shouldShowTimeoutProgress: true
           })
-
-          console.log('Product deleted successfully')
         }
         break
       case 'category':
@@ -87,7 +88,16 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
         }
         break
       case 'brand':
-        //await supabase.from('brands').delete().eq('id', itemId)
+        await productService.deleteBrand(selectedBrand?.id ?? 0)
+
+        addToast({
+          title: 'Marca eliminada',
+          description: `La marca "${itemToDelete}" ha sido eliminada correctamente.`,
+          color: 'danger',
+          variant: 'bordered',
+          shouldShowTimeoutProgress: true
+        })
+
         break
       case 'provider':
         console.log('Borrando:', selectedProvider)
@@ -126,6 +136,11 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
         // if ((selectedCategory?.total_products ?? 0) > 0) return false
         // if (subcategories > 0) return false
         return true
+      case 'brand':
+        if (!selectedBrand) return
+        if (selectedBrand.total_products === 0) return true
+
+        return confirmDelete
 
       case 'product':
         if ((selectedProduct?.stock ?? 0) > 0) {
@@ -198,6 +213,33 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
                   description={`${deleteTypeMap[deleteType].article === 'el' ? 'Este' : 'Esta'} ${deleteTypeMap[deleteType].name} tiene ${
                     subcategories > 0 ? `${subcategories} subcategorías y ` : ''
                   }${selectedCategory?.total_products} productos, al eliminarla, todos sus productos quedarán sin categoría.`}
+                  title='Advertencia'
+                />
+              )}
+
+              {deleteType === 'brand' && (selectedBrand?.total_products ?? 0) > 0 && (
+                <Alert
+                  color='danger'
+                  icon={<ShieldAlert />}
+                  hideIconWrapper
+                  className='mt-4'
+                  classNames={{ title: 'font-bold', description: 'text-xs', alertIcon: 'fill-none', iconWrapper: 'bg-blue-100' }}
+                  description={
+                    <>
+                      Esta {deleteTypeMap[deleteType].name} tiene{' '}
+                      <span className='font-bold'>{selectedBrand?.total_products} productos</span> asociados. Al eliminarla, todos sus
+                      productos quedarán sin marca. <strong>Esto no se puede deshacer. </strong> Para continuar debes confirmar la
+                      eliminación.
+                      <div className='flex items-center gap-1 mt-3'>
+                        {!confirmDelete && (
+                          <Button color='danger' className=' shadow-small' size='sm' variant='solid' onPress={() => setConfirmDelete(true)}>
+                            Confirmar eliminación
+                          </Button>
+                        )}
+                        {confirmDelete && <span className='text-sm'>¡Listo! Ya puedes eliminar.</span>}
+                      </div>
+                    </>
+                  }
                   title='Advertencia'
                 />
               )}

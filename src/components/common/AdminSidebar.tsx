@@ -46,6 +46,7 @@ const menuItems: MenuItem[] = [
     icon: <Combine className='w-5 h-5' />,
     submenu: [
       { label: 'Categorías', href: '/admin/categorias', icon: <Layers className='w-4 h-4' /> },
+      { label: 'Marcas', href: '/admin/marcas', icon: <Layers className='w-4 h-4' /> },
       { label: 'Productos', href: '/admin/productos', icon: <Package className='w-4 h-4' /> },
       { label: 'Promociones', href: '/admin/promociones', icon: <CirclePercent className='w-4 h-4' /> }
     ]
