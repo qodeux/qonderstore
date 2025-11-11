@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate, useSearchParams } from 'react-router'
 import CustomAlert from '../../components/common/CustomAlert'
+import UserDataForm from '../../components/forms/customer/UserDataForm'
 import ManageAddressModal from '../../components/modals/customer/ManageAddressModal'
 import ProductItem from '../../components/store/ProductItem'
 import type { Product } from '../../schemas/products.schema'
@@ -331,7 +332,18 @@ const Account = () => {
                 <span className='hidden sm:block'>Ajustes</span>
               </div>
             }
-          ></Tab>
+          >
+            <section className='grid grid-cols-1 md:grid-cols-2'>
+              <div className='space-y-4'>
+                <h3 className='text-xl font-bold'>Datos de mi cuenta</h3>
+                <UserDataForm />
+              </div>
+              <div>
+                <h3 className='text-xl font-bold'>Configuración de la cuenta</h3>
+                <p className='text-gray-600 mb-4'>Administra las configuraciones de tu cuenta.</p>
+              </div>
+            </section>
+          </Tab>
         </Tabs>
       </section>
       <ManageAddressModal isOpen={isAddressModalOpen} onOpenChange={onAddressModalOpenChange} />
