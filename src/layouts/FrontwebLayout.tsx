@@ -5,10 +5,13 @@ import Footer from '../components/common/Footer'
 import Header from '../components/common/Header'
 import ScrollToTopButton from '../components/common/ScrollToTopButton'
 import CartSidebar from '../components/store/CartSidebar'
+import { useStoreOrders } from '../hooks/useStoreOrders'
 import { setCartOpen } from '../store/slices/uiSlice'
 import type { RootState } from '../store/store'
 
 const FrontwebLayout = () => {
+  useStoreOrders()
+
   const footerRef = useRef<HTMLDivElement | null>(null)
   const spacerRef = useRef<HTMLDivElement | null>(null)
   const [underlay, setUnderlay] = useState(true)

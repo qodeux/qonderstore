@@ -224,5 +224,42 @@ export const userService = {
         timeout: 4000
       })
     }, 1000)
+  },
+  addAddress: async (userId: string, addressData: any) => {
+    const { data: addressInserted, error: addressError } = await supabase
+      .from('addresses')
+      .insert([
+        {
+          user_id: userId,
+          ...addressData
+        }
+      ])
+      .select()
+      .single()
+    if (addressError) {
+      console.error('Error inserting address:', addressError)
+      return { error: addressError }
+    }
+    return addressInserted
+  },
+  updateAddress: async (addressId: number, addressData: any) => {
+    if (!addressId) {
+      console.error('El id de la dirección es obligatorio para actualizar')
+      return
+    }
+    const { data: addressUpdated, error: addressError } = await supabase
+      .from('addresses')
+      .update({
+        ...addressData
+      })
+      .eq('id', addressId)
+      .select()
+      .single()
+
+    if (addressError) {
+      console.error('Error updating address:', addressError)
+      return
+    }
+    return addressUpdated
   }
 }
