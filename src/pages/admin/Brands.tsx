@@ -43,10 +43,18 @@ const Brands = () => {
       align: 'center'
     },
     {
+      key: 'featured',
+      label: 'Destacar',
+      allowsSorting: true,
+      preset: 'featured',
+      align: 'center'
+    },
+    {
       key: 'actions',
       label: 'Acciones',
       allowsSorting: false,
-      preset: 'actions'
+      preset: 'actions',
+      align: 'center'
     }
   ]
 
@@ -97,7 +105,7 @@ const Brands = () => {
         />
 
         <DataTable<Row>
-          entity='categories'
+          entity='brands'
           adapterOverrides={{
             edit: (row) => {
               handleEditBrand(row)
