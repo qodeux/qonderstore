@@ -255,7 +255,7 @@ const Product = () => {
                   <div>
                     Precio con descuento{' '}
                     <Chip color='success' variant='flat' size='sm' className='font-medium'>
-                      <span>{product.discountPercent ? `-${product.discountPercent}%` : `$${product.discountAmount}`}</span>
+                      <span>{product.discountPercent ? `-${product.discountPercent.toFixed(0)}%` : `$${product.discountAmount}`}</span>
                     </Chip>
                   </div>
                 </>
