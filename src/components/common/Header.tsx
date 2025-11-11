@@ -86,10 +86,19 @@ const Header = () => {
           <>
             <div className='hidden md:flex gap-4'>
               <NavbarItem>
-                <Link href='/tienda'>Tienda</Link>
+                <Link href='/tienda' className='text-white'>
+                  Tienda
+                </Link>
               </NavbarItem>
               <NavbarItem>
-                <Link href='/tienda/productos'>Productos</Link>
+                <Link href='/tienda/productos' className='text-white'>
+                  Productos
+                </Link>
+              </NavbarItem>
+              <NavbarItem>
+                <Link href='/mi-cuenta' className='text-white'>
+                  Mi cuenta
+                </Link>
               </NavbarItem>
             </div>
             {!isCheckoutPage && (

@@ -18,6 +18,7 @@ import SupplyOrders from '../pages/admin/SupplyOrders'
 import Users from '../pages/admin/Users'
 import Login from '../pages/auth/Login'
 import CreateAccount from '../pages/CreateAccount'
+import Account from '../pages/customer/Account'
 import Home from '../pages/Home'
 import FAQ from '../pages/public/FAQ'
 import MailVerify from '../pages/public/MailVerify'
@@ -114,6 +115,17 @@ const AppRoutes: React.FC = () => (
         }
       />
       <Route path='*' element={<NotFound />} />
+    </Route>
+
+    <Route
+      path='/mi-cuenta'
+      element={
+        <ProtectedRoute>
+          <FrontwebLayout />
+        </ProtectedRoute>
+      }
+    >
+      <Route index element={<Account />} />
     </Route>
   </Routes>
 )
