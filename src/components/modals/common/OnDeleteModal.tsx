@@ -146,6 +146,11 @@ const OnDeleteModal = ({ isOpenDelete, onOpenChangeDelete, deleteType }: Props) 
         return true
       case 'promotion':
         if (!selectedPromotion) return false
+
+        if (!isPromotionActive) {
+          return true
+        }
+
         return confirmDelete
       case 'request':
         if (!selectedRequest) return false
