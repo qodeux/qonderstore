@@ -1,13 +1,13 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
 import { SwiperSlide } from 'swiper/react'
-import MainBanner from '../components/common/swiper/MainBanner'
-import SwipperSlider from '../components/common/swiper/SwipperSlider'
-import CategoryItem from '../components/store/CategoryItem'
-import ProductItem from '../components/store/ProductItem'
-import { useTailwindBreakpoint } from '../hooks/useBreakTailwindPoint'
-import { selectProductsWithBestPromo } from '../store/selectors/productsWithPromo'
-import type { RootState } from '../store/store'
+import MainBanner from '../../components/common/swiper/MainBanner'
+import SwipperSlider from '../../components/common/swiper/SwipperSlider'
+import CategoryItem from '../../components/store/CategoryItem'
+import ProductItem from '../../components/store/ProductItem'
+import { useTailwindBreakpoint } from '../../hooks/useBreakTailwindPoint'
+import { selectProductsWithBestPromo } from '../../store/selectors/productsWithPromo'
+import type { RootState } from '../../store/store'
 
 const Store: React.FC = () => {
   const products = useSelector(selectProductsWithBestPromo)

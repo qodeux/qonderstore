@@ -49,9 +49,10 @@ export default function ProductLightboxGallery({
   // Slides para YARL con keyPath + src requerido
   const slides: SlideWithKeyPath[] = useMemo(
     () =>
-      ordered.map((keyPath) => ({
+      ordered.map((keyPath, i) => ({
         keyPath,
-        src: TRANSPARENT_PX // cumplimos el tipo; renderizamos con PresignedImage
+        // Hacemos el string único por slide sin provocar red descargas:
+        src: `${TRANSPARENT_PX}#${encodeURIComponent(keyPath || String(i))}`
       })),
     [ordered]
   )

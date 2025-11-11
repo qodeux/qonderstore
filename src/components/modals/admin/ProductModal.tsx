@@ -131,7 +131,7 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
       productBulkInputSchema
     ) as unknown as Resolver<ProductBulkInput>,
     shouldUnregister: false,
-    mode: 'all',
+    mode: 'onBlur',
     reValidateMode: 'onChange'
   })
 
@@ -394,7 +394,7 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
     <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      size={currentStep <= 1 ? 'sm' : 'xl'}
+      size={currentStep <= 1 ? 'sm' : currentStep === 4 ? '2xl' : 'xl'}
       backdrop='blur'
       classNames={{
         base: ' overflow-hidden pt-4 bg-gray-50',
@@ -418,7 +418,7 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
 
         <ModalBody>
           <Wizard
-            header={<RowSteps currentStep={wizardCurrentIndex} onStepChange={onStepClick} steps={WizardSteps} allowAllSteps={isEditing} />}
+            header={<RowSteps onStepChange={onStepClick} steps={WizardSteps} allowAllSteps={isEditing} />}
             footer={<WizardFooter getStepForm={(idx) => WizardSteps[idx]?.form} onConfirm={handleSubmitProduct} />}
             wrapper={<AnimatePresence initial={false} mode='wait' />}
           >

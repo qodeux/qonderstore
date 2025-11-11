@@ -39,7 +39,8 @@ const CategoryModal = ({ isOpen, onOpenChange }: Props) => {
     name: selectedCategory?.name ?? '',
     slug_id: selectedCategory?.slug_id ?? '',
     parent: selectedCategory?.parent ?? undefined,
-    color: selectedCategory?.color ?? undefined
+    color: selectedCategory?.color ?? undefined,
+    slug: selectedCategory?.slug ?? ''
   })
 
   const handleSubmitCategory = async () => {

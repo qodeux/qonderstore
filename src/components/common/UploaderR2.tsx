@@ -1,5 +1,5 @@
 // RHF_R2Uploader.tsx
-import { Button } from '@heroui/react'
+import { Button, Tooltip } from '@heroui/react'
 import { CircleX } from 'lucide-react'
 import React, { useCallback, useState } from 'react'
 import { type FileRejection, useDropzone } from 'react-dropzone'
@@ -58,6 +58,9 @@ const RHF_R2Uploader: React.FC<Props> = ({
   const [progress, setProgress] = useState<Record<string, number>>({}) // key -> 0..100
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
+  const [dimensions, setDimensions] = useState<Record<string, { w: number; h: number }>>({})
+  const fileKey = (f: File) => `${f.name}-${f.size}-${f.lastModified}`
+
   const onDrop = useCallback((accepted: File[]) => {
     if (!accepted?.length) return
     setFiles((prev) => [...prev, ...accepted])
@@ -76,7 +79,18 @@ const RHF_R2Uploader: React.FC<Props> = ({
   const fieldError = (errors as Record<string, any>)?.[name]?.message as string | undefined
 
   const removeFile = (idx: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== idx))
+    setFiles((prev) => {
+      const copy = [...prev]
+      const [removed] = copy.splice(idx, 1)
+      if (removed) {
+        const k = fileKey(removed)
+        setDimensions((d) => {
+          const { [k]: _, ...rest } = d
+          return rest
+        })
+      }
+      return copy
+    })
   }
 
   // PUT con XHR para progreso
@@ -174,9 +188,11 @@ const RHF_R2Uploader: React.FC<Props> = ({
         ) : (
           <>
             <p className='font-medium'>Arrastra y suelta, o haz clic para seleccionar</p>
-            <p className='text-xs text-gray-500'>Para mejores resultados, usa imágenes cuadradas de mínimo 800px</p>
+            <p className='text-xs text-gray-500'>
+              Para mejores resultados, usa imágenes <strong>cuadradas</strong> de mínimo <strong>800px</strong> en formato jpg
+            </p>
             <p className='text-xs text-gray-500 mt-1'>
-              Hasta {maxFiles} imágenes de máximo {(maxSize / (1024 * 1024)).toFixed(0)}MB cada una.
+              Hasta {maxFiles} imágenes de máximo <strong>{(maxSize / (1024 * 1024)).toFixed(0)}MB</strong> cada una.
             </p>
           </>
         )}
@@ -200,34 +216,47 @@ const RHF_R2Uploader: React.FC<Props> = ({
         <ul className='grid grid-cols-2 md:grid-cols-4 gap-3'>
           {files.map((file, idx) => {
             const preview = URL.createObjectURL(file)
+            const k = fileKey(file)
+            const dims = dimensions[k]
             // Indicador simple (si subes varios, puedes mostrar barra por item usando progress[it.key])
             const anyPct = Object.values(progress)[0]
             return (
               <li key={`${file.name}-${idx}`} className='relative'>
                 <figure>
-                  <button
-                    className='flex items-center gap-1 text-danger'
-                    onClick={() => removeFile(idx)}
-                    disabled={uploading}
-                    type='button'
-                  >
-                    <CircleX /> Remover
-                  </button>
+                  <Tooltip content='Eliminar archivo'>
+                    <button
+                      className='text-danger bg-white absolute top-0 right-0 rounded-full rounded-tr-none p-1 hover:bg-danger hover:text-white '
+                      onClick={() => removeFile(idx)}
+                      disabled={uploading}
+                      type='button'
+                    >
+                      <CircleX />
+                    </button>
+                  </Tooltip>
                   <img
                     src={preview}
                     alt={file.name}
-                    className='h-32 w-full object-cover rounded-xl'
-                    onLoad={() => URL.revokeObjectURL(preview)}
+                    className='h-32 w-full object-cover rounded-xl border-1 border-neutral-300'
+                    onLoad={(e) => {
+                      // Solo calcular para imágenes y solo en la sección local
+                      if (file.type?.startsWith('image/')) {
+                        const img = e.currentTarget
+                        setDimensions((prev) => ({ ...prev, [k]: { w: img.naturalWidth, h: img.naturalHeight } }))
+                      }
+                      URL.revokeObjectURL(preview)
+                    }}
                   />
                 </figure>
-                <div className='mt-1 flex items-center justify-between text-xs'>
-                  <span className='truncate'>{file.name}</span>
-                  <span className='text-xs text-gray-500'>
+                <div className='mt-1 flex flex-col items-center justify-between text-xs'>
+                  <span className='whitespace-nowrap'>
+                    {file.type?.startsWith('image/') ? (dims ? `${dims.w}×${dims.h} px` : '…') : ''}
+                  </span>
+                  <span className='text-gray-500 '>
                     {file.size < 1024
                       ? `${file.size} B`
                       : file.size < 1024 * 1024
-                      ? `${(file.size / 1024).toFixed(2)} KB`
-                      : `${(file.size / 1024 / 1024).toFixed(2)} MB`}
+                        ? `${(file.size / 1024).toFixed(2)} KB`
+                        : `${(file.size / 1024 / 1024).toFixed(2)} MB`}
                   </span>
                 </div>
                 {uploading && (

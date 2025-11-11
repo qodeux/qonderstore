@@ -3,12 +3,12 @@ import { Button, Chip, Input } from '@heroui/react'
 import { AnimatePresence, LazyMotion, domAnimation, m as motion, type Transition } from 'framer-motion'
 import { LayoutGrid, List } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
-import OrderBy from '../components/store/OrderBy'
-import ProductItem from '../components/store/ProductItem'
-import { useDebouncedSearch } from '../hooks/useDebouncedSearch'
-import { selectCatalogFilters, selectVisibleProducts } from '../store/selectors/catalogSelectors'
-import { clearBrandIds, clearCategorySlugs, clearTypes, setPriceRange, setQuery } from '../store/slices/productFiltersSlice'
-import type { RootState } from '../store/store'
+import OrderBy from '../../components/store/OrderBy'
+import ProductItem from '../../components/store/ProductItem'
+import { useDebouncedSearch } from '../../hooks/useDebouncedSearch'
+import { selectCatalogFilters, selectVisibleProducts } from '../../store/selectors/catalogSelectors'
+import { clearBrandIds, clearCategorySlugs, clearTypes, setPriceRange, setQuery } from '../../store/slices/productFiltersSlice'
+import type { RootState } from '../../store/store'
 
 // Animación tipo resorte para movimientos de layout
 const spring: Transition = { type: 'spring', stiffness: 500, damping: 40, mass: 0.8 }

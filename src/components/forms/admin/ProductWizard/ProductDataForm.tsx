@@ -1,5 +1,5 @@
 import '@/components/common/react-tags/style.css'
-import { Autocomplete, AutocompleteItem, Button, Checkbox, Input, Select, SelectItem, Switch, Textarea } from '@heroui/react'
+import { Autocomplete, AutocompleteItem, Button, Checkbox, Input, Select, SelectItem, Switch, Textarea, Tooltip } from '@heroui/react'
 import { IterationCw, Star } from 'lucide-react'
 import { customAlphabet } from 'nanoid'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
@@ -98,7 +98,7 @@ const ProductDataForm = () => {
                 size='lg'
                 color='warning'
                 {...field}
-                classNames={{ label: 'justify-start text-base text-sm' }}
+                classNames={{ label: 'justify-start text-base text-sm', wrapper: 'bg-white' }}
                 isSelected={field.value}
               >
                 {field.value ? 'Destacado' : 'Destacar'}
@@ -125,6 +125,7 @@ const ProductDataForm = () => {
               }}
               isInvalid={!!fieldState.error}
               errorMessage={fieldState.error?.message as string}
+              classNames={{ inputWrapper: 'bg-white' }}
             />
           )}
         />
@@ -145,6 +146,7 @@ const ProductDataForm = () => {
               }}
               isInvalid={!!fieldState.error}
               errorMessage={fieldState.error?.message as string}
+              classNames={{ inputWrapper: 'bg-white' }}
             />
           )}
         />
@@ -158,6 +160,7 @@ const ProductDataForm = () => {
               size='sm'
               variant='bordered'
               selectedKeys={field.value ? [String(field.value)] : []}
+              classNames={{ trigger: 'bg-white' }}
               onSelectionChange={(keys) => {
                 const raw = Array.from(keys)[0]
                 const nextCategory = Number(raw)
@@ -193,6 +196,7 @@ const ProductDataForm = () => {
                 label='Subcategoria'
                 size='sm'
                 variant='bordered'
+                classNames={{ trigger: 'bg-white' }}
                 selectedKeys={field.value ? [String(field.value)] : []}
                 onSelectionChange={(keys) => {
                   const raw = Array.from(keys)[0]
@@ -222,6 +226,7 @@ const ProductDataForm = () => {
                 label='Tipo de venta'
                 size='sm'
                 variant='bordered'
+                classNames={{ trigger: 'bg-white' }}
                 selectedKeys={field.value ? [String(field.value)] : []}
                 onSelectionChange={(keys) => {
                   const value = Array.from(keys)[0]
@@ -247,21 +252,24 @@ const ProductDataForm = () => {
                 label='SKU'
                 size='sm'
                 variant='bordered'
+                classNames={{ inputWrapper: 'bg-white' }}
                 value={field.value ?? ''}
                 onValueChange={(v) => field.onChange(v.value)}
                 isInvalid={!!fieldState.error}
                 errorMessage={fieldState.error?.message as string}
                 endContent={
-                  <Button
-                    isIconOnly
-                    className='absolute right-0 top-0 m-2'
-                    size='sm'
-                    variant='ghost'
-                    color='primary'
-                    onPress={regenerateSku}
-                  >
-                    <IterationCw size={18} />
-                  </Button>
+                  <Tooltip content='Regenerar SKU'>
+                    <Button
+                      isIconOnly
+                      className='absolute right-0 top-0 m-2'
+                      size='sm'
+                      variant='ghost'
+                      color='primary'
+                      onPress={regenerateSku}
+                    >
+                      <IterationCw size={18} />
+                    </Button>
+                  </Tooltip>
                 }
               />
             )}
@@ -277,6 +285,7 @@ const ProductDataForm = () => {
                 label='Selecciona una marca'
                 size='sm'
                 variant='bordered'
+                classNames={{ base: 'bg-white' }}
                 selectedKey={String(field.value) || ''}
                 onSelectionChange={(sel) => {
                   console.log(sel)
@@ -291,7 +300,7 @@ const ProductDataForm = () => {
           />
         )}
 
-        <Textarea label='Descripcion' size='sm' variant='bordered' {...register('description')} />
+        <Textarea label='Descripcion' size='sm' variant='bordered' {...register('description')} classNames={{ inputWrapper: 'bg-white' }} />
       </section>
     </form>
   )
