@@ -7,6 +7,7 @@ import { DataTable } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 
 import { useDispatch, useSelector } from 'react-redux'
+import InventoryAdjustmentModal from '../../components/modals/admin/InventoryAdjustmentModal'
 import ProductModal from '../../components/modals/admin/ProductModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
 import { selectProductsWithBestPromo } from '../../store/selectors/productsWithPromo'
@@ -94,6 +95,11 @@ const Products = () => {
 
   const { isOpen: isOpenProduct, onOpen: onOpenProduct, onOpenChange: onOpenChangeProduct } = useDisclosure()
   const { isOpen: isOpenDeleteProduct, onOpen: onOpenDeleteProduct, onOpenChange: onOpenChangeDeleteProduct } = useDisclosure()
+  const {
+    isOpen: isOpenInventoryAdjustment,
+    onOpen: onOpenInventoryAdjustment,
+    onOpenChange: onOpenChangeInventoryAdjustment
+  } = useDisclosure()
 
   // Filtra las filas según criterios del toolbar
   const filteredRows = useMemo(() => {
@@ -118,6 +124,13 @@ const Products = () => {
     dispatch(setSelectedProduct(id))
     setSelectedKeys(new Set([String(id)])) // coincide con getRowKey
     onOpenProduct()
+  }
+
+  const handleInventoryAdjustment = (id: number) => {
+    console.log('Ajuste de inventario para producto ID:', id)
+    dispatch(setSelectedProduct(id))
+    onOpenInventoryAdjustment()
+    // Lógica para abrir modal o navegar a página de ajuste de inventario
   }
 
   // ¿hay selección múltiple?
@@ -173,7 +186,16 @@ const Products = () => {
             onRequestDelete: (_id, item) => {
               dispatch(setSelectedProduct(item.id))
               onOpenDeleteProduct()
-            }
+            },
+            actions: [
+              {
+                key: 'view',
+                label: 'Ajuste de inventario',
+                onPress: (row) => {
+                  handleInventoryAdjustment(row.id)
+                }
+              }
+            ]
           }}
           rows={filteredRows}
           columns={columns}
@@ -189,6 +211,8 @@ const Products = () => {
 
       <ProductModal isOpen={isOpenProduct} onOpenChange={onOpenChangeProduct} />
       <OnDeleteModal isOpenDelete={isOpenDeleteProduct} onOpenChangeDelete={onOpenChangeDeleteProduct} deleteType='product' />
+
+      <InventoryAdjustmentModal isOpen={isOpenInventoryAdjustment} onOpenChange={onOpenChangeInventoryAdjustment} />
     </>
   )
 }

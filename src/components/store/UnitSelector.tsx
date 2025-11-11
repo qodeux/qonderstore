@@ -6,7 +6,7 @@ import { bulkUnitsAvailable } from '../../types/products'
 type UnitSelectorProps = {
   quantity: number
   baseUnit?: string
-  units?: BulkUnits // OBJETO (no array)
+  units?: BulkUnits | 'all'
   value?: string
   onChange?: (unitId: string) => void
   className?: string
@@ -15,22 +15,38 @@ type UnitSelectorProps = {
 const LABELS: Record<string, { sing: string; plural: string }> = {
   gr: { sing: 'Gramo', plural: 'Gramos' },
   oz: { sing: 'Onza', plural: 'Onzas' },
-  lb: { sing: 'Libra', plural: 'Libras' }
+  lb: { sing: 'Libra', plural: 'Libras' },
+  kg: { sing: 'Kilogramo', plural: 'Kilogramos' }
 }
 
 const titleCase = (s?: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '')
 
 export default function UnitSelector({ quantity, baseUnit, units, value, onChange, className }: UnitSelectorProps) {
+  // Mapa de orden según bulkUnitsAvailable
   const orderMap = useMemo(() => Object.fromEntries(bulkUnitsAvailable.map((u, i) => [u.key, i])) as Record<string, number>, [])
 
-  // Claves desde units + baseUnit (si no estaba)
+  // Claves provenientes de 'units':
+  // - Si units === 'all' → todas las disponibles
+  // - Si units es objeto → sus keys
+  // - Si units undefined → []
+  const fromUnits = useMemo<string[]>(() => {
+    if (units === 'all') {
+      const base = bulkUnitsAvailable.map((u) => u.key)
+      // Sumamos las extra SOLO aquí
+      return Array.from(new Set([...base, { label: 'Kilogramos', key: 'kg', value: 1000 }.key]))
+    }
+
+    if (!units) return []
+    return Object.keys(units)
+  }, [units])
+
+  // Unir con baseUnit (si no estaba) y deduplicar
   const rawKeys = useMemo(() => {
-    const fromUnits = Object.keys(units ?? {})
     const maybeBase = baseUnit ? [baseUnit] : []
     return Array.from(new Set([...fromUnits, ...maybeBase]))
-  }, [units, baseUnit])
+  }, [fromUnits, baseUnit])
 
-  // Ordenar: gr → oz → lb (desconocidas al final)
+  // Ordenar por orderMap; claves desconocidas al final
   const keys = useMemo(
     () =>
       [...rawKeys].sort((a, b) => {
@@ -41,7 +57,7 @@ export default function UnitSelector({ quantity, baseUnit, units, value, onChang
     [rawKeys, orderMap]
   )
 
-  // Opciones con labels
+  // Construir opciones con labels
   const options = useMemo(
     () =>
       keys.map((key) => {
@@ -53,7 +69,7 @@ export default function UnitSelector({ quantity, baseUnit, units, value, onChang
     [keys]
   )
 
-  // Selección (controlado/semicontrolado)
+  // Estado de selección (controlado/semi-controlado)
   const firstKey = options[0]?.key
   const [local, setLocal] = useState<string | undefined>(value ?? baseUnit ?? firstKey)
   const selected = value ?? local ?? baseUnit ?? firstKey
@@ -77,11 +93,17 @@ export default function UnitSelector({ quantity, baseUnit, units, value, onChang
       variant='bordered'
       disallowEmptySelection
       isDisabled={options.length === 0}
+      renderValue={(items) => {
+        const k = items[0]?.key as string | undefined
+        if (!k) return null
+        const lbl = LABELS[k]
+        const sing = lbl?.sing ?? titleCase(k)
+        const plur = lbl?.plural ?? `${titleCase(k)}s`
+        return <span>{quantity > 1 ? plur : sing}</span>
+      }}
     >
       {options.map(({ key, sing, plural }) => (
-        <SelectItem key={key} textValue={sing}>
-          {quantity > 1 ? plural : sing}
-        </SelectItem>
+        <SelectItem key={key}>{quantity > 1 ? plural : sing}</SelectItem>
       ))}
     </Select>
   )
