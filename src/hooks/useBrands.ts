@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 
 import supabase from '../lib/supabase'
+import { productService } from '../services/productService'
 import { setProductBrands } from '../store/slices/productsSlice'
 
 export const useProductBrands = () => {
@@ -10,7 +11,7 @@ export const useProductBrands = () => {
   useEffect(() => {
     // Carga inicial
     const fetchProductBrands = async () => {
-      const { data, error } = await supabase.from('product_brands').select('*')
+      const { data, error } = await productService.fetchBrands()
 
       if (data) dispatch(setProductBrands(data))
       if (error) console.error('Error al cargar marcas de productos:', error.message)
