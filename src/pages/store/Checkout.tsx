@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { PatternFormat } from 'react-number-format'
+import { NumericFormat, PatternFormat } from 'react-number-format'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
 import AddressMapPicker, { type AddressResult } from '../../components/common/AddressMapPicker'
@@ -32,15 +32,17 @@ const Checkout = () => {
   const { user } = useSelector((state: RootState) => state.auth)
   const cartTotals = useSelector(selectCartTotals)
   const { items: cartItems, totalPrice } = useSelector((state: RootState) => state.cart)
-  const [shippingPrice, setShippingPrice] = useState(0)
+  const [shippingPrice, setShippingPrice] = useState(null as number | null)
+
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { control, handleSubmit, watch, setValue, clearErrors, setError, trigger, getValues, formState } = useForm<CheckoutFormInput>({
     resolver: zodResolver(checkoutSchema),
     mode: 'all',
     defaultValues: {
-      name: user?.full_name || '',
-      phone: user?.phone || '',
+      name: user?.role === 'customer' ? user.full_name : '',
+      phone: user?.role === 'customer' ? user.phone || '' : '',
+      email: user?.role === 'customer' ? user.email : '',
       postal_code_lookup: '',
       postal_code: '',
       state: '',
@@ -52,6 +54,7 @@ const Checkout = () => {
       delivery_type: undefined,
       delivery_date: 'today',
       delivery_route: undefined,
+      shipping_price: 0,
       address_notes: undefined,
       coupon_code: undefined
     }
@@ -59,9 +62,12 @@ const Checkout = () => {
 
   const watchPostalCodeLookup = watch('postal_code_lookup')
 
+  const watchState = watch('state')
   const watchDeliveryType = watch('delivery_type')
 
   const watchCouponCode = watch('coupon_code')
+
+  const watchShippingPrice = watch('shipping_price')
 
   const listRef = useRef<HTMLDivElement>(null)
   const fetchIdRef = useRef(0)
@@ -141,6 +147,17 @@ const Checkout = () => {
       shouldDirty: true,
       shouldTouch: true
     })
+
+    const { data } = await storeOrderService.getShippingPrice(Number(selected))
+
+    console.log(data)
+
+    if (!data) {
+      setShippingPrice(null)
+    } else {
+      setShippingPrice(data?.shipping_price)
+      setValue('shipping_price', data?.shipping_price ?? 0, { shouldValidate: true, shouldDirty: true })
+    }
   }
 
   /** Cambio desde el mapa */
@@ -198,17 +215,14 @@ const Checkout = () => {
   }, [watchPostalCodeLookup])
 
   useEffect(() => {
-    const pricesMap = {
-      standard: 200,
-      custom: 300,
-      express: 500
+    if (watchDeliveryType === 'express') {
+      setValue('shipping_price', (watchShippingPrice ?? 0) + 150, { shouldValidate: true, shouldDirty: true })
+    } else if (watchDeliveryType === 'standard' || watchDeliveryType === 'custom') {
+      // Quitar recargo si lo hay
+      const baseShippingPrice = shippingPrice ? shippingPrice : null
+      setValue('shipping_price', baseShippingPrice, { shouldValidate: true, shouldDirty: true })
     }
-    if (watchDeliveryType) {
-      setShippingPrice(pricesMap[watchDeliveryType])
-    } else {
-      setShippingPrice(0)
-    }
-  }, [watchDeliveryType])
+  }, [watchDeliveryType, setValue])
 
   const handlePromoApply = () => {
     if ((watchCouponCode ?? '').toUpperCase() !== 'QONDER10') {
@@ -230,13 +244,18 @@ const Checkout = () => {
         const orderTransmission = await storeOrderService.createOrder({
           orderData: data,
           items: cartItems,
-          cartTotals: { ...cartTotals, shippingPrice },
+          cartTotals: { ...cartTotals, shippingPrice: watchShippingPrice ?? 0 },
           metadata: {
             ip: '127.0.0.1',
             user_agent: navigator.userAgent
           },
           userId: user?.id
         })
+
+        if (shippingPrice === null) {
+          //Agregamos a la base el costo de envío para futuras ocasiones
+          await storeOrderService.addShippingPrice(data.postal_code, Number(data.sublocality), watchShippingPrice ?? 0)
+        }
 
         console.log(orderTransmission)
 
@@ -255,7 +274,7 @@ const Checkout = () => {
 
   return (
     <form
-      className='grid grid-cols-1 md:grid-cols-[1fr_350px] lg:grid-cols-[1fr_350px] container mx-auto gap-8 mt-8'
+      className='grid grid-cols-1 md:grid-cols-[1fr_350px] lg:grid-cols-[1fr_350px] container mx-auto gap-8 my-8'
       onSubmit={handleCreateOrder}
     >
       {/* Columna izquierda */}
@@ -282,7 +301,32 @@ const Checkout = () => {
               />
             )}
           />
+
           <Controller
+            name='phone'
+            control={control}
+            render={({ field, fieldState }) => (
+              <PatternFormat
+                {...field}
+                customInput={Input}
+                format='## #### ####'
+                allowEmptyFormatting
+                type='tel'
+                inputMode='tel'
+                label='Teléfono'
+                autoComplete='tel'
+                classNames={{ inputWrapper: 'bg-white' }}
+                isInvalid={!!fieldState.error}
+                errorMessage={fieldState.error?.message}
+                variant='bordered'
+                size='sm'
+                isClearable
+                onClear={() => field.onChange('')}
+              />
+            )}
+          />
+
+          {/* <Controller
             control={control}
             name='phone'
             render={({ field, fieldState }) => (
@@ -297,6 +341,25 @@ const Checkout = () => {
                 errorMessage={fieldState.error?.message}
                 isInvalid={!!fieldState.error}
                 variant='bordered'
+              />
+            )}
+          /> */}
+
+          <Controller
+            control={control}
+            name='email'
+            render={({ field, fieldState }) => (
+              <Input
+                type='text'
+                label='Correo electrónico'
+                {...field}
+                size='sm'
+                isClearable
+                onClear={() => field.onChange('')}
+                classNames={{ inputWrapper: 'bg-white' }}
+                variant='bordered'
+                errorMessage={fieldState.error?.message}
+                isInvalid={!!fieldState.error}
               />
             )}
           />
@@ -381,6 +444,7 @@ const Checkout = () => {
                     errorMessage={fieldState.error?.message}
                     isInvalid={!!fieldState.error}
                     variant='bordered'
+                    readOnly
                   />
                 )}
               />
@@ -398,6 +462,7 @@ const Checkout = () => {
                     errorMessage={fieldState.error?.message}
                     isInvalid={!!fieldState.error}
                     variant='bordered'
+                    readOnly
                   />
                 )}
               />
@@ -497,23 +562,70 @@ const Checkout = () => {
                 <legend className='font-bold text-xl'>Tipo de entrega</legend>
                 <p className='text-sm mb-4'>Selecciona el tipo de entrega que prefieras para tu pedido.</p>
 
-                <Controller
-                  control={control}
-                  name='delivery_type'
-                  render={({ field, fieldState }) => (
-                    <RadioGroup
-                      {...field}
-                      errorMessage={fieldState.error?.message}
-                      isInvalid={!!fieldState.error}
-                      orientation={isMobile ? 'vertical' : 'horizontal'}
-                      //className={isMobile ? 'space-y-3' : 'space-x-6'}
-                    >
-                      <Radio value={'standard'}>Próxima ruta disponible</Radio>
-                      <Radio value={'custom'}>Seleccionar ruta</Radio>
-                      <Radio value={'express'}>Entrega express</Radio>
-                    </RadioGroup>
-                  )}
-                />
+                <div className='flex justify-between w-full items-center'>
+                  <Controller
+                    control={control}
+                    name='delivery_type'
+                    render={({ field, fieldState }) => (
+                      <RadioGroup
+                        {...field}
+                        errorMessage={fieldState.error?.message}
+                        isInvalid={!!fieldState.error}
+                        // className='flex-grow'
+                        orientation={isMobile ? 'vertical' : 'horizontal'}
+                        //className={isMobile ? 'space-y-3' : 'space-x-6'}
+                      >
+                        {watchState === 'Ciudad de México' ? (
+                          <>
+                            <Radio value={'standard'}>Próxima ruta disponible</Radio>
+                            <Radio value={'custom'}>Seleccionar ruta</Radio>
+                            <Radio value={'express'}>Entrega express</Radio>
+                          </>
+                        ) : (
+                          <Radio value={'foreign'}>Envío foráneo</Radio>
+                        )}
+                      </RadioGroup>
+                    )}
+                  />
+                  <Controller
+                    name='shipping_price'
+                    control={control}
+                    render={({ field, fieldState }) => (
+                      <NumericFormat
+                        variant='bordered'
+                        className='max-w-[150px]'
+                        classNames={{ inputWrapper: 'bg-white' }}
+                        label='Precio de envío'
+                        value={field.value ?? ''}
+                        onValueChange={(v) => field.onChange(v.floatValue ?? undefined)}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        getInputRef={field.ref}
+                        thousandSeparator
+                        decimalScale={2}
+                        fixedDecimalScale
+                        allowNegative={false}
+                        prefix='$ '
+                        inputMode='decimal'
+                        customInput={Input}
+                        size='sm'
+                        isInvalid={!!fieldState.error}
+                        errorMessage={fieldState.error?.message}
+                        onFocus={(e) => {
+                          setTimeout(() => e.currentTarget.select(), 0)
+                        }}
+                        onPointerDown={(e) => {
+                          const el = e.currentTarget as HTMLInputElement
+                          if (document.activeElement !== el) {
+                            e.preventDefault()
+                            el.focus()
+                            el.select()
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                </div>
 
                 {watchDeliveryType === 'custom' && (
                   <div className='grid grid-cols-2 max-w-[300px] md:items-start gap-2'>
@@ -722,7 +834,7 @@ const Checkout = () => {
                 </div>
                 {watchDeliveryType !== undefined && (
                   <div className='text-2xl text-right w-full'>
-                    Envío : <span className='font-bold'>{formatMoney(shippingPrice)}</span>
+                    Envío : <span className='font-bold'>{formatMoney(watchShippingPrice ?? 0)}</span>
                   </div>
                 )}
                 {cartHasDiscount && (
