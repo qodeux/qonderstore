@@ -120,5 +120,13 @@ export const storeOrderService = {
       return { error }
     }
     return { data }
+  },
+  async cancelOrder(orderId: string) {
+    const { data, error } = await supabase.from('store_orders').update({ order_status: 'canceled' }).eq('id', orderId)
+    if (error) {
+      console.error('Error canceling order:', error)
+      return { error }
+    }
+    return { data }
   }
 }
