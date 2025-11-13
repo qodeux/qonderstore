@@ -1,5 +1,6 @@
 import { Alert, Button, Input, Radio, RadioGroup, Select, SelectItem, Spinner } from '@heroui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { Key } from '@react-types/shared'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -17,6 +18,8 @@ import { storeOrderService } from '../../services/storeOrderService'
 import { clearCart, selectCartTotals } from '../../store/slices/cartSlice'
 import type { RootState } from '../../store/store'
 import type { Neighborhood } from '../../types/location'
+import type { SublocalityData } from '../../types/storeOrders'
+import { deliveryRoutesMap } from '../../types/storeOrders'
 import { formatMoney } from '../../utils/money'
 
 const normalize = (s?: string) =>
@@ -138,7 +141,7 @@ const Checkout = () => {
     // Selección de colonia: preferida (si matchea por nombre) o la primera
     let selected = cpData[0]?.id?.toString() ?? ''
     if (preferredColoniaName) {
-      const hit = cpData.find((n) => normalize(n.d_asenta) === normalize(preferredColoniaName))
+      const hit = cpData.find((n: SublocalityData) => normalize(n.d_asenta) === normalize(preferredColoniaName))
       if (hit) selected = String(hit.id)
     }
 
@@ -154,6 +157,7 @@ const Checkout = () => {
 
     if (!data) {
       setShippingPrice(null)
+      setValue('shipping_price', 0, { shouldValidate: true, shouldDirty: true })
     } else {
       setShippingPrice(data?.shipping_price)
       setValue('shipping_price', data?.shipping_price ?? 0, { shouldValidate: true, shouldDirty: true })
@@ -217,6 +221,8 @@ const Checkout = () => {
   }, [watchPostalCodeLookup])
 
   useEffect(() => {
+    if (shippingPrice === null) return
+
     if (watchDeliveryType === 'express') {
       setValue('shipping_price', (watchShippingPrice ?? 0) + 150, { shouldValidate: true, shouldDirty: true })
     } else if (watchDeliveryType === 'standard' || watchDeliveryType === 'custom') {
@@ -224,7 +230,7 @@ const Checkout = () => {
       const baseShippingPrice = shippingPrice ? shippingPrice : null
       setValue('shipping_price', baseShippingPrice, { shouldValidate: true, shouldDirty: true })
     }
-  }, [watchDeliveryType, setValue])
+  }, [watchDeliveryType, setValue, shippingPrice, watchShippingPrice])
 
   const handlePromoApply = () => {
     if ((watchCouponCode ?? '').toUpperCase() !== 'QONDER10') {
@@ -663,29 +669,38 @@ const Checkout = () => {
                         </Select>
                       )}
                     />
+
                     <Controller
-                      control={control}
                       name='delivery_route'
-                      render={({ field, fieldState }) => (
-                        <Select
-                          {...field}
-                          defaultSelectedKeys={[field.value]}
-                          className='max-w-[150px]'
-                          classNames={{ trigger: 'bg-white' }}
-                          errorMessage={fieldState.error?.message}
-                          isInvalid={!!fieldState.error}
-                          variant='bordered'
-                          disallowEmptySelection
-                          label='Horario'
-                          size='sm'
-                        >
-                          <SelectItem key='12'>12:00 PM</SelectItem>
-                          <SelectItem key='14'>2:00 PM</SelectItem>
-                          <SelectItem key='16'>4:00 PM</SelectItem>
-                          <SelectItem key='18'>6:00 PM</SelectItem>
-                          <SelectItem key='20'>8:00 PM</SelectItem>
-                        </Select>
-                      )}
+                      control={control}
+                      render={({ field, fieldState }) => {
+                        const valueAsKey = field.value as Key | undefined
+                        const selectedKeys: Iterable<Key> | undefined = valueAsKey != null ? [valueAsKey] : undefined
+                        return (
+                          <Select
+                            label='Horario'
+                            classNames={{ trigger: 'bg-white' }}
+                            errorMessage={fieldState.error?.message}
+                            isInvalid={!!fieldState.error}
+                            variant='bordered'
+                            disallowEmptySelection
+                            size='sm'
+                            selectionMode='single'
+                            selectedKeys={selectedKeys}
+                            onSelectionChange={(keys) => {
+                              if (keys === 'all') return
+                              const [key] = Array.from(keys)
+                              field.onChange(key as keyof typeof deliveryRoutesMap)
+                            }}
+                          >
+                            <SelectItem key='12'>12:00 PM</SelectItem>
+                            <SelectItem key='14'>2:00 PM</SelectItem>
+                            <SelectItem key='16'>4:00 PM</SelectItem>
+                            <SelectItem key='18'>6:00 PM</SelectItem>
+                            <SelectItem key='20'>8:00 PM</SelectItem>
+                          </Select>
+                        )
+                      }}
                     />
                   </div>
                 )}

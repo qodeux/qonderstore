@@ -8,10 +8,21 @@ import AddressMap from '../../../components/common/AddressMap'
 import CartItemBox from '../../../components/store/CartItemBox'
 import { storeOrderService } from '../../../services/storeOrderService'
 import { selectProductsWithBestPromo } from '../../../store/selectors/productsWithPromo'
+import type { CartItem } from '../../../store/slices/cartSlice'
 import { useAppSelector } from '../../../store/store'
+import type { SaleType } from '../../../types/products'
 import { delivery_types, deliveryRoutesMap, storeOrder_status, type IPGeolocation, type SublocalityData } from '../../../types/storeOrders'
 import { formatDate } from '../../../utils/date'
 import { formatMoney } from '../../../utils/money'
+
+type OrderItem = {
+  id: number
+  price: number
+  discount: number
+  quantity: number
+  saleType: SaleType
+  unitSelected: string
+}
 
 const OrderDetails = () => {
   const navigate = useNavigate()
@@ -34,7 +45,7 @@ const OrderDetails = () => {
   console.log(selectedOrder?.items)
 
   const cartItems = selectedOrder?.items
-    ? selectedOrder.items.map((item) => {
+    ? selectedOrder.items.map((item: OrderItem) => {
         const product = products.find((p) => p.id === item.id)
 
         return {
@@ -146,7 +157,8 @@ const OrderDetails = () => {
               </p>
               {selectedOrder?.delivery_route && (
                 <p>
-                  Ruta: <span className='font-semibold'>{deliveryRoutesMap[selectedOrder.delivery_route]}</span>
+                  Ruta:{' '}
+                  <span className='font-semibold'>{deliveryRoutesMap[selectedOrder.delivery_route as keyof typeof deliveryRoutesMap]}</span>
                 </p>
               )}
             </div>
@@ -204,7 +216,7 @@ const OrderDetails = () => {
 
           <section className='flex flex-col gap-4 overflow-y-auto overflow-x-hidden p-4'>
             <AnimatePresence>
-              {cartItems.map((item, index) => (
+              {cartItems.map((item: CartItem, index: number) => (
                 <motion.div
                   key={`${item.id}-${item.unitSelected ?? item.unitSelected}-${index}`}
                   initial={{ opacity: 0, y: 20 }}
