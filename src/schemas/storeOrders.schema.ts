@@ -2,6 +2,7 @@ import z from 'zod'
 
 export const storeOrderSchema = z.object({
   id: z.string(),
+  ci: z.number(),
   created_at: z.string(),
   last_update: z.string(),
   name: z.string(),

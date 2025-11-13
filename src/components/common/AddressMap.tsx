@@ -111,15 +111,13 @@ const AddressMap = ({ coords, mapHeight = 300, zoom = 17, language = 'es', regio
           center={center}
           zoom={zoom}
           options={{
-            mapTypeControl: false,
-            streetViewControl: false,
-            fullscreenControl: false,
-            clickableIcons: true
+            disableDefaultUI: true,
+            fullscreenControl: true
           }}
         >
           <MarkerF position={center} />
         </GoogleMap>
-        <div className='mt-3 text-sm space-y-1 grid grid-cols-2 absolute bottom-0 w-[76%] bg-white/80 p-2 z-0 backdrop-blur rounded-xl rounded-br-none rounded-tl-none shadow'>
+        <div className='mt-3 text-sm space-y-1 grid grid-cols-2 absolute bottom-0 w-full bg-white/80 p-2 z-0 backdrop-blur rounded-xl rounded-t-none shadow'>
           {distanceKm != null && (
             <div>
               <b>Distancia:</b> {distanceKm.toFixed(2)} km

@@ -273,10 +273,10 @@ const Checkout = () => {
           await storeOrderService.addShippingPrice(data.postal_code, Number(data.sublocality), watchShippingPrice ?? 0)
         }
 
-        console.log(orderTransmission)
-
         if (orderTransmission.id) {
           dispatch(clearCart())
+          //Guardar orden en el storage para detalles
+          sessionStorage.setItem('admin_selected_store_order', JSON.stringify(orderTransmission))
         }
 
         if (user?.role === 'customer') {
