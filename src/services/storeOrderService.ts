@@ -68,7 +68,8 @@ export const storeOrderService = {
       ? {
           total_price: cartTotals.totalPrice,
           total_items: items.length,
-          shipping_price: cartTotals.shippingPrice
+          shipping_price: cartTotals.shippingPrice,
+          order_total: cartTotals.totalPrice + cartTotals.shippingPrice
         }
       : undefined
 
