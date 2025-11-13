@@ -1,21 +1,20 @@
 import type { Selection, SortDescriptor } from '@heroui/react'
 import { useMemo, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
 import { DataTable, type ColumnDef } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
-import { setSelectedOrder } from '../../store/slices/storeOrdersSlice'
 import type { RootState } from '../../store/store'
 import { deliveryTypesMap, storeOrder_status } from '../../types/storeOrders'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const PedidosTienda = () => {
   const navigate = useNavigate()
-  const dispatch = useDispatch()
   const storeOrders = useSelector((state: RootState) => state.storeOrders.items)
 
   type Row = {
     id: string
+    ci: number
     name: string
 
     delivery_type: string
@@ -30,10 +29,16 @@ const PedidosTienda = () => {
 
   const columns: ColumnDef<Row>[] = [
     {
+      key: 'ci',
+      label: '#',
+      allowsSorting: true
+    },
+    {
       key: 'name',
       label: 'Nombre',
       allowsSorting: false
     },
+
     {
       key: 'total_items',
       label: 'Productos',
@@ -127,7 +132,7 @@ const PedidosTienda = () => {
         adapterOverrides={{
           edit: (row) => {
             console.log('Editar orden de tienda', row)
-            dispatch(setSelectedOrder(row.id))
+            sessionStorage.setItem('admin_selected_store_order', JSON.stringify(storeOrders.find((order) => order.id === row.id)))
             navigate(`/admin/orden/${row.id}`)
           },
           actions: [

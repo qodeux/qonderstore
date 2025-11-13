@@ -5,11 +5,11 @@ import type { SaleType } from '../../types/products'
 export type CartItem = {
   id: number
   title: string
-  basePrice: number
+  basePrice?: number
   price: number // precio unitario (congelado al agregar)
   discount?: number // descuento unitario (monto)
   quantity: number
-  stock: number
+  stock?: number
   image?: string
   error?: string
   saleType: SaleType
@@ -112,7 +112,7 @@ const cartSlice = createSlice({
         const stock = Number.isFinite(item.stock) ? item.stock : Infinity
         const nextQ = item.quantity + addQty
 
-        if (nextQ > stock) {
+        if (nextQ > (stock ?? 0)) {
           item.error = 'Stock insuficiente para agregar más unidades'
         } else {
           item.quantity = nextQ
@@ -123,7 +123,7 @@ const cartSlice = createSlice({
         }
       } else {
         const stock = Number.isFinite(incoming.stock) ? incoming.stock : Infinity
-        if (addQty > stock) return
+        if (addQty > (stock ?? 0)) return
         state.items.push({
           ...incoming,
           price: ceilPrice(incoming.price),
@@ -161,7 +161,7 @@ const cartSlice = createSlice({
         const item = state.items[idx]
         const stock = Number.isFinite(item.stock) ? item.stock : Infinity
         if (quantity <= 0) state.items.splice(idx, 1)
-        else if (quantity > stock) item.error = 'Stock insuficiente, no se actualizó la cantidad'
+        else if (quantity > (stock ?? 0)) item.error = 'Stock insuficiente, no se actualizó la cantidad'
         else {
           item.quantity = quantity
           item.error = undefined

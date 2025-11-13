@@ -4,6 +4,7 @@ import { Trash } from 'lucide-react'
 import { useCallback, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { clearError, removeItem, updateQuantity, updateUnit, type CartItem } from '../../store/slices/cartSlice'
+import { all_units } from '../../types/storeOrders'
 import { formatMoney } from '../../utils/money'
 import PresignedImage from '../common/cloudflare-r2/PresignedImage'
 import QuantitySelector from './QuantitySelector'
@@ -13,11 +14,12 @@ type CartItemBoxProps = {
   item: CartItem
   listRef?: React.RefObject<HTMLDivElement | null>
   isLast?: boolean
+  readOnly?: boolean
 }
 
-const CartItemBox = ({ item, isLast, listRef }: CartItemBoxProps) => {
+const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
   const dispatch = useDispatch()
-  const subtotal = (item.price - (item.discount || 0)) * item.quantity
+  const subtotal = readOnly ? item.price - (item.discount ?? 0) : item.price * item.quantity - (item.discount ?? 0)
 
   const handleDeleteItem = () => dispatch(removeItem({ id: item.id }))
   const handleChangeQty = (q: number) => dispatch(updateQuantity({ id: item.id, quantity: q }))
@@ -61,29 +63,39 @@ const CartItemBox = ({ item, isLast, listRef }: CartItemBoxProps) => {
         <section className='flex flex-col w-2/3 justify-between'>
           <h3 className='md:text-lg font-semibold'>{item.title}</h3>
           <div className='text-gray-600 text-right text-sm'>
-            <div>Precio: {formatMoney(item.price)}</div>
+            {readOnly && (
+              <p>
+                {item.quantity}{' '}
+                {item.quantity === 1
+                  ? all_units.find((u) => u.key === item.unitSelected)?.label || ''
+                  : all_units.find((u) => u.key === item.unitSelected)?.plural || ''}
+              </p>
+            )}
+            <p>Precio: {formatMoney(item.price)}</p>
             {(item.discount ?? 0) > 0 && <div className='text-green-600'>Descuento: -{formatMoney(item.discount ?? 0)}</div>}
-            <div className='text-lg '>Subtotal: {formatMoney(subtotal)}</div>
+            <p className='text-lg '>Subtotal: {formatMoney(subtotal)}</p>
           </div>
         </section>
       </div>
 
-      <section className='flex gap-2 justify-between'>
-        {/* Forzamos al error si el quantity es mayor al stock */}
-        <QuantitySelector quantity={item.quantity} setQuantity={handleChangeQty} maxQuantity={item.stock + 1} />
-        {item.saleType === 'bulk' && (
-          <UnitSelector
-            quantity={item.quantity}
-            baseUnit={item.base_unit ?? ''}
-            units={item.units}
-            value={item.unitSelected ?? item.base_unit}
-            onChange={handleChangeUnit}
-          />
-        )}
-        <Button isIconOnly size='lg' color='danger' variant='ghost' onPress={handleDeleteItem}>
-          <Trash />
-        </Button>
-      </section>
+      {!readOnly && (
+        <section className='flex gap-2 justify-between'>
+          {/* Forzamos al error si el quantity es mayor al stock */}
+          <QuantitySelector quantity={item.quantity} setQuantity={handleChangeQty} maxQuantity={item.stock ? item.stock + 1 : 1} />
+          {item.saleType === 'bulk' && (
+            <UnitSelector
+              quantity={item.quantity}
+              baseUnit={item.base_unit ?? ''}
+              units={item.units}
+              value={item.unitSelected ?? item.base_unit}
+              onChange={handleChangeUnit}
+            />
+          )}
+          <Button isIconOnly size='lg' color='danger' variant='ghost' onPress={handleDeleteItem}>
+            <Trash />
+          </Button>
+        </section>
+      )}
 
       <AnimatePresence>
         {item.error && (

@@ -11,8 +11,9 @@ import {
   Layers,
   LayoutDashboard,
   Package,
+  ScanBarcode,
   SendToBack,
-  ShoppingBag,
+  Store,
   Users
 } from 'lucide-react'
 import { useSelector } from 'react-redux'
@@ -46,7 +47,7 @@ const menuItems: MenuItem[] = [
     icon: <Combine className='w-5 h-5' />,
     submenu: [
       { label: 'Categorías', href: '/admin/categorias', icon: <Layers className='w-4 h-4' /> },
-      { label: 'Marcas', href: '/admin/marcas', icon: <Layers className='w-4 h-4' /> },
+      { label: 'Marcas', href: '/admin/marcas', icon: <ScanBarcode className='w-4 h-4' /> },
       { label: 'Productos', href: '/admin/productos', icon: <Package className='w-4 h-4' /> },
       { label: 'Promociones', href: '/admin/promociones', icon: <CirclePercent className='w-4 h-4' /> }
     ]
@@ -67,7 +68,7 @@ const menuItems: MenuItem[] = [
   },
   {
     label: 'Órdenes',
-    icon: <ShoppingBag className='w-5 h-5' />,
+    icon: <Store className='w-5 h-5' />,
     href: '/admin/ordenes'
   },
   {

@@ -1,5 +1,6 @@
 import { Alert, Button, Input, Radio, RadioGroup, Select, SelectItem, Spinner } from '@heroui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { Key } from '@react-types/shared'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -17,6 +18,8 @@ import { storeOrderService } from '../../services/storeOrderService'
 import { clearCart, selectCartTotals } from '../../store/slices/cartSlice'
 import type { RootState } from '../../store/store'
 import type { Neighborhood } from '../../types/location'
+import type { SublocalityData } from '../../types/storeOrders'
+import { deliveryRoutesMap } from '../../types/storeOrders'
 import { formatMoney } from '../../utils/money'
 
 const normalize = (s?: string) =>
@@ -138,7 +141,7 @@ const Checkout = () => {
     // Selección de colonia: preferida (si matchea por nombre) o la primera
     let selected = cpData[0]?.id?.toString() ?? ''
     if (preferredColoniaName) {
-      const hit = cpData.find((n) => normalize(n.d_asenta) === normalize(preferredColoniaName))
+      const hit = cpData.find((n: SublocalityData) => normalize(n.d_asenta) === normalize(preferredColoniaName))
       if (hit) selected = String(hit.id)
     }
 
@@ -154,6 +157,7 @@ const Checkout = () => {
 
     if (!data) {
       setShippingPrice(null)
+      setValue('shipping_price', 0, { shouldValidate: true, shouldDirty: true })
     } else {
       setShippingPrice(data?.shipping_price)
       setValue('shipping_price', data?.shipping_price ?? 0, { shouldValidate: true, shouldDirty: true })
@@ -167,6 +171,8 @@ const Checkout = () => {
     setValue('street_number', value.components.street_number || '')
     setValue('locality', value.components.locality || '')
     setValue('state', value.components.state || '')
+
+    setValue('google_location', value.coords)
 
     const newCP = (value.components.postal_code ?? '').trim()
 
@@ -215,6 +221,8 @@ const Checkout = () => {
   }, [watchPostalCodeLookup])
 
   useEffect(() => {
+    if (shippingPrice === null) return
+
     if (watchDeliveryType === 'express') {
       setValue('shipping_price', (watchShippingPrice ?? 0) + 150, { shouldValidate: true, shouldDirty: true })
     } else if (watchDeliveryType === 'standard' || watchDeliveryType === 'custom') {
@@ -222,7 +230,7 @@ const Checkout = () => {
       const baseShippingPrice = shippingPrice ? shippingPrice : null
       setValue('shipping_price', baseShippingPrice, { shouldValidate: true, shouldDirty: true })
     }
-  }, [watchDeliveryType, setValue])
+  }, [watchDeliveryType, setValue, shippingPrice, watchShippingPrice])
 
   const handlePromoApply = () => {
     if ((watchCouponCode ?? '').toUpperCase() !== 'QONDER10') {
@@ -236,9 +244,23 @@ const Checkout = () => {
     setCartHasDiscount(true)
   }
 
+  const getIP = async () => {
+    try {
+      const ipResponse = await fetch('/.netlify/functions/whoami')
+      const ipData = await ipResponse.json()
+      console.log('IP Address:', ipData.ip)
+      return ipData.ip
+    } catch (error) {
+      console.error('Error fetching IP address:', error)
+      return 'Unknown'
+    }
+  }
+
   const handleCreateOrder = handleSubmit(
     async (data) => {
       //console.log('Datos del pedido:', data)
+
+      if (!user) return
 
       try {
         const orderTransmission = await storeOrderService.createOrder({
@@ -246,7 +268,7 @@ const Checkout = () => {
           items: cartItems,
           cartTotals: { ...cartTotals, shippingPrice: watchShippingPrice ?? 0 },
           metadata: {
-            ip: '127.0.0.1',
+            ip: await getIP(),
             user_agent: navigator.userAgent
           },
           userId: user?.id
@@ -257,11 +279,18 @@ const Checkout = () => {
           await storeOrderService.addShippingPrice(data.postal_code, Number(data.sublocality), watchShippingPrice ?? 0)
         }
 
-        console.log(orderTransmission)
-
         if (orderTransmission.id) {
           dispatch(clearCart())
+          //Guardar orden en el storage para detalles
+          sessionStorage.setItem('admin_selected_store_order', JSON.stringify(orderTransmission))
+        }
+
+        if (user?.role === 'customer') {
           navigate(`/tienda/checkout/confirmacion/${orderTransmission.id}`)
+        }
+
+        if (['admin', 'staff'].includes(user.role)) {
+          navigate(`/admin/orden/${orderTransmission.id}`)
         }
       } catch (error) {
         console.log(error)
@@ -272,9 +301,13 @@ const Checkout = () => {
     }
   )
 
+  // if (cartItems.length === 0) {
+  //   navigate('/tienda/productos')
+  // }
+
   return (
     <form
-      className='grid grid-cols-1 md:grid-cols-[1fr_350px] lg:grid-cols-[1fr_350px] container mx-auto gap-8 my-8'
+      className='grid grid-cols-1 md:grid-cols-[1fr_350px] lg:grid-cols-[1fr_350px] container mx-auto gap-8 p-8'
       onSubmit={handleCreateOrder}
     >
       {/* Columna izquierda */}
@@ -310,7 +343,6 @@ const Checkout = () => {
                 {...field}
                 customInput={Input}
                 format='## #### ####'
-                allowEmptyFormatting
                 type='tel'
                 inputMode='tel'
                 label='Teléfono'
@@ -325,25 +357,6 @@ const Checkout = () => {
               />
             )}
           />
-
-          {/* <Controller
-            control={control}
-            name='phone'
-            render={({ field, fieldState }) => (
-              <Input
-                type='phone'
-                label='Teléfono'
-                {...field}
-                size='sm'
-                isClearable
-                onClear={() => field.onChange('')}
-                classNames={{ inputWrapper: 'bg-white' }}
-                errorMessage={fieldState.error?.message}
-                isInvalid={!!fieldState.error}
-                variant='bordered'
-              />
-            )}
-          /> */}
 
           <Controller
             control={control}
@@ -554,6 +567,11 @@ const Checkout = () => {
                   />
                 </div>
               </div>
+              <Controller
+                control={control}
+                name='google_location'
+                render={({ field }) => <input type='hidden' value={JSON.stringify(field.value)} />}
+              />
             </div>
 
             {/* Tipo de entrega */}
@@ -651,34 +669,43 @@ const Checkout = () => {
                         </Select>
                       )}
                     />
+
                     <Controller
+                      name='delivery_route'
                       control={control}
-                      name='delivery_routes'
-                      render={({ field, fieldState }) => (
-                        <Select
-                          {...field}
-                          defaultSelectedKeys={[field.value]}
-                          className='max-w-[150px]'
-                          classNames={{ trigger: 'bg-white' }}
-                          errorMessage={fieldState.error?.message}
-                          isInvalid={!!fieldState.error}
-                          variant='bordered'
-                          disallowEmptySelection
-                          label='Horario'
-                          size='sm'
-                        >
-                          <SelectItem key='12'>12:00 PM</SelectItem>
-                          <SelectItem key='14'>2:00 PM</SelectItem>
-                          <SelectItem key='16'>4:00 PM</SelectItem>
-                          <SelectItem key='18'>6:00 PM</SelectItem>
-                          <SelectItem key='20'>8:00 PM</SelectItem>
-                        </Select>
-                      )}
+                      render={({ field, fieldState }) => {
+                        const valueAsKey = field.value as Key | undefined
+                        const selectedKeys: Iterable<Key> | undefined = valueAsKey != null ? [valueAsKey] : undefined
+                        return (
+                          <Select
+                            label='Horario'
+                            classNames={{ trigger: 'bg-white' }}
+                            errorMessage={fieldState.error?.message}
+                            isInvalid={!!fieldState.error}
+                            variant='bordered'
+                            disallowEmptySelection
+                            size='sm'
+                            selectionMode='single'
+                            selectedKeys={selectedKeys}
+                            onSelectionChange={(keys) => {
+                              if (keys === 'all') return
+                              const [key] = Array.from(keys)
+                              field.onChange(key as keyof typeof deliveryRoutesMap)
+                            }}
+                          >
+                            <SelectItem key='12'>12:00 PM</SelectItem>
+                            <SelectItem key='14'>2:00 PM</SelectItem>
+                            <SelectItem key='16'>4:00 PM</SelectItem>
+                            <SelectItem key='18'>6:00 PM</SelectItem>
+                            <SelectItem key='20'>8:00 PM</SelectItem>
+                          </Select>
+                        )
+                      }}
                     />
                   </div>
                 )}
 
-                {watchDeliveryType !== undefined && (
+                {watchDeliveryType !== undefined && user?.role === 'customer' && (
                   <Alert
                     className='mt-4 text-xs'
                     variant='flat'
@@ -704,8 +731,8 @@ const Checkout = () => {
                         {watchDeliveryType === 'express' && (
                           <p>
                             Nuestro equipo te contactará para coordinar la entrega lo <strong>antes posible</strong>. Ten en cuenta que las
-                            entregas express pueden tener un <strong>costo adicional</strong> y están sujetas a la disponibilidad del
-                            servicio en tu área y <strong>horarios de entrega</strong>.
+                            entregas express pueden tener un <strong>costo adicional</strong> y están sujetas a la disponibilidad en tu área
+                            y a nuestros <strong>horarios de rutas</strong>.
                           </p>
                         )}
                       </div>

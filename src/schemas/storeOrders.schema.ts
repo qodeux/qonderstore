@@ -2,6 +2,7 @@ import z from 'zod'
 
 export const storeOrderSchema = z.object({
   id: z.string(),
+  ci: z.number(),
   created_at: z.string(),
   last_update: z.string(),
   name: z.string(),
@@ -12,14 +13,28 @@ export const storeOrderSchema = z.object({
   street_number: z.string(),
   interior_number: z.string(),
   address_notes: z.string(),
-  google_address: z.string(),
+  google_location: z.object({
+    lat: z.number(),
+    lng: z.number()
+  }),
   delivery_type: z.enum(['express', 'standard', 'custom', 'foreign']),
   order_status: z.enum(['pending', 'canceled', 'credited', 'paid', 'refunded', 'closed']),
   delivery_date: z.string(),
-  items: z.string(),
-  delivery_route: z.string(),
+  items: z
+    .object({
+      id: z.number(),
+      price: z.number(),
+      quantity: z.number(),
+      saleType: z.enum(['unit', 'bulk']),
+      unitSelected: z.string()
+    })
+    .array(),
+  delivery_route: z.enum(['12', '14', '16', '18', '20']),
   coupon_code: z.string(),
   user_id: z.uuid(),
+  role: z.string(),
+  user_name: z.string(),
+  full_name: z.string(),
   ip: z.string(),
   user_agent: z.string(),
   total_items: z.number(),
