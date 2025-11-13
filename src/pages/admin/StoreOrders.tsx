@@ -1,14 +1,18 @@
-import type { Selection, SortDescriptor } from '@heroui/react'
+import { useDisclosure, type Selection, type SortDescriptor } from '@heroui/react'
 import { useMemo, useState } from 'react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
 import { DataTable, type ColumnDef } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
+import PaymentConfirmModal from '../../components/modals/admin/PaymentConfirmModal'
+import PaymentUploadModal from '../../components/modals/common/paymentUploadModal'
+import { setSelectedOrder } from '../../store/slices/storeOrdersSlice'
 import type { RootState } from '../../store/store'
 import { deliveryTypesMap, storeOrder_status } from '../../types/storeOrders'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const PedidosTienda = () => {
+  const dispatch = useDispatch()
   const navigate = useNavigate()
   const storeOrders = useSelector((state: RootState) => state.storeOrders.items)
 
@@ -103,6 +107,18 @@ const PedidosTienda = () => {
     direction: 'descending'
   })
 
+  const { isOpen: isOpenPaymentUpload, onOpen: OnOpenPaymentUpload, onOpenChange: onOpenChangePaymentUpload } = useDisclosure()
+  const { isOpen: IsOpenPaymentConfirm, onOpen: onOpenPaymentConfirm, onOpenChange: OnOpenChangePaymentConfirm } = useDisclosure()
+
+  const handlePaymentUpload = (row: Row) => {
+    dispatch(setSelectedOrder(row.id))
+    OnOpenPaymentUpload()
+  }
+  const handlePaymentConfirm = (row: Row) => {
+    dispatch(setSelectedOrder(row.id))
+    onOpenPaymentConfirm()
+  }
+
   const filteredRows = useMemo(() => {
     return applyToolbarFilters(storeOrders, ['name'], criteria)
   }, [storeOrders, criteria])
@@ -140,21 +156,21 @@ const PedidosTienda = () => {
               key: 'details',
               label: 'Ver detalle',
               onPress: (row) => {
-                console.log('Ver detalle', row)
+                navigate(`/admin/orden/${row.id}`)
               }
             },
             {
               key: 'register_payment',
               label: 'Registrar pago',
               onPress: (row) => {
-                console.log('Registrar pago', row)
+                handlePaymentUpload(row)
               }
             },
             {
               key: 'prove_payment',
               label: 'Acreditar pago',
               onPress: (row) => {
-                console.log('Registrar pago', row)
+                handlePaymentConfirm(row)
               }
             },
             {
@@ -167,6 +183,10 @@ const PedidosTienda = () => {
           ]
         }}
       />
+
+      <PaymentConfirmModal isOpen={IsOpenPaymentConfirm} onOpenChange={OnOpenChangePaymentConfirm} />
+
+      <PaymentUploadModal isOpen={isOpenPaymentUpload} onOpenChange={onOpenChangePaymentUpload} />
     </section>
   )
 }
