@@ -129,17 +129,12 @@ const PedidosTienda = () => {
         sortDescriptor={sortDescriptor}
         onSortChange={setSortDescriptor}
         getRowKey={(row) => row.id as string} //en number no funciona y quitando
-        onRowActivate={(row) => {
-          console.log('Editar orden de tienda', row)
-          dispatch(setSelectedOrder(row.id))
-          navigate(`/admin/orden/${row.id}`)
-        }}
         adapterOverrides={{
-          // edit: (row) => {
-          //   console.log('Editar orden de tienda', row)
-          //   dispatch(setSelectedOrder(row.id))
-          //   navigate(`/admin/orden/${row.id}`)
-          // },
+          edit: (row) => {
+            console.log('Editar orden de tienda', row)
+            sessionStorage.setItem('admin_selected_store_order', JSON.stringify(storeOrders.find((order) => order.id === row.id)))
+            navigate(`/admin/orden/${row.id}`)
+          },
           actions: [
             {
               key: 'details',
