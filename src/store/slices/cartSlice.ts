@@ -9,7 +9,7 @@ export type CartItem = {
   price: number // precio unitario (congelado al agregar)
   discount?: number // descuento unitario (monto)
   quantity: number
-  stock: number
+  stock?: number
   image?: string
   error?: string
   saleType: SaleType
