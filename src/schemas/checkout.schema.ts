@@ -3,7 +3,7 @@ import { requiredString } from '../utils/zod-helpers'
 
 export const checkoutSchema = z.object({
   name: z.string().min(2, 'El nombre es obligatorio'),
-  phone: z.string().min(7, 'El teléfono es obligatorio'),
+  phone: z.string().min(10, 'El teléfono es obligatorio'),
   email: z.union([z.email('El correo electrónico no es válido'), z.literal('')]).optional(),
   postal_code_lookup: z.string().min(5, 'El código postal es obligatorio'),
   postal_code: z.string().min(5, 'El código postal es obligatorio'),
@@ -13,9 +13,15 @@ export const checkoutSchema = z.object({
   street_address: requiredString(),
   street_number: requiredString(),
   interior_number: z.string().optional(),
+  google_location: z
+    .object({
+      lat: z.number(),
+      lng: z.number()
+    })
+    .optional(),
   delivery_type: z.enum(['standard', 'custom', 'express', 'foreign'], 'Selecciona un tipo de entrega'),
   delivery_date: z.enum(['today', 'tomorrow']),
-  delivery_route: requiredString('Selecciona la ruta').optional(),
+  delivery_route: z.enum(['12', '14', '16', '18', '20'], 'Selecciona una ruta de entrega').optional(),
   shipping_price: z
     .union([z.number().min(100, { message: 'Costo inválido' }).max(999, { message: 'Costo inválido' }), z.nan(), z.undefined(), z.null()])
     .refine((value) => typeof value === 'number' && !Number.isNaN(value), {

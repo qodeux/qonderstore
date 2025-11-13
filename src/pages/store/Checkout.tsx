@@ -168,6 +168,8 @@ const Checkout = () => {
     setValue('locality', value.components.locality || '')
     setValue('state', value.components.state || '')
 
+    setValue('google_location', value.coords)
+
     const newCP = (value.components.postal_code ?? '').trim()
 
     // Si Google trae CP raro (p.ej. P0001), no toques CP/colonias
@@ -236,9 +238,23 @@ const Checkout = () => {
     setCartHasDiscount(true)
   }
 
+  const getIP = async () => {
+    try {
+      const ipResponse = await fetch('/.netlify/functions/whoami')
+      const ipData = await ipResponse.json()
+      console.log('IP Address:', ipData.ip)
+      return ipData.ip
+    } catch (error) {
+      console.error('Error fetching IP address:', error)
+      return 'Unknown'
+    }
+  }
+
   const handleCreateOrder = handleSubmit(
     async (data) => {
       //console.log('Datos del pedido:', data)
+
+      if (!user) return
 
       try {
         const orderTransmission = await storeOrderService.createOrder({
@@ -246,7 +262,7 @@ const Checkout = () => {
           items: cartItems,
           cartTotals: { ...cartTotals, shippingPrice: watchShippingPrice ?? 0 },
           metadata: {
-            ip: '127.0.0.1',
+            ip: await getIP(),
             user_agent: navigator.userAgent
           },
           userId: user?.id
@@ -261,7 +277,14 @@ const Checkout = () => {
 
         if (orderTransmission.id) {
           dispatch(clearCart())
+        }
+
+        if (user?.role === 'customer') {
           navigate(`/tienda/checkout/confirmacion/${orderTransmission.id}`)
+        }
+
+        if (['admin', 'staff'].includes(user.role)) {
+          navigate(`/admin/orden/${orderTransmission.id}`)
         }
       } catch (error) {
         console.log(error)
@@ -272,9 +295,13 @@ const Checkout = () => {
     }
   )
 
+  // if (cartItems.length === 0) {
+  //   navigate('/tienda/productos')
+  // }
+
   return (
     <form
-      className='grid grid-cols-1 md:grid-cols-[1fr_350px] lg:grid-cols-[1fr_350px] container mx-auto gap-8 my-8'
+      className='grid grid-cols-1 md:grid-cols-[1fr_350px] lg:grid-cols-[1fr_350px] container mx-auto gap-8 p-8'
       onSubmit={handleCreateOrder}
     >
       {/* Columna izquierda */}
@@ -310,7 +337,6 @@ const Checkout = () => {
                 {...field}
                 customInput={Input}
                 format='## #### ####'
-                allowEmptyFormatting
                 type='tel'
                 inputMode='tel'
                 label='Teléfono'
@@ -325,25 +351,6 @@ const Checkout = () => {
               />
             )}
           />
-
-          {/* <Controller
-            control={control}
-            name='phone'
-            render={({ field, fieldState }) => (
-              <Input
-                type='phone'
-                label='Teléfono'
-                {...field}
-                size='sm'
-                isClearable
-                onClear={() => field.onChange('')}
-                classNames={{ inputWrapper: 'bg-white' }}
-                errorMessage={fieldState.error?.message}
-                isInvalid={!!fieldState.error}
-                variant='bordered'
-              />
-            )}
-          /> */}
 
           <Controller
             control={control}
@@ -554,6 +561,11 @@ const Checkout = () => {
                   />
                 </div>
               </div>
+              <Controller
+                control={control}
+                name='google_location'
+                render={({ field }) => <input type='hidden' value={JSON.stringify(field.value)} />}
+              />
             </div>
 
             {/* Tipo de entrega */}
@@ -653,7 +665,7 @@ const Checkout = () => {
                     />
                     <Controller
                       control={control}
-                      name='delivery_routes'
+                      name='delivery_route'
                       render={({ field, fieldState }) => (
                         <Select
                           {...field}
@@ -678,7 +690,7 @@ const Checkout = () => {
                   </div>
                 )}
 
-                {watchDeliveryType !== undefined && (
+                {watchDeliveryType !== undefined && user?.role === 'customer' && (
                   <Alert
                     className='mt-4 text-xs'
                     variant='flat'
@@ -704,8 +716,8 @@ const Checkout = () => {
                         {watchDeliveryType === 'express' && (
                           <p>
                             Nuestro equipo te contactará para coordinar la entrega lo <strong>antes posible</strong>. Ten en cuenta que las
-                            entregas express pueden tener un <strong>costo adicional</strong> y están sujetas a la disponibilidad del
-                            servicio en tu área y <strong>horarios de entrega</strong>.
+                            entregas express pueden tener un <strong>costo adicional</strong> y están sujetas a la disponibilidad en tu área
+                            y a nuestros <strong>horarios de rutas</strong>.
                           </p>
                         )}
                       </div>
