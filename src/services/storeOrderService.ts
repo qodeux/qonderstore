@@ -82,5 +82,21 @@ export const storeOrderService = {
       throw new Error('Error creating order: ' + error.message)
     }
     return data
+  },
+  getShippingPrice: async (sublocality: number) => {
+    const { data, error } = await supabase.from('shipping_prices').select('*').eq('sublocality', sublocality).single()
+    if (error) {
+      console.error('Error fetching shipping price:', error)
+      return { error }
+    }
+    return { data }
+  },
+  addShippingPrice: async (postalCode: string, sublocality: number, shipping_price: number) => {
+    const { data, error } = await supabase.from('shipping_prices').insert({ cp: postalCode, sublocality, shipping_price }).select().single()
+    if (error) {
+      console.error('Error adding shipping price:', error)
+      return { error }
+    }
+    return { data }
   }
 }
