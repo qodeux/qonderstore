@@ -29,7 +29,7 @@ const PaymentUploadModal = ({ isOpen, onOpenChange }: Props) => {
                   mode='private'
                   uploadType='file'
                   maxFiles={1}
-                  maxSize={5 * 1024 * 1024}
+                  maxSize={10 * 1024 * 1024} // 10MB
                   previewExpiresIn={180}
                   instructions={
                     <div className='flex flex-col'>
@@ -38,7 +38,7 @@ const PaymentUploadModal = ({ isOpen, onOpenChange }: Props) => {
                           ? 'Toma una foto o selecciona un archivo.'
                           : 'Arrastra y suelta, o haz clic para seleccionar '}
                       </p>
-                      <p className='text-sm'>Sube una imagen o PDF como comprobante de pago (máx. 5MB).</p>
+                      <p className='text-sm'>Sube una imagen o PDF como comprobante de pago (máx. 10MB).</p>
                     </div>
                   }
                   onUploadComplete={async (items) => {
@@ -54,6 +54,7 @@ const PaymentUploadModal = ({ isOpen, onOpenChange }: Props) => {
                     }
 
                     console.log('Upload complete:', items)
+
                     onOpenChange()
                   }}
                 />
