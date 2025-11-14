@@ -47,14 +47,27 @@ export const storeOrderService = {
 
     const mappedItems = items.map((item) =>
       item.saleType === 'bulk'
-        ? { id: item.id, quantity: item.quantity, price: item.price, saleType: item.saleType, unitSelected: item.unitSelected ?? null }
-        : { id: item.id, quantity: item.quantity, price: item.price, saleType: item.saleType }
+        ? {
+            id: item.id,
+            quantity: item.quantity,
+            price: item.price * item.quantity,
+            discount: (item.discount ?? 0) * item.quantity,
+            saleType: item.saleType,
+            unitSelected: item.unitSelected ?? null
+          }
+        : {
+            id: item.id,
+            quantity: item.quantity,
+            price: item.price * item.quantity,
+            discount: (item.discount ?? 0) * item.quantity,
+            saleType: item.saleType
+          }
     )
 
     const mappedCartTotals = cartTotals
       ? {
           total_price: cartTotals.totalPrice,
-          total_items: cartTotals.totalQuantity,
+          total_items: items.length,
           shipping_price: cartTotals.shippingPrice
         }
       : undefined
@@ -82,5 +95,29 @@ export const storeOrderService = {
       throw new Error('Error creating order: ' + error.message)
     }
     return data
+  },
+  getShippingPrice: async (sublocality: number) => {
+    const { data, error } = await supabase.from('shipping_prices').select('*').eq('sublocality', sublocality).single()
+    if (error) {
+      console.error('Error fetching shipping price:', error)
+      return { error }
+    }
+    return { data }
+  },
+  addShippingPrice: async (postalCode: string, sublocality: number, shipping_price: number) => {
+    const { data, error } = await supabase.from('shipping_prices').insert({ cp: postalCode, sublocality, shipping_price }).select().single()
+    if (error) {
+      console.error('Error adding shipping price:', error)
+      return { error }
+    }
+    return { data }
+  },
+  async getSublocalityData(sublocalityId: number) {
+    const { data, error } = await supabase.from('cp_mexico').select('*').eq('id', sublocalityId).single()
+    if (error) {
+      console.error('Error fetching sublocality data:', error)
+      return { error }
+    }
+    return { data }
   }
 }

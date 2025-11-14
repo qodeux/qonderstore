@@ -1,8 +1,9 @@
 import { Button, Input, Spinner, Tooltip } from '@heroui/react'
-import { Autocomplete, GoogleMap, MarkerF, useJsApiLoader } from '@react-google-maps/api'
+import { Autocomplete, GoogleMap, MarkerF } from '@react-google-maps/api'
 import { Crosshair } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDeviceScreen } from '../../hooks/useDeviceScreen'
+import { useGoogleMaps } from '../../hooks/useGoogleMaps'
 
 type LatLng = { lat: number; lng: number }
 
@@ -51,8 +52,6 @@ const containerStyle: React.CSSProperties = {
   borderRadius: 12,
   border: '1px solid #ccc'
 }
-
-const libraries: 'places'[] = ['places']
 
 const toTypesMap = (place: google.maps.places.PlaceResult) => {
   const mapLong = new Map<string, string>()
@@ -111,13 +110,7 @@ export default function AddressMapPicker({
   region = 'MX',
   showMarkerOnPostalCenter = false
 }: Props) {
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string,
-    libraries,
-    language,
-    region
-  })
-
+  const { isLoaded } = useGoogleMaps(language, region)
   const { isMobile } = useDeviceScreen()
 
   // ⚠️ Importante: center inicia en null para NO renderizar mapa hasta tener CP resuelto
@@ -406,7 +399,7 @@ export default function AddressMapPicker({
         )}
       </div>
 
-      {/* Debug opcional */}
+      {/* Debug  */}
       {/* <div className='text-sm opacity-70 space-y-1'>
         <div>
           <b>Dirección:</b> {address || '—'}

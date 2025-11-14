@@ -39,7 +39,7 @@ const ProductItem = ({ item, isRelated }: ProductItemProps) => {
   }
 
   return (
-    <Card key={item.id} className='m-0 border-1 border-neutral-400  shadow-sm' radius='sm' shadow='none'>
+    <Card key={item.id} className='my-1 border-1 border-neutral-400  shadow-sm' radius='sm' shadow='none'>
       <CardHeader className='p-0'>
         <Link to={`${isRelated ? '/tienda/' : ''}producto/${item.slug}`} className='contents'>
           <div className='w-full aspect-square bg-neutral-100 border-b border-neutral-400 flex items-center justify-center text-neutral-500 text-xs'>
