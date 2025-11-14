@@ -1,9 +1,10 @@
-import type { Selection, SortDescriptor } from '@heroui/react'
+import { useDisclosure, type Selection, type SortDescriptor } from '@heroui/react'
 import { useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
 import { DataTable, type ColumnDef } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
+import CloseRouteModal from '../../components/modals/admin/CloseRouteModal'
 import type { RootState } from '../../store/store'
 import { deliveryRoutesMap, deliveryTypesMap, storeShipment_status } from '../../types/storeOrders'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
@@ -94,8 +95,10 @@ const EnviosTienda = () => {
     navigate(`/admin/orden/${row.id}`)
   }
   const handleCloseRoute = () => {
-    console.log('Cerrar ruta')
+    onOpenCloseRoute()
   }
+
+  const { isOpen: isOpenCloseRoute, onOpen: onOpenCloseRoute, onClose: onCloseCloseRoute } = useDisclosure()
 
   const filteredRows = useMemo(() => {
     const paidOrders = storeOrders.filter((order) => order.order_status === 'credited')
@@ -139,6 +142,7 @@ const EnviosTienda = () => {
           ]
         }}
       />
+      <CloseRouteModal isOpen={isOpenCloseRoute} onOpenChange={onCloseCloseRoute} />
     </section>
   )
 }
