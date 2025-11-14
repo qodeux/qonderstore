@@ -131,7 +131,9 @@ const OrderDetails = () => {
         </div>
 
         <div className='col-span-2'>
-          <h3 className='text-lg font-semibold mt-2'>Datos de entrega</h3>
+          <h3 className='text-lg font-semibold mt-2'>
+            Datos de entrega {selectedOrder?.shipment_status && <Chip variant='flat'>{selectedOrder.shipment_status}</Chip>}
+          </h3>
           <section className='flex justify-between'>
             <div className='text-sm'>
               <p>
