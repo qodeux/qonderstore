@@ -79,7 +79,7 @@ const EnviosTienda = () => {
   })
 
   const filteredRows = useMemo(() => {
-    const paidOrders = storeOrders.filter((order) => order.order_status === 'approved')
+    const paidOrders = storeOrders.filter((order) => order.order_status === 'credited')
     return applyToolbarFilters(paidOrders, ['name'], criteria)
   }, [storeOrders, criteria])
 
