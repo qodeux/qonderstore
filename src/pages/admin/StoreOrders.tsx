@@ -6,7 +6,7 @@ import { DataTable, type ColumnDef } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import PaymentConfirmModal from '../../components/modals/admin/PaymentConfirmModal'
 import OnConfirmModal from '../../components/modals/common/onConfirmModal'
-import PaymentUploadModal from '../../components/modals/common/paymentUploadModal'
+import PaymentUploadModal from '../../components/modals/common/PaymentUploadModal'
 import { storeOrderService } from '../../services/storeOrderService'
 import { setSelectedOrder } from '../../store/slices/storeOrdersSlice'
 import type { RootState } from '../../store/store'
@@ -126,7 +126,7 @@ const PedidosTienda = () => {
     {
       console.log('Orden cancelada')
     }
-    const { error } = await storeOrderService.cancelOrder(selectedOrder!.id)
+    const { error } = await storeOrderService.updateOrderStatus(selectedOrder!.id, 'canceled')
     if (error) {
       console.error('Error canceling order:', error)
     }

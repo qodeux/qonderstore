@@ -121,10 +121,10 @@ export const storeOrderService = {
     }
     return { data }
   },
-  async cancelOrder(orderId: string) {
-    const { data, error } = await supabase.from('store_orders').update({ order_status: 'canceled' }).eq('id', orderId)
+  async updateOrderStatus(orderId: string, status: string) {
+    const { data, error } = await supabase.from('store_orders').update({ order_status: status }).eq('id', orderId)
     if (error) {
-      console.error('Error canceling order:', error)
+      console.error('Error updating order status:', error)
       return { error }
     }
     return { data }
