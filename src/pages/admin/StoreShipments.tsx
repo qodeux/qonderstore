@@ -1,30 +1,36 @@
 import type { Selection, SortDescriptor } from '@heroui/react'
 import { useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
+import { useNavigate } from 'react-router'
 import { DataTable, type ColumnDef } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import type { RootState } from '../../store/store'
-import { storeOrdersStatusMap } from '../../types/storeOrders'
+import { deliveryRoutesMap, deliveryTypesMap, storeShipment_status } from '../../types/storeOrders'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const EnviosTienda = () => {
+  const navigate = useNavigate()
   const storeOrders = useSelector((state: RootState) => state.storeOrders.items)
 
   type Row = {
     id: string
+    ci: number
     name: string
+    total_items: number
+    delivery_date: string
+    delivery_route: string
+    shipment_status: string
     postal_code: string
     delivery_type: string
-    delivery_date: string
     total_price: number
     order_status: string
   }
 
   const columns: ColumnDef<Row>[] = [
     {
-      key: 'id',
-      label: 'ID orden',
-      allowsSorting: false
+      key: 'ci',
+      label: '#',
+      allowsSorting: true
     },
     {
       key: 'name',
@@ -32,14 +38,9 @@ const EnviosTienda = () => {
       allowsSorting: false
     },
     {
-      key: 'postal_code',
-      label: 'Código postal',
+      key: 'total_items',
+      label: 'Productos',
       allowsSorting: false
-    },
-    {
-      key: 'delivery_type',
-      label: 'Tipo de entrega',
-      allowsSorting: true
     },
     {
       key: 'delivery_date',
@@ -47,16 +48,26 @@ const EnviosTienda = () => {
       allowsSorting: true
     },
     {
-      key: 'total_price',
-      label: 'Total orden',
-      allowsSorting: false
+      key: 'delivery_type',
+      label: 'Tipo de entrega',
+      allowsSorting: true,
+      align: 'center',
+      preset: 'type',
+      presetConfig: { map: deliveryTypesMap }
     },
     {
-      key: 'status',
-      label: 'Status de la orden',
+      key: 'delivery_route',
+      label: 'Ruta de entrega',
       allowsSorting: true,
       preset: 'type',
-      presetConfig: { map: storeOrdersStatusMap, wrapper: { type: 'chip', variant: 'flat' } }
+      presetConfig: { map: deliveryRoutesMap }
+    },
+    {
+      key: 'shipment_status',
+      label: 'Status del envío',
+      allowsSorting: true,
+      preset: 'type',
+      presetConfig: { map: storeShipment_status, wrapper: { type: 'chip', variant: 'flat' } }
     },
     {
       key: 'actions',
@@ -74,32 +85,37 @@ const EnviosTienda = () => {
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]))
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: 'delivery_date',
+    column: 'ci',
     direction: 'descending'
   })
+
+  const handleDetails = (row: Row) => {
+    sessionStorage.setItem('admin_selected_store_order', JSON.stringify(storeOrders.find((order) => order.id === row.id)))
+    navigate(`/admin/orden/${row.id}`)
+  }
+  const handleCloseRoute = () => {
+    console.log('Cerrar ruta')
+  }
 
   const filteredRows = useMemo(() => {
     const paidOrders = storeOrders.filter((order) => order.order_status === 'credited')
     return applyToolbarFilters(paidOrders, ['name'], criteria)
   }, [storeOrders, criteria])
 
-  //   const filteredRows = applyToolbarFilters(
-  //     storeOrders.filter((r) => r.order_status === 'aproved'),
-  //     ['order_status'],
-  //     criteria
-  //   )
-
   return (
     <section className='space-y-4'>
       <ToolbarTable<Row>
         rows={storeOrders}
         searchFilter={['name']}
-        //filters={[{ label: 'Categoría', column: 'category', multiple: true }]}
-        //buttons={toolbarButtons}
+        filters={[
+          { label: 'Status', column: 'shipment_status', multiple: true },
+          { label: 'Ruta', column: 'delivery_route', multiple: true }
+        ]}
+        buttons={[{ label: 'Cerrar ruta', onPress: handleCloseRoute, color: 'primary' as const }]}
         onCriteriaChange={setCriteria}
       />
       <DataTable<Row>
-        entity='storeOrders'
+        entity='storeShipments'
         rows={filteredRows}
         columns={columns}
         selectedKeys={selectedKeys}
@@ -108,13 +124,16 @@ const EnviosTienda = () => {
         sortDescriptor={sortDescriptor}
         onSortChange={setSortDescriptor}
         getRowKey={(row) => row.id as string} //en number no funciona y quitando
+        onRowActivate={(row) => {
+          handleDetails(row)
+        }}
         adapterOverrides={{
           actions: [
             {
               key: 'details',
               label: 'Ver detalle',
               onPress: (row) => {
-                console.log('Ver detalle', row)
+                handleDetails(row)
               }
             }
           ]

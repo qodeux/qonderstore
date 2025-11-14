@@ -14,6 +14,7 @@ import {
   ScanBarcode,
   SendToBack,
   Store,
+  Truck,
   Users
 } from 'lucide-react'
 import { useSelector } from 'react-redux'

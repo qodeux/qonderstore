@@ -11,6 +11,21 @@ export type StoreOrderStatus = (typeof storeOrder_status)[number]['key']
 
 export const storeOrdersStatusMap = toRecord(storeOrder_status)
 
+export const storeShipment_status = [
+  { key: 'pending', label: 'Pendiente', color: 'warning' },
+  { key: 'processing', label: 'En proceso', color: 'primary' },
+  { key: 'ready_for_pickup', label: 'Listo para recolección', color: 'success' },
+  { key: 'picked_up', label: 'Recolectado', color: 'success' },
+  { key: 'in_transit', label: 'En tránsito', color: 'success' },
+  { key: 'delivered', label: 'Entregado', color: 'success' },
+  { key: 'delivery_failed', label: 'Entrega fallida', color: 'danger' },
+  { key: 'canceled', label: 'Cancelado', color: 'danger' }
+] as const
+
+export type StoreShipmentStatus = (typeof storeShipment_status)[number]['key']
+
+export const storeShipmentStatusMap = toRecord(storeShipment_status)
+
 export const delivery_types = [
   { key: 'standard', label: 'Estándar', color: 'primary' },
   { key: 'express', label: 'Urgente', color: 'danger' },
