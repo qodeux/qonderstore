@@ -1,4 +1,4 @@
-import { Button, Progress } from '@heroui/react'
+import { Button, Chip, Progress } from '@heroui/react'
 import { Rating } from '@smastrom/react-rating'
 import '@smastrom/react-rating/style.css'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -7,15 +7,18 @@ import { useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useParams } from 'react-router'
 
-import ProductLightboxGallery from '../components/common/light-box/ProductLightbox'
-import ProductItem from '../components/store/ProductItem'
-import QuantitySelector from '../components/store/QuantitySelector'
-import UnitSelector from '../components/store/UnitSelector'
-import { makeSelectProductWithPromoBySlug, selectProductsWithBestPromo, type ProductWithPromo } from '../store/selectors/productsWithPromo'
-import { addItem } from '../store/slices/cartSlice'
-import { setCartOpen } from '../store/slices/uiSlice'
-import type { RootState } from '../store/store'
-import { formatMoney } from '../utils/money'
+import { SwiperSlide } from 'swiper/react'
+import ProductLightboxGallery from '../../components/common/light-box/ProductLightbox'
+import SwipperSlider from '../../components/common/swiper/SwipperSlider'
+import ProductItem from '../../components/store/ProductItem'
+import QuantitySelector from '../../components/store/QuantitySelector'
+import UnitSelector from '../../components/store/UnitSelector'
+import { makeSelectProductWithPromoBySlug, selectProductsWithBestPromo } from '../../store/selectors/productsWithPromo'
+import { addItem } from '../../store/slices/cartSlice'
+import { setCartOpen } from '../../store/slices/uiSlice'
+import type { RootState } from '../../store/store'
+import { saleUnitsAvailable } from '../../types/products'
+import { formatMoney } from '../../utils/money'
 
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRecord = Record<string, any>
@@ -32,7 +35,7 @@ const Product = () => {
   const cartItems = useSelector((s: RootState) => s.cart.items)
 
   const rating = 4
-  const [quantity, setQuantity] = useState(1)
+  const [quantity, setQuantity] = useState(product?.min_sale ? product.min_sale : 1)
   const [stockLeftPercent, setStockLeftPercent] = useState<number | null>(null)
   const [QuantityError, setQuantityError] = useState<string | null>(null)
 
@@ -129,7 +132,7 @@ const Product = () => {
       .filter((p) => p.id !== product.id)
       .slice()
       .sort((a, b) => a.id - b.id)
-      .slice(0, 4)
+      .slice(0, 8)
   }, [products, product])
 
   // ---------- CARRITO ----------
@@ -166,14 +169,18 @@ const Product = () => {
     return () => clearTimeout(timer)
   }, [QuantityError])
 
+  useEffect(() => {
+    if (!product) return
+    document.title = `${product?.name} - Qonderstore`
+  }, [product])
+
   if (!product) return <div>Producto no encontrado</div>
 
-  // ✅ Estado explícito para el botón
   const canAdd = maxSelectableQty > 0 && quantity >= 1 && quantity <= maxSelectableQty
 
   return (
     <>
-      <section className='container flex flex-col md:flex-row gap-8 mx-auto'>
+      <section className='container flex flex-col md:flex-row gap-8 mx-auto px-8 mt-8'>
         {/* === GALERÍA === */}
         <div className='w-full md:w-1/2 rounded-xl overflow-hidden border border-neutral-300'>
           <ProductLightboxGallery mainImage={product.main_image} images={orderedImages} showThumbnails maxWidth={900} />
@@ -225,7 +232,7 @@ const Product = () => {
                 size='md'
                 value={stockLeftPercent ?? 0}
                 showValueLabel
-                className='w-full max-w-1/2 md:max-w-1/3'
+                className='w-full max-w-1/2 md:max-w-2/3 lg:max-w-1/2 xl:max-w-1/3'
                 valueLabel={`${remainingNow}  unidades`}
                 color={remainingNow > 5 ? 'success' : 'danger'}
               />
@@ -243,7 +250,18 @@ const Product = () => {
                 <span className='text-3xl font-bold'>{formatMoney(unitPrice)}</span>
                 {hasPromo && <span className='text-lg line-through text-neutral-500'>{formatMoney(unitOriginalPrice)}</span>}
               </div>
-              <span>Precio</span>
+              {hasPromo ? (
+                <>
+                  <div>
+                    Precio con descuento{' '}
+                    <Chip color='success' variant='flat' size='sm' className='font-medium'>
+                      <span>{product.discountPercent ? `-${product.discountPercent.toFixed(0)}%` : `$${product.discountAmount}`}</span>
+                    </Chip>
+                  </div>
+                </>
+              ) : (
+                <span>Precio normal</span>
+              )}
             </div>
 
             {quantity > 1 && (
@@ -261,6 +279,7 @@ const Product = () => {
                   <AnimatePresence>
                     {remainingNow > 0 && (
                       <motion.div
+                        key={`qty-selector`}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, type: 'spring' }}
@@ -276,12 +295,30 @@ const Product = () => {
                             if (q > safeMax) setQuantityError('No hay existencias suficientes')
                           }}
                           maxQuantity={maxSelectableQty}
+                          minQuantity={product.min_sale}
                           onError={setQuantityError}
                         />
                       </motion.div>
                     )}
+
+                    {product.sale_type === 'unit' && remainingNow > 0 && (
+                      <motion.div
+                        key={`unit-label`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, type: 'spring' }}
+                        exit={{ opacity: 0, y: 20 }}
+                      >
+                        <span className='font-medium text-lg'>
+                          {saleUnitsAvailable.find((unit) => unit.key === product.unit)?.label}
+                          {quantity && quantity > 1 && 's'}
+                        </span>
+                      </motion.div>
+                    )}
+
                     {product.sale_type === 'bulk' && remainingNow > 0 && (
                       <motion.div
+                        key={`unit-selector`}
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
@@ -322,15 +359,19 @@ const Product = () => {
       </section>
 
       {/* === RELACIONADOS === */}
-      <section className='my-8 container mx-auto'>
+      <section className='my-8 container mx-auto px-8'>
         <header className='mb-4'>
           <h3 className='text-2xl font-semibold'>Productos relacionados</h3>
         </header>
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8'>
-          {relatedProducts.map((item: ProductWithPromo) => (
-            <ProductItem key={item.id} item={item} isRelated />
-          ))}
-        </div>
+        <SwipperSlider showProgress showNavigation showPagination autoplay={10000}>
+          {relatedProducts
+            .filter((p) => p.featured === true)
+            .map((item) => (
+              <SwiperSlide key={`related-${item.id}`}>
+                <ProductItem key={item.id} item={item} isRelated />
+              </SwiperSlide>
+            ))}
+        </SwipperSlider>
       </section>
     </>
   )

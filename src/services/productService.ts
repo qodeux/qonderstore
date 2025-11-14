@@ -1,7 +1,10 @@
 import { addToast } from '@heroui/react'
 import supabase from '../lib/supabase'
+import type { BrandInput } from '../schemas/brand.schema'
+import type { InventoryAdjustmentInput } from '../schemas/inventoryAdjusment.schema'
 import type { Product } from '../schemas/products.schema'
 import type { ProductRpcPayload } from '../schemas/productsPayload.schema'
+import { bulkUnitsAvailable } from '../types/products'
 
 export const productService = {
   fetchProducts: async () => {
@@ -71,5 +74,113 @@ export const productService = {
     if (error) {
       console.error('Error deleting product:', error)
     }
+  },
+  createBrand: async (payload: BrandInput) => {
+    const { data, error } = await supabase.from('product_brands').insert(payload).select().single()
+    if (error) {
+      console.error('Error adding brand:', error)
+      throw error
+    }
+
+    addToast({
+      title: 'Marca agregado',
+      description: `La marca "${data.name}" ha sido agregado correctamente.`,
+      color: 'success',
+      variant: 'bordered',
+      shouldShowTimeoutProgress: true
+    })
+
+    return data
+  },
+  fetchBrands: async () => {
+    const { data, error } = await supabase.from('product_brands_view').select('*')
+    if (error) {
+      console.error('Error fetching brands:', error)
+      return { error }
+    }
+    return { data }
+  },
+  updateBrand: async (payload: BrandInput) => {
+    const updatePayload = { ...payload, color: payload.color ?? null }
+    const { data, error } = await supabase.from('product_brands').update(updatePayload).eq('id', payload.id).select().single()
+    if (error) {
+      console.error('Error updating brand:', error)
+      throw error
+    }
+
+    addToast({
+      title: 'Marca actualizado',
+      description: `La marca "${data.name}" ha sido actualizado correctamente.`,
+      color: 'primary',
+      variant: 'bordered',
+      timeout: 4000,
+      shouldShowTimeoutProgress: true
+    })
+
+    return data
+  },
+  deleteBrand: async (id: number) => {
+    const { error } = await supabase.from('product_brands').delete().eq('id', id)
+    if (error) {
+      console.error('Error deleting brand:', error)
+      return { error }
+    }
+  },
+  inventoryAdjustment: async (product: Product, userId: string, payload: InventoryAdjustmentInput) => {
+    let adjustedPayload
+    if (product.sale_type === 'unit') {
+      adjustedPayload = {
+        quantity: payload.quantity,
+        type: 'unit',
+        comment: payload.comment ?? null
+      }
+    }
+
+    if (product.sale_type === 'bulk') {
+      const base = bulkUnitsAvailable.map((u) => u.key)
+      const bulkUnits = Array.from(new Set([...base, { label: 'Kilogramos', key: 'kg', value: 1000 }.key]))
+
+      const quantityInGrams = (() => {
+        if (!bulkUnits.includes(payload.unit)) {
+          throw new Error(`Unidad inválida para producto a granel: ${payload.unit}`)
+        }
+        switch (payload.unit) {
+          case 'gr':
+            return payload.quantity
+          case 'kg':
+            return payload.quantity * 1000
+          case 'oz':
+            return payload.quantity * 28.3495
+          case 'lb':
+            return payload.quantity * 453.592
+        }
+      })()
+
+      adjustedPayload = {
+        quantity: quantityInGrams,
+        type: 'bulk',
+        comment: payload.comment ?? null
+      }
+    }
+
+    // console.log({
+    //   p_product_id: product.id,
+    //   p_user_id: userId,
+    //   p_payload: adjustedPayload
+    // })
+
+    const { data, error } = await supabase.rpc('update_product_stock', {
+      p_product_id: product.id,
+      p_user_id: userId,
+      p_payload: adjustedPayload
+    })
+
+    console.log(data)
+
+    if (error) {
+      console.error('Error adjusting inventory:', error)
+      throw error
+    }
+    return data
   }
 }

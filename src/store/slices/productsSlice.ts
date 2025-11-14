@@ -1,21 +1,17 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
+import type { Brand } from '../../schemas/brand.schema'
 import type { Product } from '../../schemas/products.schema'
 import type { SaleType } from '../../types/products'
-
-export type ProductBrand = {
-  id: string
-  name: string
-  logo: string | null
-}
 
 interface ProductsState {
   items: Product[]
   selectedProduct: Product | null
+  selectedBrand?: Brand | null
   saleType: SaleType | null
   loading: boolean
   error: string | null
   isEditing: boolean
-  brands: ProductBrand[]
+  brands: Brand[]
 }
 
 const initialState: ProductsState = {
@@ -48,14 +44,19 @@ const productsSlice = createSlice({
     setSaleType(state, action: PayloadAction<SaleType | null>) {
       state.saleType = action.payload
     },
-    setProductBrands(state, action: PayloadAction<ProductBrand[]>) {
+    setProductBrands(state, action: PayloadAction<Brand[]>) {
       state.brands = action.payload
+      state.loading = false
+      state.error = null
+    },
+    setSelectedBrand(state, action: PayloadAction<number | null>) {
+      state.selectedBrand = state.brands.find((brand) => brand.id === action.payload) || null
       state.loading = false
       state.error = null
     }
   }
 })
 
-export const { setProducts, setSelectedProduct, setProductBrands, setEditMode, setSaleType } = productsSlice.actions
+export const { setProducts, setSelectedProduct, setProductBrands, setEditMode, setSaleType, setSelectedBrand } = productsSlice.actions
 
 export default productsSlice.reducer

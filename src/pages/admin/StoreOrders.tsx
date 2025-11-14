@@ -1,62 +1,93 @@
-import type { Selection, SortDescriptor } from '@heroui/react'
+import { useDisclosure, type Selection, type SortDescriptor } from '@heroui/react'
 import { useMemo, useState } from 'react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate } from 'react-router'
 import { DataTable, type ColumnDef } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
+import PaymentConfirmModal from '../../components/modals/admin/PaymentConfirmModal'
+import OnConfirmModal from '../../components/modals/common/onConfirmModal'
+import PaymentUploadModal from '../../components/modals/common/PaymentUploadModal'
+import { storeOrderService } from '../../services/storeOrderService'
+import { setSelectedOrder } from '../../store/slices/storeOrdersSlice'
 import type { RootState } from '../../store/store'
-import { storeOrdersStatusMap } from '../../types/storeOrders'
+import { deliveryTypesMap, storeOrder_status } from '../../types/storeOrders'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const PedidosTienda = () => {
-  const storeOrders = useSelector((state: RootState) => state.storeOrders.items)
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const { items: storeOrders, selectedOrder } = useSelector((state: RootState) => state.storeOrders)
 
   type Row = {
     id: string
+    ci: number
     name: string
-    postal_code: string
+
     delivery_type: string
     delivery_date: string
     total_price: number
+    shipping_price: number
     order_status: string
+    order_total: number
+    total_items: number
+    created_at: string
   }
 
   const columns: ColumnDef<Row>[] = [
     {
-      key: 'id',
-      label: 'ID orden',
-      allowsSorting: false
+      key: 'ci',
+      label: '#',
+      allowsSorting: true
     },
     {
       key: 'name',
       label: 'Nombre',
       allowsSorting: false
     },
+
     {
-      key: 'postal_code',
-      label: 'Código postal',
-      allowsSorting: false
+      key: 'total_items',
+      label: 'Productos',
+      allowsSorting: false,
+      align: 'center'
     },
+
+    {
+      key: 'created_at',
+      label: 'Fecha compra',
+      allowsSorting: true,
+      preset: 'date'
+    },
+    {
+      key: 'last_update',
+      label: 'Actualizado',
+      allowsSorting: true,
+      preset: 'date',
+      hidden: true
+    },
+
     {
       key: 'delivery_type',
       label: 'Tipo de entrega',
-      allowsSorting: true
+      allowsSorting: true,
+      align: 'center',
+      preset: 'type',
+      presetConfig: { map: deliveryTypesMap }
     },
     {
-      key: 'delivery_date',
-      label: 'Fecha de entrega',
-      allowsSorting: true
+      key: 'order_total',
+      label: 'Precio total',
+      allowsSorting: true,
+      preset: 'money',
+      align: 'end'
     },
+
     {
-      key: 'total_price',
-      label: 'Total orden',
-      allowsSorting: false
-    },
-    {
-      key: 'status',
+      key: 'order_status',
       label: 'Status de la orden',
       allowsSorting: true,
       preset: 'type',
-      presetConfig: { map: storeOrdersStatusMap, wrapper: { type: 'chip', variant: 'flat' } }
+      presetConfig: { map: storeOrder_status, wrapper: { type: 'chip', variant: 'flat' } }
     },
     {
       key: 'actions',
@@ -74,9 +105,42 @@ const PedidosTienda = () => {
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]))
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: 'delivery_date',
+    column: 'last_update',
     direction: 'descending'
   })
+
+  const { isOpen: isOpenPaymentUpload, onOpen: OnOpenPaymentUpload, onOpenChange: onOpenChangePaymentUpload } = useDisclosure()
+  const { isOpen: IsOpenPaymentConfirm, onOpen: onOpenPaymentConfirm, onOpenChange: OnOpenChangePaymentConfirm } = useDisclosure()
+
+  const { isOpen: isOpenConfirm, onOpen: onOpenConfirm, onOpenChange: onOpenChangeConfirm } = useDisclosure()
+
+  const handlePaymentUpload = (row: Row) => {
+    dispatch(setSelectedOrder(row.id))
+    OnOpenPaymentUpload()
+  }
+  const handlePaymentConfirm = (row: Row) => {
+    dispatch(setSelectedOrder(row.id))
+    onOpenPaymentConfirm()
+  }
+  const onConfirmCancel = async () => {
+    {
+      console.log('Orden cancelada')
+    }
+    const { error } = await storeOrderService.updateOrderStatus(selectedOrder!.id, 'canceled')
+    if (error) {
+      console.error('Error canceling order:', error)
+    }
+    onOpenChangeConfirm()
+  }
+  const handleDetails = (row: Row) => {
+    sessionStorage.setItem('admin_selected_store_order', JSON.stringify(storeOrders.find((order) => order.id === row.id)))
+    navigate(`/admin/orden/${row.id}`)
+  }
+
+  const handleOrderCancel = (row: Row) => {
+    dispatch(setSelectedOrder(row.id))
+    onOpenConfirm()
+  }
 
   const filteredRows = useMemo(() => {
     return applyToolbarFilters(storeOrders, ['name'], criteria)
@@ -87,7 +151,10 @@ const PedidosTienda = () => {
       <ToolbarTable<Row>
         rows={storeOrders}
         searchFilter={['name']}
-        //filters={[{ label: 'Categoría', column: 'category', multiple: true }]}
+        filters={[
+          { label: 'Tipo de entrega', column: 'delivery_type', multiple: false },
+          { label: 'Status de la orden', column: 'order_status', multiple: true }
+        ]}
         //buttons={toolbarButtons}
         onCriteriaChange={setCriteria}
       />
@@ -101,38 +168,54 @@ const PedidosTienda = () => {
         sortDescriptor={sortDescriptor}
         onSortChange={setSortDescriptor}
         getRowKey={(row) => row.id as string} //en number no funciona y quitando
+        onRowActivate={(row) => {
+          handleDetails(row)
+        }}
         adapterOverrides={{
           actions: [
             {
               key: 'details',
               label: 'Ver detalle',
               onPress: (row) => {
-                console.log('Ver detalle', row)
+                handleDetails(row)
               }
             },
             {
               key: 'register_payment',
               label: 'Registrar pago',
               onPress: (row) => {
-                console.log('Registrar pago', row)
+                handlePaymentUpload(row)
               }
             },
             {
               key: 'prove_payment',
               label: 'Acreditar pago',
               onPress: (row) => {
-                console.log('Registrar pago', row)
+                handlePaymentConfirm(row)
               }
             },
             {
               key: 'cancelled',
               label: 'Cancelar orden',
               onPress: (row) => {
-                console.log('Registrar pago', row)
+                handleOrderCancel(row)
               }
             }
           ]
         }}
+      />
+
+      <PaymentConfirmModal isOpen={IsOpenPaymentConfirm} onOpenChange={OnOpenChangePaymentConfirm} />
+
+      <PaymentUploadModal isOpen={isOpenPaymentUpload} onOpenChange={onOpenChangePaymentUpload} />
+
+      <OnConfirmModal
+        isOpen={isOpenConfirm}
+        onOpenChange={onOpenChangeConfirm}
+        title='Cancelar orden'
+        action='cancel'
+        message='¿Estás seguro que deseas cancelar esta orden?'
+        onConfirm={onConfirmCancel}
       />
     </section>
   )

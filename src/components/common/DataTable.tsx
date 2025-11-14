@@ -28,6 +28,7 @@ import { Controller } from 'react-hook-form'
 import { useSelector } from 'react-redux'
 import { entityRegistry, type EntityAdapter, type EntityKind, type MenuAction } from '../../services/entityRegistry'
 import type { RootState } from '../../store/store'
+import { toTypeRecord } from '../../types/helpers'
 import { formatDate, formatRelativeTime, toDate } from '../../utils/date'
 
 export type PresetKey = 'is_active' | 'featured' | 'actions' | 'input' | 'date' | 'money' | 'type'
@@ -50,16 +51,19 @@ export type DateConfig = {
 }
 
 type TypeColor = ChipVariantProps['color']
-type TypeMappedObj<V> = {
-  label: V
-  color?: TypeColor
-}
 
-export type TypeConfig<K extends PropertyKey = string, V = React.ReactNode> = {
-  map: Record<K, V> | Record<K, TypeMappedObj<V>>
+export type KeyLike = PropertyKey // string | number | symbol
+
+export type TypeValue<V> = { label: V; color?: TypeColor }
+
+// Acepta record “plano”, record con {label,color}, o arreglo con {key,label,color}
+export type MapInput<K extends KeyLike, V> = Record<K, V> | Record<K, TypeValue<V>> | readonly ({ key: K } & TypeValue<V>)[]
+
+export type TypeConfig<K extends KeyLike = string, V = React.ReactNode, Row = unknown, Raw = unknown> = {
+  map: MapInput<K, V>
   wrapper?: { type: 'chip'; variant: ChipVariantProps['variant'] } | { type: 'checkbox' }
-  fallback?: V | ((raw: unknown, row: any) => V)
-  keyTransform?: (raw: unknown) => K
+  fallback?: V | ((raw: Raw, row: Row) => V)
+  keyTransform?: (raw: Raw) => K
 }
 
 export type MoneyConfig = {
@@ -73,11 +77,15 @@ type ColumnBase<T> = {
   render?: (row: T) => React.ReactNode
   sortAccessor?: (row: T) => string | number
   align?: AlignPreset
+  hidden?: boolean
 }
 
 type ColumnDate<T> = ColumnBase<T> & { preset: 'date'; presetConfig?: DateConfig }
 type ColumnInput<T> = ColumnBase<T> & { preset: 'input'; presetConfig?: InputConfig }
-type ColumnType<T> = ColumnBase<T> & { preset: 'type'; presetConfig: TypeConfig }
+type ColumnType<T, K extends PropertyKey = string, V = React.ReactNode> = ColumnBase<T> & {
+  preset: 'type'
+  presetConfig: TypeConfig<K, V, T, unknown>
+}
 type ColumnMoney<T> = ColumnBase<T> & { preset: 'money'; presetConfig: MoneyConfig }
 type ColumnActive<T> = ColumnBase<T> & { preset: 'is_active' }
 type ColumnActions<T> = ColumnBase<T> & { preset: 'actions' }
@@ -158,6 +166,20 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
     const base = entityRegistry[entity] as EntityAdapter<T>
     return { ...(base || {}), ...(resource || {}), ...(adapterOverrides || {}) }
   }, [entity, resource, adapterOverrides])
+
+  const typeMapByColKey = useMemo(() => {
+    const m = new Map<string, { rec: Record<PropertyKey, TypeValue<React.ReactNode>>; cfg: TypeConfig<any, any, T, any> }>()
+
+    for (const c of columns) {
+      if (c.preset === 'type') {
+        const cfg = c.presetConfig as TypeConfig<any, any, T, any>
+        // Importante: solo normalizamos si cambia la referencia de map
+        const rec = toTypeRecord<PropertyKey, React.ReactNode>(cfg.map as MapInput<PropertyKey, React.ReactNode>)
+        m.set(String(c.key), { rec, cfg })
+      }
+    }
+    return m
+  }, [columns])
 
   const sortedItems = useMemo(() => {
     const dir = sortDescriptor.direction === 'descending' ? -1 : 1
@@ -288,27 +310,25 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
           return <>{raw ?? ''}</>
         }
 
-        const cfg = col.presetConfig
+        const entryForCol = typeMapByColKey.get(String(col.key))
+        // Si por alguna razón no está, cae a crudo/fallback
+        if (!entryForCol) {
+          const raw = (row as any)[String(col.key)]
+          return <>{raw ?? ''}</>
+        }
+
+        const { rec, cfg } = entryForCol
+
         const raw = (row as any)[String(col.key)]
         const k = cfg.keyTransform ? cfg.keyTransform(raw) : (raw as PropertyKey)
 
-        let label: React.ReactNode | undefined
-        let color: ChipVariantProps['color'] | undefined
+        const hit = rec[k] // {label, color?} | undefined
 
-        const entry = (cfg.map as Record<PropertyKey, unknown>)[k]
-
-        if (entry !== undefined && entry !== null && typeof entry === 'object' && 'label' in (entry as any)) {
-          // Forma K -> { label, color? }
-          const obj = entry as { label: React.ReactNode; color?: ChipVariantProps['color'] }
-          label = obj.label
-          color = obj.color
-        } else {
-          // Forma K -> V
-          label = entry as React.ReactNode
-        }
+        const label = hit?.label
+        const color = hit?.color
 
         if (cfg.wrapper) {
-          const content = <>{label ?? ''}</>
+          const content = <>{label ?? (typeof cfg.fallback === 'function' ? cfg.fallback(raw, row) : (cfg.fallback ?? ''))}</>
           switch (cfg.wrapper.type) {
             case 'chip':
               return (
@@ -577,6 +597,9 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
     [canRowAction, rowMap, handleRowActivate]
   )
 
+  //TODO: Ocultar columnas , pero permitir ordenamiento por columnas ocultas.
+  const visibleColumns = useMemo(() => columns.filter((c) => !c.hidden), [columns])
+
   return (
     <>
       <section
@@ -613,7 +636,7 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
           }}
           ref={tableRef}
         >
-          <TableHeader columns={columns}>
+          <TableHeader columns={visibleColumns}>
             {(column) => (
               <TableColumn key={String(column.key)} allowsSorting={!!column.allowsSorting} align={column.align ?? 'start'}>
                 {column.label}

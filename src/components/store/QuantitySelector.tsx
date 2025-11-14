@@ -4,12 +4,13 @@ import { Minus, Plus } from 'lucide-react'
 type QuantitySelectorProps = {
   quantity: number
   setQuantity: (quantity: number) => void
+  minQuantity?: number
   maxQuantity: number
   size?: 'sm' | 'md' | 'lg'
   onError?: (message: string | null) => void
 }
 
-const QuantitySelector = ({ quantity, setQuantity, maxQuantity, size = 'lg', onError }: QuantitySelectorProps) => {
+const QuantitySelector = ({ quantity, setQuantity, maxQuantity, minQuantity = 1, size = 'lg', onError }: QuantitySelectorProps) => {
   //const [quantity, setQuantity] = useState(1)
 
   const handleSetQuantity = (action: 'add' | 'remove') => {
@@ -20,6 +21,10 @@ const QuantitySelector = ({ quantity, setQuantity, maxQuantity, size = 'lg', onE
         onError?.('Cantidad máxima alcanzada')
       }
     } else {
+      if (minQuantity && quantity <= minQuantity) {
+        onError?.(`La cantidad mínima es ${minQuantity}`)
+        return
+      }
       setQuantity(Math.max(1, quantity - 1))
     }
   }

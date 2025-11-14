@@ -336,9 +336,11 @@ export const productSchema = z.object({
   unit: z.string().optional(),
   price: z.number(),
   stock: z.number(),
+  min_sale: z.number().optional(),
+  max_sale: z.number().optional(),
   featured: z.boolean(),
   is_active: z.boolean(),
-  brand: z.string().optional(),
+  brand: z.number().optional(),
   created_at: z.string(),
   images: z.array(z.string()).optional(),
   main_image: z.string().optional()

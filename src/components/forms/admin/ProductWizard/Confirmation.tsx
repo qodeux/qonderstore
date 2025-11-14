@@ -6,7 +6,7 @@ import { useSelector } from 'react-redux'
 import 'yet-another-react-lightbox/plugins/thumbnails.css'
 import 'yet-another-react-lightbox/styles.css'
 import type { BulkDetailsForPayload, DetailsForPayload, ProductRpcPayload } from '../../../../schemas/productsPayload.schema'
-import type { RootState } from '../../../../store/store'
+import { useAppSelector, type RootState } from '../../../../store/store'
 import { bulkUnitsAvailable, saleTypes, saleUnitsAvailable, type RawUnitEntry } from '../../../../types/products'
 import ProductLightboxGallery from '../../../common/light-box/ProductLightbox'
 
@@ -36,6 +36,7 @@ type EnrichedUnitItem = {
 }
 
 const Confirmation = ({ data }: Props) => {
+  const user = useAppSelector((state) => state.auth.user)
   const categories = useSelector((state: RootState) => state.categories.items)
   const brands = useSelector((state: RootState) => state.products.brands)
 
@@ -123,6 +124,8 @@ const Confirmation = ({ data }: Props) => {
   const unitDetails = details.type === 'unit' ? details : null
   const bulkDetails = details.type === 'bulk' ? details : null
 
+  if (!user) return <p>No tienes permisos para ver esta información.</p>
+
   return (
     <div className='flex gap-4'>
       <section className='w-2/4'>
@@ -189,14 +192,16 @@ const Confirmation = ({ data }: Props) => {
       <section className='space-y-2 w-2/4 '>
         <div>
           <h4 className='text-lg font-bold'>{data.product.name}</h4>
-          <p className='flex flex-col '>
-            {brands.find((brand) => brand.id == data.product.brand?.toString())?.name}
-            <span className='text-gray-500 text-xs'> Marca</span>
-          </p>
+          {data.product.brand && (
+            <p className='flex flex-col leading-5'>
+              {brands.find((brand) => brand.id == data.product.brand?.toString())?.name}
+              <span className='text-gray-500 text-xs'> Marca</span>
+            </p>
+          )}
         </div>
 
         <div className='flex items-center'>
-          <p className='flex flex-col'>
+          <p className='flex flex-col leading-5'>
             {categories.find((cat) => cat.id === data.product.category)?.name}
             <span className='text-gray-500 text-xs'> Categoría</span>
           </p>
@@ -205,7 +210,7 @@ const Confirmation = ({ data }: Props) => {
               <div className='mx-2'>
                 <ChevronRight />
               </div>
-              <p className='flex flex-col'>
+              <p className='flex flex-col leading-5'>
                 {categories.find((cat) => cat.id === data.product.subcategory)?.name}
                 <span className='text-gray-500 text-xs'> Subcategoría</span>
               </p>
@@ -221,8 +226,8 @@ const Confirmation = ({ data }: Props) => {
 
         {unitDetails && (
           <section>
-            <div className='flex items-center gap-8 mt-1'>
-              {unitDetails.base_cost != null && (
+            <div className='flex items-start gap-8 mt-1'>
+              {unitDetails.base_cost != null && user.role === 'admin' && (
                 <div className='flex flex-col'>
                   <div className='flex items-center gap-1 '>
                     <NumericFormat
@@ -235,11 +240,11 @@ const Confirmation = ({ data }: Props) => {
                     />
                     <span className='text-xs mt-1'>/ {saleUnitsAvailable.find((u) => u.key === unitDetails.unit)?.label}</span>
                   </div>
-                  <span className='text-xs text-gray-500'>Costo base</span>
+                  <span className='text-xs text-gray-500 leading-5'>Costo base</span>
                 </div>
               )}
 
-              <div className='flex flex-col'>
+              <div className='flex flex-col '>
                 <div className='flex items-center gap-1 '>
                   <NumericFormat
                     value={unitDetails.public_price}
@@ -251,7 +256,7 @@ const Confirmation = ({ data }: Props) => {
                   />
                   <span className='text-xs mt-1'>/ {saleUnitsAvailable.find((u) => u.key === unitDetails.unit)?.label}</span>
                 </div>
-                <span className='text-xs text-gray-500'>Precio público</span>
+                <span className='text-xs text-gray-500 leading-3'>Precio público</span>
               </div>
             </div>
 

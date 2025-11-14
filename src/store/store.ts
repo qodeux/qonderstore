@@ -14,6 +14,7 @@ import requestAccessReducer from './slices/requestAccessSlice'
 
 import cartReducer from './slices/cartSlice'
 
+import { useDispatch, useSelector, type TypedUseSelectorHook } from 'react-redux'
 import storeOrdersReducer from './slices/storeOrdersSlice'
 import supplyOrdersReducer from './slices/supplyOrdersSlice'
 
@@ -38,5 +39,8 @@ const store = configureStore({
 // Tipos para usar en tu app
 export type RootState = ReturnType<typeof store.getState>
 export type AppDispatch = typeof store.dispatch
+
+export const useAppDispatch = () => useDispatch<AppDispatch>()
+export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector
 
 export default store

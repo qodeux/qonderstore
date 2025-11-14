@@ -20,12 +20,13 @@ export type CreateOrderParams = {
 }
 
 export const storeOrderService = {
-  fetchOrders: async () => {
-    const { data, error } = await supabase.from('store_orders').select('*')
+  fetchStoreOrders: async () => {
+    const { data, error } = await supabase.from('store_orders_view').select('*')
     if (error) {
-      throw new Error('Error fetching orders')
+      console.error('Error fetching orders:', error)
+      return { error }
     }
-    return data
+    return { data }
   },
   createOrder: async ({ orderData, items, cartTotals, metadata, userId }: CreateOrderParams) => {
     const omit = <T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> => {
@@ -46,15 +47,29 @@ export const storeOrderService = {
 
     const mappedItems = items.map((item) =>
       item.saleType === 'bulk'
-        ? { id: item.id, quantity: item.quantity, price: item.price, saleType: item.saleType, unitSelected: item.unitSelected ?? null }
-        : { id: item.id, quantity: item.quantity, price: item.price, saleType: item.saleType }
+        ? {
+            id: item.id,
+            quantity: item.quantity,
+            price: item.price * item.quantity,
+            discount: (item.discount ?? 0) * item.quantity,
+            saleType: item.saleType,
+            unitSelected: item.unitSelected ?? null
+          }
+        : {
+            id: item.id,
+            quantity: item.quantity,
+            price: item.price * item.quantity,
+            discount: (item.discount ?? 0) * item.quantity,
+            saleType: item.saleType
+          }
     )
 
     const mappedCartTotals = cartTotals
       ? {
           total_price: cartTotals.totalPrice,
-          total_items: cartTotals.totalQuantity,
-          shipping_price: cartTotals.shippingPrice
+          total_items: items.length,
+          shipping_price: cartTotals.shippingPrice,
+          order_total: cartTotals.totalPrice + cartTotals.shippingPrice
         }
       : undefined
 
@@ -82,10 +97,34 @@ export const storeOrderService = {
     }
     return data
   },
-  fetchStoreOrders: async () => {
-    const { data, error } = await supabase.from('store_orders').select('*')
+  getShippingPrice: async (sublocality: number) => {
+    const { data, error } = await supabase.from('shipping_prices').select('*').eq('sublocality', sublocality).single()
     if (error) {
-      console.error('Error fetching orders:', error)
+      console.error('Error fetching shipping price:', error)
+      return { error }
+    }
+    return { data }
+  },
+  addShippingPrice: async (postalCode: string, sublocality: number, shipping_price: number) => {
+    const { data, error } = await supabase.from('shipping_prices').insert({ cp: postalCode, sublocality, shipping_price }).select().single()
+    if (error) {
+      console.error('Error adding shipping price:', error)
+      return { error }
+    }
+    return { data }
+  },
+  async getSublocalityData(sublocalityId: number) {
+    const { data, error } = await supabase.from('cp_mexico').select('*').eq('id', sublocalityId).single()
+    if (error) {
+      console.error('Error fetching sublocality data:', error)
+      return { error }
+    }
+    return { data }
+  },
+  async updateOrderStatus(orderId: string, status: string) {
+    const { data, error } = await supabase.from('store_orders').update({ order_status: status }).eq('id', orderId)
+    if (error) {
+      console.error('Error updating order status:', error)
       return { error }
     }
     return { data }

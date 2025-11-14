@@ -1,23 +1,26 @@
 import { Alert, Button, Input, Radio, RadioGroup, Select, SelectItem, Spinner } from '@heroui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { Key } from '@react-types/shared'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { PatternFormat } from 'react-number-format'
+import { NumericFormat, PatternFormat } from 'react-number-format'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
-import AddressMapPicker, { type AddressResult } from '../components/common/AddressMapPicker'
-import CartItemBox from '../components/store/CartItemBox'
-import { useAddressComplete } from '../hooks/useAddressComplete'
-import { useDeviceScreen } from '../hooks/useDeviceScreen'
-import { checkoutSchema, type CheckoutFormInput } from '../schemas/checkout.schema'
-import { locationService } from '../services/locationService'
-import { storeOrderService } from '../services/storeOrderService'
-import { clearCart, selectCartTotals } from '../store/slices/cartSlice'
-import type { RootState } from '../store/store'
-import type { Neighborhood } from '../types/location'
-import { formatMoney } from '../utils/money'
+import AddressMapPicker, { type AddressResult } from '../../components/common/AddressMapPicker'
+import CartItemBox from '../../components/store/CartItemBox'
+import { useAddressComplete } from '../../hooks/useAddressComplete'
+import { useDeviceScreen } from '../../hooks/useDeviceScreen'
+import { checkoutSchema, type CheckoutFormInput } from '../../schemas/checkout.schema'
+import { locationService } from '../../services/locationService'
+import { storeOrderService } from '../../services/storeOrderService'
+import { clearCart, selectCartTotals } from '../../store/slices/cartSlice'
+import type { RootState } from '../../store/store'
+import type { Neighborhood } from '../../types/location'
+import type { SublocalityData } from '../../types/storeOrders'
+import { deliveryRoutesMap } from '../../types/storeOrders'
+import { formatMoney } from '../../utils/money'
 
 const normalize = (s?: string) =>
   (s ?? '')
@@ -32,15 +35,17 @@ const Checkout = () => {
   const { user } = useSelector((state: RootState) => state.auth)
   const cartTotals = useSelector(selectCartTotals)
   const { items: cartItems, totalPrice } = useSelector((state: RootState) => state.cart)
-  const [shippingPrice, setShippingPrice] = useState(0)
+  const [shippingPrice, setShippingPrice] = useState(null as number | null)
+
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { control, handleSubmit, watch, setValue, clearErrors, setError, trigger, getValues, formState } = useForm<CheckoutFormInput>({
     resolver: zodResolver(checkoutSchema),
     mode: 'all',
     defaultValues: {
-      name: user?.full_name || '',
-      phone: user?.phone || '',
+      name: user?.role === 'customer' ? user.full_name : '',
+      phone: user?.role === 'customer' ? user.phone || '' : '',
+      email: user?.role === 'customer' ? user.email : '',
       postal_code_lookup: '',
       postal_code: '',
       state: '',
@@ -52,6 +57,7 @@ const Checkout = () => {
       delivery_type: undefined,
       delivery_date: 'today',
       delivery_route: undefined,
+      shipping_price: 0,
       address_notes: undefined,
       coupon_code: undefined
     }
@@ -59,9 +65,12 @@ const Checkout = () => {
 
   const watchPostalCodeLookup = watch('postal_code_lookup')
 
+  const watchState = watch('state')
   const watchDeliveryType = watch('delivery_type')
 
   const watchCouponCode = watch('coupon_code')
+
+  const watchShippingPrice = watch('shipping_price')
 
   const listRef = useRef<HTMLDivElement>(null)
   const fetchIdRef = useRef(0)
@@ -132,7 +141,7 @@ const Checkout = () => {
     // Selección de colonia: preferida (si matchea por nombre) o la primera
     let selected = cpData[0]?.id?.toString() ?? ''
     if (preferredColoniaName) {
-      const hit = cpData.find((n) => normalize(n.d_asenta) === normalize(preferredColoniaName))
+      const hit = cpData.find((n: SublocalityData) => normalize(n.d_asenta) === normalize(preferredColoniaName))
       if (hit) selected = String(hit.id)
     }
 
@@ -141,6 +150,18 @@ const Checkout = () => {
       shouldDirty: true,
       shouldTouch: true
     })
+
+    const { data } = await storeOrderService.getShippingPrice(Number(selected))
+
+    console.log(data)
+
+    if (!data) {
+      setShippingPrice(null)
+      setValue('shipping_price', 0, { shouldValidate: true, shouldDirty: true })
+    } else {
+      setShippingPrice(data?.shipping_price)
+      setValue('shipping_price', data?.shipping_price ?? 0, { shouldValidate: true, shouldDirty: true })
+    }
   }
 
   /** Cambio desde el mapa */
@@ -150,6 +171,8 @@ const Checkout = () => {
     setValue('street_number', value.components.street_number || '')
     setValue('locality', value.components.locality || '')
     setValue('state', value.components.state || '')
+
+    setValue('google_location', value.coords)
 
     const newCP = (value.components.postal_code ?? '').trim()
 
@@ -198,17 +221,16 @@ const Checkout = () => {
   }, [watchPostalCodeLookup])
 
   useEffect(() => {
-    const pricesMap = {
-      standard: 200,
-      custom: 300,
-      express: 500
+    if (shippingPrice === null) return
+
+    if (watchDeliveryType === 'express') {
+      setValue('shipping_price', (watchShippingPrice ?? 0) + 150, { shouldValidate: true, shouldDirty: true })
+    } else if (watchDeliveryType === 'standard' || watchDeliveryType === 'custom') {
+      // Quitar recargo si lo hay
+      const baseShippingPrice = shippingPrice ? shippingPrice : null
+      setValue('shipping_price', baseShippingPrice, { shouldValidate: true, shouldDirty: true })
     }
-    if (watchDeliveryType) {
-      setShippingPrice(pricesMap[watchDeliveryType])
-    } else {
-      setShippingPrice(0)
-    }
-  }, [watchDeliveryType])
+  }, [watchDeliveryType, setValue, shippingPrice, watchShippingPrice])
 
   const handlePromoApply = () => {
     if ((watchCouponCode ?? '').toUpperCase() !== 'QONDER10') {
@@ -222,27 +244,53 @@ const Checkout = () => {
     setCartHasDiscount(true)
   }
 
+  const getIP = async () => {
+    try {
+      const ipResponse = await fetch('/.netlify/functions/whoami')
+      const ipData = await ipResponse.json()
+      console.log('IP Address:', ipData.ip)
+      return ipData.ip
+    } catch (error) {
+      console.error('Error fetching IP address:', error)
+      return 'Unknown'
+    }
+  }
+
   const handleCreateOrder = handleSubmit(
     async (data) => {
       //console.log('Datos del pedido:', data)
+
+      if (!user) return
 
       try {
         const orderTransmission = await storeOrderService.createOrder({
           orderData: data,
           items: cartItems,
-          cartTotals: { ...cartTotals, shippingPrice },
+          cartTotals: { ...cartTotals, shippingPrice: watchShippingPrice ?? 0 },
           metadata: {
-            ip: '127.0.0.1',
+            ip: await getIP(),
             user_agent: navigator.userAgent
           },
           userId: user?.id
         })
 
-        console.log(orderTransmission)
+        if (shippingPrice === null) {
+          //Agregamos a la base el costo de envío para futuras ocasiones
+          await storeOrderService.addShippingPrice(data.postal_code, Number(data.sublocality), watchShippingPrice ?? 0)
+        }
 
         if (orderTransmission.id) {
           dispatch(clearCart())
+          //Guardar orden en el storage para detalles
+          sessionStorage.setItem('admin_selected_store_order', JSON.stringify(orderTransmission))
+        }
+
+        if (user?.role === 'customer') {
           navigate(`/tienda/checkout/confirmacion/${orderTransmission.id}`)
+        }
+
+        if (['admin', 'staff'].includes(user.role)) {
+          navigate(`/admin/orden/${orderTransmission.id}`)
         }
       } catch (error) {
         console.log(error)
@@ -253,9 +301,13 @@ const Checkout = () => {
     }
   )
 
+  // if (cartItems.length === 0) {
+  //   navigate('/tienda/productos')
+  // }
+
   return (
     <form
-      className='grid grid-cols-1 md:grid-cols-[1fr_350px] lg:grid-cols-[1fr_350px] container mx-auto gap-8'
+      className='grid grid-cols-1 md:grid-cols-[1fr_350px] lg:grid-cols-[1fr_350px] container mx-auto gap-8 p-8'
       onSubmit={handleCreateOrder}
     >
       {/* Columna izquierda */}
@@ -282,21 +334,45 @@ const Checkout = () => {
               />
             )}
           />
+
+          <Controller
+            name='phone'
+            control={control}
+            render={({ field, fieldState }) => (
+              <PatternFormat
+                {...field}
+                customInput={Input}
+                format='## #### ####'
+                type='tel'
+                inputMode='tel'
+                label='Teléfono'
+                autoComplete='tel'
+                classNames={{ inputWrapper: 'bg-white' }}
+                isInvalid={!!fieldState.error}
+                errorMessage={fieldState.error?.message}
+                variant='bordered'
+                size='sm'
+                isClearable
+                onClear={() => field.onChange('')}
+              />
+            )}
+          />
+
           <Controller
             control={control}
-            name='phone'
+            name='email'
             render={({ field, fieldState }) => (
               <Input
-                type='phone'
-                label='Teléfono'
+                type='text'
+                label='Correo electrónico'
                 {...field}
                 size='sm'
                 isClearable
                 onClear={() => field.onChange('')}
                 classNames={{ inputWrapper: 'bg-white' }}
+                variant='bordered'
                 errorMessage={fieldState.error?.message}
                 isInvalid={!!fieldState.error}
-                variant='bordered'
               />
             )}
           />
@@ -381,6 +457,7 @@ const Checkout = () => {
                     errorMessage={fieldState.error?.message}
                     isInvalid={!!fieldState.error}
                     variant='bordered'
+                    readOnly
                   />
                 )}
               />
@@ -398,6 +475,7 @@ const Checkout = () => {
                     errorMessage={fieldState.error?.message}
                     isInvalid={!!fieldState.error}
                     variant='bordered'
+                    readOnly
                   />
                 )}
               />
@@ -489,6 +567,11 @@ const Checkout = () => {
                   />
                 </div>
               </div>
+              <Controller
+                control={control}
+                name='google_location'
+                render={({ field }) => <input type='hidden' value={JSON.stringify(field.value)} />}
+              />
             </div>
 
             {/* Tipo de entrega */}
@@ -497,23 +580,70 @@ const Checkout = () => {
                 <legend className='font-bold text-xl'>Tipo de entrega</legend>
                 <p className='text-sm mb-4'>Selecciona el tipo de entrega que prefieras para tu pedido.</p>
 
-                <Controller
-                  control={control}
-                  name='delivery_type'
-                  render={({ field, fieldState }) => (
-                    <RadioGroup
-                      {...field}
-                      errorMessage={fieldState.error?.message}
-                      isInvalid={!!fieldState.error}
-                      orientation={isMobile ? 'vertical' : 'horizontal'}
-                      //className={isMobile ? 'space-y-3' : 'space-x-6'}
-                    >
-                      <Radio value={'standard'}>Próxima ruta disponible</Radio>
-                      <Radio value={'custom'}>Seleccionar ruta</Radio>
-                      <Radio value={'express'}>Entrega express</Radio>
-                    </RadioGroup>
-                  )}
-                />
+                <div className='flex justify-between w-full items-center'>
+                  <Controller
+                    control={control}
+                    name='delivery_type'
+                    render={({ field, fieldState }) => (
+                      <RadioGroup
+                        {...field}
+                        errorMessage={fieldState.error?.message}
+                        isInvalid={!!fieldState.error}
+                        // className='flex-grow'
+                        orientation={isMobile ? 'vertical' : 'horizontal'}
+                        //className={isMobile ? 'space-y-3' : 'space-x-6'}
+                      >
+                        {watchState === 'Ciudad de México' ? (
+                          <>
+                            <Radio value={'standard'}>Próxima ruta disponible</Radio>
+                            <Radio value={'custom'}>Seleccionar ruta</Radio>
+                            <Radio value={'express'}>Entrega express</Radio>
+                          </>
+                        ) : (
+                          <Radio value={'foreign'}>Envío foráneo</Radio>
+                        )}
+                      </RadioGroup>
+                    )}
+                  />
+                  <Controller
+                    name='shipping_price'
+                    control={control}
+                    render={({ field, fieldState }) => (
+                      <NumericFormat
+                        variant='bordered'
+                        className='max-w-[150px]'
+                        classNames={{ inputWrapper: 'bg-white' }}
+                        label='Precio de envío'
+                        value={field.value ?? ''}
+                        onValueChange={(v) => field.onChange(v.floatValue ?? undefined)}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        getInputRef={field.ref}
+                        thousandSeparator
+                        decimalScale={2}
+                        fixedDecimalScale
+                        allowNegative={false}
+                        prefix='$ '
+                        inputMode='decimal'
+                        customInput={Input}
+                        size='sm'
+                        isInvalid={!!fieldState.error}
+                        errorMessage={fieldState.error?.message}
+                        onFocus={(e) => {
+                          setTimeout(() => e.currentTarget.select(), 0)
+                        }}
+                        onPointerDown={(e) => {
+                          const el = e.currentTarget as HTMLInputElement
+                          if (document.activeElement !== el) {
+                            e.preventDefault()
+                            el.focus()
+                            el.select()
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                </div>
 
                 {watchDeliveryType === 'custom' && (
                   <div className='grid grid-cols-2 max-w-[300px] md:items-start gap-2'>
@@ -539,34 +669,43 @@ const Checkout = () => {
                         </Select>
                       )}
                     />
+
                     <Controller
+                      name='delivery_route'
                       control={control}
-                      name='delivery_routes'
-                      render={({ field, fieldState }) => (
-                        <Select
-                          {...field}
-                          defaultSelectedKeys={[field.value]}
-                          className='max-w-[150px]'
-                          classNames={{ trigger: 'bg-white' }}
-                          errorMessage={fieldState.error?.message}
-                          isInvalid={!!fieldState.error}
-                          variant='bordered'
-                          disallowEmptySelection
-                          label='Horario'
-                          size='sm'
-                        >
-                          <SelectItem key='12'>12:00 PM</SelectItem>
-                          <SelectItem key='14'>2:00 PM</SelectItem>
-                          <SelectItem key='16'>4:00 PM</SelectItem>
-                          <SelectItem key='18'>6:00 PM</SelectItem>
-                          <SelectItem key='20'>8:00 PM</SelectItem>
-                        </Select>
-                      )}
+                      render={({ field, fieldState }) => {
+                        const valueAsKey = field.value as Key | undefined
+                        const selectedKeys: Iterable<Key> | undefined = valueAsKey != null ? [valueAsKey] : undefined
+                        return (
+                          <Select
+                            label='Horario'
+                            classNames={{ trigger: 'bg-white' }}
+                            errorMessage={fieldState.error?.message}
+                            isInvalid={!!fieldState.error}
+                            variant='bordered'
+                            disallowEmptySelection
+                            size='sm'
+                            selectionMode='single'
+                            selectedKeys={selectedKeys}
+                            onSelectionChange={(keys) => {
+                              if (keys === 'all') return
+                              const [key] = Array.from(keys)
+                              field.onChange(key as keyof typeof deliveryRoutesMap)
+                            }}
+                          >
+                            <SelectItem key='12'>12:00 PM</SelectItem>
+                            <SelectItem key='14'>2:00 PM</SelectItem>
+                            <SelectItem key='16'>4:00 PM</SelectItem>
+                            <SelectItem key='18'>6:00 PM</SelectItem>
+                            <SelectItem key='20'>8:00 PM</SelectItem>
+                          </Select>
+                        )
+                      }}
                     />
                   </div>
                 )}
 
-                {watchDeliveryType !== undefined && (
+                {watchDeliveryType !== undefined && user?.role === 'customer' && (
                   <Alert
                     className='mt-4 text-xs'
                     variant='flat'
@@ -592,8 +731,8 @@ const Checkout = () => {
                         {watchDeliveryType === 'express' && (
                           <p>
                             Nuestro equipo te contactará para coordinar la entrega lo <strong>antes posible</strong>. Ten en cuenta que las
-                            entregas express pueden tener un <strong>costo adicional</strong> y están sujetas a la disponibilidad del
-                            servicio en tu área y <strong>horarios de entrega</strong>.
+                            entregas express pueden tener un <strong>costo adicional</strong> y están sujetas a la disponibilidad en tu área
+                            y a nuestros <strong>horarios de rutas</strong>.
                           </p>
                         )}
                       </div>
@@ -722,7 +861,7 @@ const Checkout = () => {
                 </div>
                 {watchDeliveryType !== undefined && (
                   <div className='text-2xl text-right w-full'>
-                    Envío : <span className='font-bold'>{formatMoney(shippingPrice)}</span>
+                    Envío : <span className='font-bold'>{formatMoney(watchShippingPrice ?? 0)}</span>
                   </div>
                 )}
                 {cartHasDiscount && (

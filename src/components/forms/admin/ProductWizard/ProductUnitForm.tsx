@@ -1,9 +1,10 @@
-import { Button, Input, NumberInput, Select, SelectItem, Switch } from '@heroui/react'
+import { Button, Input, NumberInput, Select, SelectItem, Switch, Tooltip } from '@heroui/react'
 import { PackageMinus, PackagePlus, TriangleAlert, X } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { useEffect } from 'react'
 import { Controller, useFieldArray, useFormContext } from 'react-hook-form'
 import { NumericFormat } from 'react-number-format'
+import { useAppSelector } from '../../../../store/store'
 
 export type WholeSalePrice = {
   min: number | undefined
@@ -13,6 +14,8 @@ export type WholeSalePrice = {
 export type WholeSaleRow = { id?: string; min?: number; price?: number }
 
 const ProductUnitForm = () => {
+  const { user } = useAppSelector((state) => state.auth)
+
   const {
     control,
     register,
@@ -92,9 +95,11 @@ const ProductUnitForm = () => {
   const canAdd = wholesaleSwitch && (wholesaleRows?.length ? last?.min != null && last?.price != null : true)
   // -------------------------------------------------------------------------------
 
+  if (!user) return null
+
   return (
     <form className='space-y-2' name='product-unit-form'>
-      <section className='grid grid-cols-3 gap-2'>
+      <section className='flex items-start gap-2'>
         <Controller
           name='unit'
           control={control}
@@ -102,6 +107,8 @@ const ProductUnitForm = () => {
             <Select
               label='Unidad de venta'
               size='sm'
+              variant='bordered'
+              classNames={{ trigger: 'bg-white' }}
               selectedKeys={field.value ? [String(field.value)] : []}
               onSelectionChange={(keys) => {
                 const value = Array.from(keys)[0]
@@ -117,47 +124,52 @@ const ProductUnitForm = () => {
             </Select>
           )}
         />
-        //TODO [UN-95]: El staff no debe ver este campo
-        <Controller
-          name='base_cost'
-          control={control}
-          render={({ field, fieldState }) => (
-            <NumericFormat
-              label='Costo base'
-              value={field.value ?? ''}
-              onValueChange={(v) => field.onChange(v.floatValue ?? undefined)}
-              onBlur={field.onBlur}
-              name={field.name}
-              getInputRef={field.ref}
-              thousandSeparator
-              decimalScale={2}
-              fixedDecimalScale
-              allowNegative={false}
-              prefix='$ '
-              inputMode='decimal'
-              customInput={Input}
-              size='sm'
-              isInvalid={!!fieldState.error}
-              errorMessage={fieldState.error?.message}
-              onFocus={(e) => {
-                setTimeout(() => e.currentTarget.select(), 0)
-              }}
-              onPointerDown={(e) => {
-                const el = e.currentTarget as HTMLInputElement
-                if (document.activeElement !== el) {
-                  e.preventDefault()
-                  el.focus()
-                  el.select()
-                }
-              }}
-            />
-          )}
-        />
+        {user.role === 'admin' && (
+          <Controller
+            name='base_cost'
+            control={control}
+            render={({ field, fieldState }) => (
+              <NumericFormat
+                variant='bordered'
+                classNames={{ inputWrapper: 'bg-white' }}
+                label='Costo base'
+                value={field.value ?? ''}
+                onValueChange={(v) => field.onChange(v.floatValue ?? undefined)}
+                onBlur={field.onBlur}
+                name={field.name}
+                getInputRef={field.ref}
+                thousandSeparator
+                decimalScale={2}
+                fixedDecimalScale
+                allowNegative={false}
+                prefix='$ '
+                inputMode='decimal'
+                customInput={Input}
+                size='sm'
+                isInvalid={!!fieldState.error}
+                errorMessage={fieldState.error?.message}
+                onFocus={(e) => {
+                  setTimeout(() => e.currentTarget.select(), 0)
+                }}
+                onPointerDown={(e) => {
+                  const el = e.currentTarget as HTMLInputElement
+                  if (document.activeElement !== el) {
+                    e.preventDefault()
+                    el.focus()
+                    el.select()
+                  }
+                }}
+              />
+            )}
+          />
+        )}
         <Controller
           name='public_price'
           control={control}
           render={({ field, fieldState }) => (
             <NumericFormat
+              variant='bordered'
+              classNames={{ inputWrapper: 'bg-white' }}
               label='Precio público'
               value={field.value ?? ''}
               onValueChange={(v) => field.onChange(v.floatValue ?? undefined)}
@@ -188,6 +200,8 @@ const ProductUnitForm = () => {
             />
           )}
         />
+      </section>
+      <section className='grid grid-cols-3 gap-2'>
         <section className='space-y-1'>
           <div className='flex items-center justify-between'>
             <Controller
@@ -220,6 +234,8 @@ const ProductUnitForm = () => {
                 <NumberInput
                   key={minSaleSwitch ? 'min-on' : 'min-off'}
                   aria-label='Compra mínima'
+                  variant='bordered'
+                  classNames={{ inputWrapper: 'bg-white' }}
                   value={minSaleSwitch ? (field.value ?? undefined) : undefined}
                   isDisabled={!minSaleSwitch}
                   size='sm'
@@ -268,6 +284,8 @@ const ProductUnitForm = () => {
               control={control}
               render={({ field }) => (
                 <NumberInput
+                  variant='bordered'
+                  classNames={{ inputWrapper: 'bg-white' }}
                   key={maxSaleSwitch ? 'max-on' : 'max-off'}
                   aria-label='Compra máxima'
                   value={maxSaleSwitch ? (field.value ?? undefined) : undefined}
@@ -317,6 +335,8 @@ const ProductUnitForm = () => {
               control={control}
               render={({ field }) => (
                 <NumberInput
+                  variant='bordered'
+                  classNames={{ inputWrapper: 'bg-white' }}
                   key={lowStockSwitch ? 'low-on' : 'low-off'}
                   aria-label='Alerta de stock bajo'
                   value={lowStockSwitch ? (field.value ?? undefined) : undefined}
@@ -377,6 +397,8 @@ const ProductUnitForm = () => {
                   control={control}
                   render={({ field, fieldState }) => (
                     <NumberInput
+                      variant='bordered'
+                      classNames={{ inputWrapper: 'bg-white' }}
                       label='Mínimo'
                       size='sm'
                       minValue={1}
@@ -397,6 +419,8 @@ const ProductUnitForm = () => {
                   control={control}
                   render={({ field, fieldState }) => (
                     <NumericFormat
+                      variant='bordered'
+                      classNames={{ inputWrapper: 'bg-white' }}
                       thousandSeparator
                       decimalScale={2}
                       fixedDecimalScale
@@ -418,9 +442,11 @@ const ProductUnitForm = () => {
                 />
 
                 {fields.length > 1 && (
-                  <Button variant='ghost' color='danger' size='sm' onPress={() => remove(index)} isIconOnly>
-                    <X />
-                  </Button>
+                  <Tooltip content='Eliminar precio' placement='left'>
+                    <Button variant='ghost' color='danger' size='sm' onPress={() => remove(index)} isIconOnly>
+                      <X />
+                    </Button>
+                  </Tooltip>
                 )}
               </div>
             ))}
