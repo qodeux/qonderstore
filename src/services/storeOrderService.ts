@@ -121,8 +121,13 @@ export const storeOrderService = {
     }
     return { data }
   },
-  async updateOrderStatus(orderId: string, status: string) {
-    const { data, error } = await supabase.from('store_orders').update({ order_status: status }).eq('id', orderId)
+  async updateOrderStatus(orderId: string, status: string, fileKey?: string) {
+    const updateData = { order_status: status }
+    if (fileKey) {
+      Object.assign(updateData, { payment_proof_key: fileKey })
+    }
+
+    const { data, error } = await supabase.from('store_orders').update(updateData).eq('id', orderId)
     if (error) {
       console.error('Error updating order status:', error)
       return { error }
