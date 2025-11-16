@@ -32,6 +32,8 @@ type OrderItem = {
 const OrderDetails = () => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
+
+  const { user } = useAppSelector((state) => state.auth)
   const { id } = useParams<{ id: string }>()
   const { items: storeOrders } = useAppSelector((state) => state.storeOrders)
   const selectedOrder = sessionStorage.getItem('admin_selected_store_order')
@@ -302,21 +304,27 @@ const OrderDetails = () => {
               <Printer className='w-6 h-6' />
             </Button>
           </Tooltip>
-          <Tooltip content='Registrar pago'>
-            <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='primary' onPress={handlePaymentUpload}>
-              <CircleDollarSign className='w-6 h-6' />
-            </Button>
-          </Tooltip>
-          <Tooltip content='Acreditar pago'>
-            <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='success' onPress={handlePaymentConfirm}>
-              <CircleCheckBig className='w-6 h-6' />
-            </Button>
-          </Tooltip>
-          <Tooltip content='Cancelar orden'>
-            <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='danger' onPress={handleOrderCancel}>
-              <CircleOff className='w-6 h-6' />
-            </Button>
-          </Tooltip>
+          {selectedOrder.order_status === 'pending' && (
+            <Tooltip content='Registrar pago'>
+              <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='primary' onPress={handlePaymentUpload}>
+                <CircleDollarSign className='w-6 h-6' />
+              </Button>
+            </Tooltip>
+          )}
+          {selectedOrder.order_status === 'paid' && user?.role === 'admin' && (
+            <Tooltip content='Acreditar pago'>
+              <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='success' onPress={handlePaymentConfirm}>
+                <CircleCheckBig className='w-6 h-6' />
+              </Button>
+            </Tooltip>
+          )}
+          {selectedOrder.order_status === 'pending' && (
+            <Tooltip content='Cancelar orden'>
+              <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='danger' onPress={handleOrderCancel}>
+                <CircleOff className='w-6 h-6' />
+              </Button>
+            </Tooltip>
+          )}
         </section>
       </section>
 

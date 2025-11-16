@@ -10,7 +10,7 @@ import PaymentUploadModal from '../../components/modals/common/PaymentUploadModa
 import { storeOrderService } from '../../services/storeOrderService'
 import { setSelectedOrder } from '../../store/slices/storeOrdersSlice'
 import type { RootState } from '../../store/store'
-import { deliveryTypesMap, storeOrder_status } from '../../types/storeOrders'
+import { delivery_types, storeOrder_status } from '../../types/storeOrders'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const PedidosTienda = () => {
@@ -72,7 +72,7 @@ const PedidosTienda = () => {
       allowsSorting: true,
       align: 'center',
       preset: 'type',
-      presetConfig: { map: deliveryTypesMap }
+      presetConfig: { map: delivery_types, wrapper: { type: 'chip', variant: 'bordered' } }
     },
     {
       key: 'order_total',
