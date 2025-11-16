@@ -1,14 +1,19 @@
-import { Card, Chip } from '@heroui/react'
+import { Button, Card, Chip, Tooltip, useDisclosure } from '@heroui/react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { CircleCheckBig, CircleDollarSign, CircleOff, Printer } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useParams } from 'react-router'
 import { UAParser } from 'ua-parser-js'
 import AddressMap from '../../../components/common/AddressMap'
+import PaymentConfirmModal from '../../../components/modals/admin/PaymentConfirmModal'
+import PaymentUploadModal from '../../../components/modals/common/PaymentUploadModal'
+import OnConfirmModal from '../../../components/modals/common/onConfirmModal'
 import CartItemBox from '../../../components/store/CartItemBox'
 import { storeOrderService } from '../../../services/storeOrderService'
 import { selectProductsWithBestPromo } from '../../../store/selectors/productsWithPromo'
 import type { CartItem } from '../../../store/slices/cartSlice'
+import { setSelectedOrder } from '../../../store/slices/storeOrdersSlice'
 import { useAppSelector } from '../../../store/store'
 import type { SaleType } from '../../../types/products'
 import { delivery_types, deliveryRoutesMap, storeOrder_status, type IPGeolocation, type SublocalityData } from '../../../types/storeOrders'
@@ -26,6 +31,9 @@ type OrderItem = {
 
 const OrderDetails = () => {
   const navigate = useNavigate()
+  const dispatch = useDispatch()
+
+  const { user } = useAppSelector((state) => state.auth)
   const { id } = useParams<{ id: string }>()
   const { items: storeOrders } = useAppSelector((state) => state.storeOrders)
   const selectedOrder = sessionStorage.getItem('admin_selected_store_order')
@@ -59,6 +67,34 @@ const OrderDetails = () => {
     : []
 
   console.log('cartItemsUpdate', cartItems)
+
+  const { isOpen: isOpenPaymentUpload, onOpen: OnOpenPaymentUpload, onOpenChange: onOpenChangePaymentUpload } = useDisclosure()
+  const { isOpen: IsOpenPaymentConfirm, onOpen: onOpenPaymentConfirm, onOpenChange: OnOpenChangePaymentConfirm } = useDisclosure()
+  const { isOpen: isOpenConfirm, onOpen: onOpenConfirm, onOpenChange: onOpenChangeConfirm } = useDisclosure()
+
+  const handlePaymentUpload = () => {
+    dispatch(setSelectedOrder(selectedOrder.id))
+    OnOpenPaymentUpload()
+  }
+  const handlePaymentConfirm = () => {
+    dispatch(setSelectedOrder(selectedOrder.id))
+    onOpenPaymentConfirm()
+  }
+
+  const handleOrderCancel = () => {
+    dispatch(setSelectedOrder(selectedOrder.id))
+    onOpenConfirm()
+  }
+  const onConfirmCancel = async () => {
+    {
+      console.log('Orden cancelada')
+    }
+    const { error } = await storeOrderService.updateOrderStatus(selectedOrder!.id, 'canceled')
+    if (error) {
+      console.error('Error canceling order:', error)
+    }
+    onOpenChangeConfirm()
+  }
 
   useEffect(() => {
     //Traer datos de la api de geolocalización si es necesario por ip
@@ -131,7 +167,9 @@ const OrderDetails = () => {
         </div>
 
         <div className='col-span-2'>
-          <h3 className='text-lg font-semibold mt-2'>Datos de entrega</h3>
+          <h3 className='text-lg font-semibold mt-2'>
+            Datos de entrega {selectedOrder?.shipment_status && <Chip variant='flat'>{selectedOrder.shipment_status}</Chip>}
+          </h3>
           <section className='flex justify-between'>
             <div className='text-sm'>
               <p>
@@ -196,8 +234,8 @@ const OrderDetails = () => {
           </div>
         )}
       </Card>
-      <section className='w-[380px] md:sticky md:top-0  lg:max-h-[65vh] h-fit border border-foreground-400 rounded-md overflow-hidden bg-white shadow-md'>
-        <div className='flex flex-col w-full '>
+      <section className='w-[380px] md:sticky md:top-0 h-fit '>
+        <div className='flex flex-col w-full border border-foreground-400 rounded-md  bg-white shadow-md overflow-hidden'>
           {cartItems.length !== 0 && (
             <motion.header
               key='cart-header'
@@ -214,7 +252,7 @@ const OrderDetails = () => {
             </motion.header>
           )}
 
-          <section className='flex flex-col gap-4 overflow-y-auto overflow-x-hidden p-4'>
+          <section className='flex flex-col gap-4 overflow-y-auto   lg:max-h-[40vh]  p-4'>
             <AnimatePresence>
               {cartItems.map((item: CartItem, index: number) => (
                 <motion.div
@@ -260,7 +298,48 @@ const OrderDetails = () => {
             </motion.footer>
           )}
         </div>
+        <section className='mt-4 flex gap-2'>
+          <Tooltip content='Imprimir orden'>
+            <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='secondary' onPress={() => window.print()}>
+              <Printer className='w-6 h-6' />
+            </Button>
+          </Tooltip>
+          {selectedOrder.order_status === 'pending' && (
+            <Tooltip content='Registrar pago'>
+              <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='primary' onPress={handlePaymentUpload}>
+                <CircleDollarSign className='w-6 h-6' />
+              </Button>
+            </Tooltip>
+          )}
+          {selectedOrder.order_status === 'paid' && user?.role === 'admin' && (
+            <Tooltip content='Acreditar pago'>
+              <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='success' onPress={handlePaymentConfirm}>
+                <CircleCheckBig className='w-6 h-6' />
+              </Button>
+            </Tooltip>
+          )}
+          {selectedOrder.order_status === 'pending' && (
+            <Tooltip content='Cancelar orden'>
+              <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='danger' onPress={handleOrderCancel}>
+                <CircleOff className='w-6 h-6' />
+              </Button>
+            </Tooltip>
+          )}
+        </section>
       </section>
+
+      <PaymentConfirmModal isOpen={IsOpenPaymentConfirm} onOpenChange={OnOpenChangePaymentConfirm} />
+
+      <PaymentUploadModal isOpen={isOpenPaymentUpload} onOpenChange={onOpenChangePaymentUpload} />
+
+      <OnConfirmModal
+        isOpen={isOpenConfirm}
+        onOpenChange={onOpenChangeConfirm}
+        title='Cancelar orden'
+        action='cancel'
+        message='¿Estás seguro que deseas cancelar esta orden?'
+        onConfirm={onConfirmCancel}
+      />
     </div>
   )
 }

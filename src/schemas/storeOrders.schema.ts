@@ -51,7 +51,10 @@ export const storeOrderSchema = z.object({
   ]),
   order_total: z.number(),
   total_price: z.number(),
-  email: z.email()
+  email: z.email(),
+  payment_proof: z.string().optional(),
+  confirm_proof: z.string().optional(),
+  reference: z.string().optional()
 })
 
 export type storeOrder = z.infer<typeof storeOrderSchema>
