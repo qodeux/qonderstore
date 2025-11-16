@@ -111,8 +111,12 @@ const PedidosTienda = () => {
 
   const { isOpen: isOpenPaymentUpload, onOpen: OnOpenPaymentUpload, onOpenChange: onOpenChangePaymentUpload } = useDisclosure()
   const { isOpen: IsOpenPaymentConfirm, onOpen: onOpenPaymentConfirm, onOpenChange: OnOpenChangePaymentConfirm } = useDisclosure()
-
   const { isOpen: isOpenConfirm, onOpen: onOpenConfirm, onOpenChange: onOpenChangeConfirm } = useDisclosure()
+
+  const handleDetails = (row: Row) => {
+    sessionStorage.setItem('admin_selected_store_order', JSON.stringify(storeOrders.find((order) => order.id === row.id)))
+    navigate(`/admin/orden/${row.id}`)
+  }
 
   const handlePaymentUpload = (row: Row) => {
     dispatch(setSelectedOrder(row.id))
@@ -121,6 +125,11 @@ const PedidosTienda = () => {
   const handlePaymentConfirm = (row: Row) => {
     dispatch(setSelectedOrder(row.id))
     onOpenPaymentConfirm()
+  }
+
+  const handleOrderCancel = (row: Row) => {
+    dispatch(setSelectedOrder(row.id))
+    onOpenConfirm()
   }
   const onConfirmCancel = async () => {
     {
@@ -131,15 +140,6 @@ const PedidosTienda = () => {
       console.error('Error canceling order:', error)
     }
     onOpenChangeConfirm()
-  }
-  const handleDetails = (row: Row) => {
-    sessionStorage.setItem('admin_selected_store_order', JSON.stringify(storeOrders.find((order) => order.id === row.id)))
-    navigate(`/admin/orden/${row.id}`)
-  }
-
-  const handleOrderCancel = (row: Row) => {
-    dispatch(setSelectedOrder(row.id))
-    onOpenConfirm()
   }
 
   const getRowActions = (row: Row) => {
