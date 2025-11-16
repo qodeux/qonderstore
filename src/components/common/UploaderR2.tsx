@@ -1,7 +1,7 @@
 // RHF_R2Uploader.tsx
-import { Button, Tooltip } from '@heroui/react'
+import { Button, Spinner, Tooltip } from '@heroui/react'
 import { CircleX } from 'lucide-react'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { type FileRejection, useDropzone } from 'react-dropzone'
 import { useFormContext, useWatch } from 'react-hook-form'
 import Gallery from './cloudflare-r2/Gallery'
@@ -194,6 +194,23 @@ const UploaderR2: React.FC<Props> = ({
     }
   }
 
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile()
+          if (file) onDrop([file])
+        }
+      }
+    }
+
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [onDrop])
+
   return (
     <div className='space-y-2'>
       {/* Dropzone */}
@@ -247,7 +264,7 @@ const UploaderR2: React.FC<Props> = ({
             const anyPct = Object.values(progress)[0]
             return (
               <li key={`${file.name}-${idx}`} className='relative'>
-                <figure>
+                <figure className='aspect-square'>
                   <Tooltip content='Eliminar archivo'>
                     <button
                       className='text-danger bg-white absolute top-0 right-0 rounded-full rounded-tr-none p-1 hover:bg-danger hover:text-white '
@@ -337,6 +354,12 @@ const UploaderR2: React.FC<Props> = ({
       {fileUploaded && uploadType === 'file' && (
         <div className='text-sm text-gray-500 w-full flex justify-center '>
           <PresignedImage keyPath={currentField[0]} aspect='free' expires={previewExpiresIn} />
+        </div>
+      )}
+
+      {fileUploaded && uploadType === 'file' && (
+        <div className='text-sm text-gray-500 w-full flex justify-center '>
+          <Spinner label='Registrando...' size='lg' />
         </div>
       )}
 
