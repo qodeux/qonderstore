@@ -1,5 +1,6 @@
-import { Card, Chip } from '@heroui/react'
+import { Button, Card, Chip, Tooltip } from '@heroui/react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { CircleCheckBig, CircleDollarSign, CircleOff, Printer } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate, useParams } from 'react-router'
@@ -198,8 +199,8 @@ const OrderDetails = () => {
           </div>
         )}
       </Card>
-      <section className='w-[380px] md:sticky md:top-0  lg:max-h-[65vh] h-fit border border-foreground-400 rounded-md overflow-hidden bg-white shadow-md'>
-        <div className='flex flex-col w-full '>
+      <section className='w-[380px] md:sticky md:top-0 h-fit '>
+        <div className='flex flex-col w-full border border-foreground-400 rounded-md  bg-white shadow-md overflow-hidden'>
           {cartItems.length !== 0 && (
             <motion.header
               key='cart-header'
@@ -216,7 +217,7 @@ const OrderDetails = () => {
             </motion.header>
           )}
 
-          <section className='flex flex-col gap-4 overflow-y-auto overflow-x-hidden p-4'>
+          <section className='flex flex-col gap-4 overflow-y-auto   lg:max-h-[40vh]  p-4'>
             <AnimatePresence>
               {cartItems.map((item: CartItem, index: number) => (
                 <motion.div
@@ -262,6 +263,28 @@ const OrderDetails = () => {
             </motion.footer>
           )}
         </div>
+        <section className='mt-4 flex gap-2'>
+          <Tooltip content='Imprimir orden'>
+            <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='secondary'>
+              <Printer className='w-6 h-6' />
+            </Button>
+          </Tooltip>
+          <Tooltip content='Registrar pago'>
+            <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='primary'>
+              <CircleDollarSign className='w-6 h-6' />
+            </Button>
+          </Tooltip>
+          <Tooltip content='Acreditar pago'>
+            <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='success'>
+              <CircleCheckBig className='w-6 h-6' />
+            </Button>
+          </Tooltip>
+          <Tooltip content='Cancelar orden'>
+            <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='danger'>
+              <CircleOff className='w-6 h-6' />
+            </Button>
+          </Tooltip>
+        </section>
       </section>
     </div>
   )
