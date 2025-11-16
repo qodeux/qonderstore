@@ -142,6 +142,41 @@ const PedidosTienda = () => {
     onOpenConfirm()
   }
 
+  const getRowActions = (row: Row) => {
+    switch (row.order_status) {
+      case 'pending':
+        return [
+          {
+            key: 'register_payment',
+            label: 'Registrar pago',
+            onPress: () => {
+              handlePaymentUpload(row)
+            }
+          },
+          {
+            key: 'cancel',
+            label: 'Cancelar orden',
+            onPress: () => {
+              handleOrderCancel(row)
+            }
+          }
+        ]
+
+      case 'paid':
+        return [
+          {
+            key: 'prove_payment',
+            label: 'Acreditar pago',
+            onPress: () => {
+              handlePaymentConfirm(row)
+            }
+          }
+        ]
+      default:
+        return []
+    }
+  }
+
   const filteredRows = useMemo(() => {
     return applyToolbarFilters(storeOrders, ['name'], criteria)
   }, [storeOrders, criteria])
@@ -179,29 +214,9 @@ const PedidosTienda = () => {
               onPress: (row) => {
                 handleDetails(row)
               }
-            },
-            {
-              key: 'register_payment',
-              label: 'Registrar pago',
-              onPress: (row) => {
-                handlePaymentUpload(row)
-              }
-            },
-            {
-              key: 'prove_payment',
-              label: 'Acreditar pago',
-              onPress: (row) => {
-                handlePaymentConfirm(row)
-              }
-            },
-            {
-              key: 'cancelled',
-              label: 'Cancelar orden',
-              onPress: (row) => {
-                handleOrderCancel(row)
-              }
             }
-          ]
+          ],
+          rowActions: (row: Row) => getRowActions(row)
         }}
       />
 
