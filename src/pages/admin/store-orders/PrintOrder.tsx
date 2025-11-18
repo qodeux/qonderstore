@@ -152,6 +152,15 @@ const PrintOrder = () => {
                 </View>
               )
             })}
+
+            <View style={[styles.flexRow, { justifyContent: 'flex-end', gap: 8 }]}>
+              <Text>Costo de envío:</Text>
+              <Text style={{ width: 80, textAlign: 'right' }}>{formatMoney(orderData.shipping_price)}</Text>
+            </View>
+            <View style={[styles.flexRow, { justifyContent: 'flex-end', gap: 8 }]}>
+              <Text style={{ fontWeight: 'bold' }}>Total del pedido:</Text>
+              <Text style={{ fontWeight: 'bold', width: 80, textAlign: 'right' }}>{formatMoney(orderData.order_total)}</Text>
+            </View>
           </View>
           <View style={[styles.mb4]}>
             <Text style={[styles.h2]}>Datos de control</Text>
