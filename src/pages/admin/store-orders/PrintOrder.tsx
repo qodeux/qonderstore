@@ -1,7 +1,12 @@
 import { Document, Font, Image, Page, PDFViewer, StyleSheet, Text, View } from '@react-pdf/renderer'
 import QRCode from 'qrcode'
 import { useEffect, useState } from 'react'
+import { useSelector } from 'react-redux'
 import type { StoreOrder } from '../../../schemas/storeOrders.schema'
+import { selectProductsWithBestPromo } from '../../../store/selectors/productsWithPromo'
+import { all_units } from '../../../types/storeOrders'
+import { formatDate } from '../../../utils/date'
+import { formatMoney } from '../../../utils/money'
 
 //Registro de fuente
 Font.register({
@@ -26,6 +31,7 @@ Font.register({
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'Roboto',
+    fontSize: 12,
     padding: 20
   },
   flexRow: {
@@ -46,6 +52,9 @@ const styles = StyleSheet.create({
   },
   mb4: {
     marginBottom: 16
+  },
+  mb2: {
+    marginBottom: 8
   },
   section: {
     margin: 10,
@@ -75,8 +84,8 @@ const styles = StyleSheet.create({
     marginVertical: 5
   },
   qrImage: {
-    width: 200,
-    height: 200
+    width: 150,
+    height: 150
   }
 })
 
@@ -94,13 +103,12 @@ const PrintOrder = () => {
 
   const sessionData = sessionStorage.getItem('admin_selected_store_order')
   const orderData: StoreOrder = JSON.parse(sessionData ?? 'null')
+  const products = useSelector(selectProductsWithBestPromo)
 
   useEffect(() => {
     const qrCreate = async () => {
       if (!orderData) return
       const qrCode = await QRCode.toDataURL(import.meta.env.VITE_PUBLIC_BASE_URL + '/pedido-qr/' + orderData.id)
-
-      console.log(qrCode)
 
       setOrderQR(qrCode)
     }
@@ -116,37 +124,36 @@ const PrintOrder = () => {
     <PDFViewer width='100%' className='min-h-screen'>
       <Document language='es'>
         <Page size='LETTER' style={styles.page}>
-          <View>
-            <Text>Consecutivo: {orderData.ci}</Text>
-          </View>
-
-          <Line />
-
-          <View style={styles.h2}>
-            <Text>Datos generales</Text>
-          </View>
-          <View>
+          <View style={[styles.flexRow, { justifyContent: 'space-between' }, styles.mb4]}>
             <Text>ID: {orderData.id}</Text>
-            <Text>Fecha: {orderData.phone}</Text>
+            <Text>Fecha: {formatDate(orderData.created_at)}</Text>
           </View>
 
-          <View style={styles.flexRow}>
-            <View style={styles.section}>
-              <Text>Datos de contacto</Text>
-              <Text>Nombre: {orderData.name}</Text>
-              <Text>Teléfono: {orderData.phone}</Text>
-              {orderData.email && <Text>Correo electrónico: {orderData.email}</Text>}
-            </View>
-            <View style={styles.section}>
-              <Text>Datos de envío</Text>
-            </View>
-          </View>
-
-          <View>
-            <Text style={[styles.h2]}>Detalles del pedido</Text>
+          <View style={styles.mb4}>
+            <Text style={[styles.h2]}>Detalles del pedido #{orderData.ci}</Text>
             <Line />
+
+            {orderData.items.map((item, index) => {
+              const unitInfo = all_units.find((unit) => unit.key === item.unitSelected)
+
+              const finalPrice = item.discount ? item.price - item.discount : item.price
+
+              return (
+                <View key={index} style={[styles.flexRow, styles.mb2]}>
+                  <View style={{ flexGrow: 1 }}>
+                    <Text>Producto ID: {products.find((p) => p.id === item.id)?.name}</Text>
+                    <Text>
+                      Cantidad: {item.quantity} {item.quantity > 1 && unitInfo ? unitInfo.plural : unitInfo?.label}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text>{formatMoney(finalPrice)}</Text>
+                  </View>
+                </View>
+              )
+            })}
           </View>
-          <View>
+          <View style={[styles.mb4]}>
             <Text style={[styles.h2]}>Datos de control</Text>
             <Line />
             <View style={[styles.flexRow, { gap: 12 }]}>
@@ -168,15 +175,31 @@ const PrintOrder = () => {
             </View>
           </View>
           <View>
-            <Text style={[styles.h2]}>Etiqueta</Text>
+            <View style={[styles.flexRow, { justifyContent: 'space-between' }]}>
+              <Text style={[styles.h2]}>Datos de envío ({orderData.order_count})</Text>
+              {orderData.delivery_route && <Text style={[styles.h2]}>Ruta {orderData.delivery_route}</Text>}
+            </View>
             <Line />
-            <View style={styles.flexRow}>
-              <View style={{ flexGrow: 1, alignItems: 'center' }}>
-                <Text>Numero 1</Text>
+          </View>
+          <View style={styles.flexRow}>
+            <View style={[styles.flexRow, { flexGrow: 1, justifyContent: 'space-between' }]}>
+              <View style={[styles.section]}>
+                <Text>Nombre: {orderData.name}</Text>
+                <Text>Teléfono: {orderData.phone}</Text>
+                {orderData.email && <Text>Correo electrónico: {orderData.email}</Text>}
+                <Text>Nombre: {orderData.full_name}</Text>
+                <Text>Teléfono: {orderData.phone}</Text>
+                <Text style={{ marginTop: 10 }}>Dirección</Text>
+                <Text>
+                  {orderData.street_address}, {orderData.street_number}, {orderData.interior_number}, {orderData.sublocality},{' '}
+                  {orderData.postal_code}
+                </Text>
+                <Text>Referencias de entrega: {orderData.address_notes}</Text>
               </View>
-              <View style={{ flexGrow: 1, alignItems: 'center' }}>
-                <Image src={orderQR} style={styles.qrImage}></Image>
-              </View>
+            </View>
+            <View style={{ alignItems: 'center', border: '2px dashed black', padding: '1px' }}>
+              <Image src={orderQR} style={styles.qrImage}></Image>
+              <Text style={[{ fontWeight: 'bold', fontSize: 24 }]}>P-{orderData.order_count}</Text>
             </View>
           </View>
         </Page>
