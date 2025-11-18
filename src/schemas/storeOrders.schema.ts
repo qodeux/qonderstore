@@ -57,4 +57,4 @@ export const storeOrderSchema = z.object({
   reference: z.string().optional()
 })
 
-export type storeOrder = z.infer<typeof storeOrderSchema>
+export type StoreOrder = z.infer<typeof storeOrderSchema>
