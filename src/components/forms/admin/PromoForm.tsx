@@ -19,13 +19,10 @@ const PromotionForm = () => {
   } = useFormContext()
 
   const discountType = useWatch({ control, name: 'discount_type' })
-
   const isLimited = useWatch({ control, name: 'is_limited' })
-
   const isConditioned = useWatch({ control, name: 'is_conditioned' })
 
   const categories = useSelector((state: RootState) => state.categories.items)
-
   const products = useSelector((state: RootState) => state.products.items)
 
   const promoType = useWatch({
@@ -106,15 +103,15 @@ const PromotionForm = () => {
     }
   }, [promoType, selectedProduct, selectedCategoryNum, selectedSubCategory, subcategories, setValue])
 
-  useEffect(() => {
-    console.log('🔍 Debug:', {
-      selectedCategory: selectedCategoryNum,
-      selectedSubCategory,
-      subcategoriesLength: subcategories.length,
-      subcategoriesIds: subcategories.map((s) => s.id),
-      defaultValues: control._defaultValues
-    })
-  }, [selectedCategoryNum, selectedSubCategory, subcategories])
+  // useEffect(() => {
+  //   console.log('🔍 Debug:', {
+  //   selectedCategory: selectedCategoryNum,
+  //   selectedSubCategory,
+  //   subcategoriesLength: subcategories.length,
+  //   subcategoriesIds: subcategories.map((s) => s.id),
+  //   defaultValues: control._defaultValues
+  //   })
+  // }, [selectedCategoryNum, selectedSubCategory, subcategories])
 
   return (
     <form className='space-y-2'>
@@ -128,13 +125,15 @@ const PromotionForm = () => {
             isInvalid={!!fieldState.error}
             errorMessage={fieldState.error?.message as string}
             {...field}
+            variant='bordered'
+            classNames={{ inputWrapper: 'bg-white' }}
           />
         )}
       />
       <Controller
         name='promo_type'
         control={control}
-        render={({ field }) => (
+        render={({ field, fieldState }) => (
           <Select
             label='Tipo de promoción'
             size='sm'
@@ -143,9 +142,11 @@ const PromotionForm = () => {
               const rawValue = Array.from(keys)[0]
               field.onChange(rawValue)
             }}
-            isInvalid={!!errors.promo_type}
-            errorMessage={errors.promo_type?.message as string}
+            isInvalid={!!fieldState.error}
+            errorMessage={fieldState.error?.message}
             disallowEmptySelection
+            variant='bordered'
+            classNames={{ trigger: 'bg-white' }}
           >
             {promo_types.map((type) => (
               <SelectItem key={type.key}>{type.label}</SelectItem>
@@ -159,7 +160,7 @@ const PromotionForm = () => {
             <Controller
               name='category'
               control={control}
-              render={({ field }) => (
+              render={({ field, fieldState }) => (
                 <Select
                   label='Categoría'
                   size='sm'
@@ -169,7 +170,10 @@ const PromotionForm = () => {
                     field.onChange(raw != null ? Number(raw) : undefined)
                   }}
                   disallowEmptySelection
-                  isInvalid={!!targetError.error}
+                  isInvalid={!!fieldState.error}
+                  errorMessage={fieldState.error?.message}
+                  variant='bordered'
+                  classNames={{ trigger: 'bg-white' }}
                 >
                   {categories
                     .filter((c) => c.parent === null)
@@ -184,7 +188,7 @@ const PromotionForm = () => {
               <Controller
                 name='subcategory'
                 control={control}
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <Select
                     key={`subcat-${selectedCategory}-${field.value}`} // Mejor key para forzar re-render
                     label='Subcategoría'
@@ -195,6 +199,10 @@ const PromotionForm = () => {
                       field.onChange(raw != null ? Number(raw) : undefined)
                     }}
                     disallowEmptySelection
+                    isInvalid={!!fieldState.error}
+                    errorMessage={fieldState.error?.message}
+                    variant='bordered'
+                    classNames={{ trigger: 'bg-white' }}
                   >
                     {subcategories.map((sc) => (
                       <SelectItem key={sc.id}>{sc.name}</SelectItem>
@@ -206,26 +214,30 @@ const PromotionForm = () => {
           </>
         )}
         {promoType === 'product' && (
-          <Controller
-            name='product'
-            control={control}
-            render={({ field }) => (
-              <Autocomplete
-                size='sm'
-                label='Selecciona un producto'
-                selectedKey={String(field.value) || ''}
-                onSelectionChange={(sel) => {
-                  console.log(sel)
-                  field.onChange(Number(sel))
-                }}
-                isInvalid={!!targetError.error}
-              >
-                {products.map((product) => (
-                  <AutocompleteItem key={product.id}>{product.name}</AutocompleteItem>
-                ))}
-              </Autocomplete>
-            )}
-          />
+          <div className='col-span-2'>
+            <Controller
+              name='product'
+              control={control}
+              render={({ field, fieldState }) => (
+                <Autocomplete
+                  size='sm'
+                  label='Selecciona un producto'
+                  selectedKey={String(field.value) || ''}
+                  onSelectionChange={(sel) => {
+                    console.log(sel)
+                    field.onChange(Number(sel))
+                  }}
+                  isInvalid={!!fieldState.error}
+                  variant='bordered'
+                  classNames={{ base: 'bg-white' }}
+                >
+                  {products.map((product) => (
+                    <AutocompleteItem key={product.id}>{product.name}</AutocompleteItem>
+                  ))}
+                </Autocomplete>
+              )}
+            />
+          </div>
         )}
       </div>
       {targetError.error && <p className='text-danger text-xs pl-1'>Debes seleccionar un elemento </p>}
@@ -247,7 +259,7 @@ const PromotionForm = () => {
       <Controller
         name='discount_type'
         control={control}
-        render={({ field }) => (
+        render={({ field, fieldState }) => (
           <Select
             label='Tipo de descuento'
             size='sm'
@@ -262,9 +274,11 @@ const PromotionForm = () => {
               }
             }}
             value={discountType}
-            isInvalid={!!errors.discount_type}
-            errorMessage={errors.discount_type?.message as string}
+            isInvalid={!!fieldState.error}
+            errorMessage={fieldState.error?.message as string}
             disallowEmptySelection
+            variant='bordered'
+            classNames={{ trigger: 'bg-white' }}
           >
             {discount_types.map((type) => (
               <SelectItem key={type.key}>{type.label}</SelectItem>
@@ -277,7 +291,7 @@ const PromotionForm = () => {
           <Controller
             name='frequency'
             control={control}
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <Select
                 label='Frecuencia'
                 size='sm'
@@ -286,9 +300,11 @@ const PromotionForm = () => {
                   const rawValue = Array.from(keys)[0]
                   field.onChange(rawValue)
                 }}
-                isInvalid={!!errors.frequency}
-                errorMessage={errors.frequency?.message as string}
+                isInvalid={!!fieldState.error}
+                errorMessage={fieldState.error?.message as string}
                 disallowEmptySelection
+                variant='bordered'
+                classNames={{ trigger: 'bg-white' }}
               >
                 {promo_frequencies.map((type) => (
                   <SelectItem key={type.key}>{type.label}</SelectItem>
@@ -301,7 +317,7 @@ const PromotionForm = () => {
               name='date'
               control={control}
               rules={{ required: 'La fecha es obligatoria' }}
-              render={({ field }) => (
+              render={({ field, fieldState }) => (
                 <div className='flex flex-col items-start'>
                   <DatePicker
                     {...field}
@@ -314,6 +330,18 @@ const PromotionForm = () => {
                     value={field.value}
                     granularity='day'
                     minValue={today(getLocalTimeZone())}
+                    isInvalid={!!fieldState.error}
+                    errorMessage={fieldState.error?.message}
+                    variant='bordered'
+                    classNames={{
+                      inputWrapper: 'bg-white'
+                    }}
+                    calendarProps={{
+                      classNames: {
+                        title: 'text-xs capitalize-first-letter',
+                        pickerItem: 'capitalize'
+                      }
+                    }}
                   />
                 </div>
               )}
@@ -323,7 +351,7 @@ const PromotionForm = () => {
             <Controller
               name='week_days'
               control={control}
-              render={({ field }) => (
+              render={({ field, fieldState }) => (
                 <Select
                   label='Selecciona los días'
                   size='sm'
@@ -334,9 +362,11 @@ const PromotionForm = () => {
                     field.onChange(arr)
                     setValue('frequency_value', arr)
                   }}
-                  isInvalid={!!errors.week_days}
-                  errorMessage={errors.week_days?.message as string}
+                  isInvalid={!!fieldState.error}
+                  errorMessage={fieldState.error?.message as string}
                   disallowEmptySelection
+                  variant='bordered'
+                  classNames={{ trigger: 'bg-white' }}
                 >
                   {week_days.map((type) => (
                     <SelectItem key={type.key}>{type.label}</SelectItem>
@@ -361,6 +391,8 @@ const PromotionForm = () => {
                   allowNegative={false}
                   inputMode='numeric'
                   customInput={Input}
+                  variant='bordered'
+                  classNames={{ inputWrapper: 'bg-white' }}
                   min={1}
                   max={31}
                   maxLength={2}
@@ -402,6 +434,8 @@ const PromotionForm = () => {
               errorMessage={fieldState.error?.message as string}
               value={field.value?.toUpperCase()}
               onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+              variant='bordered'
+              classNames={{ inputWrapper: 'bg-white' }}
             />
           )}
         />
@@ -410,7 +444,7 @@ const PromotionForm = () => {
         <Controller
           name='mode'
           control={control}
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <Select
               label='Modalidad'
               size='sm'
@@ -419,9 +453,11 @@ const PromotionForm = () => {
                 const rawValue = Array.from(keys)[0]
                 field.onChange(rawValue)
               }}
-              isInvalid={!!errors.mode}
-              errorMessage={errors.mode?.message as string}
+              isInvalid={!!fieldState.error}
+              errorMessage={fieldState.error?.message as string}
               disallowEmptySelection
+              variant='bordered'
+              classNames={{ trigger: 'bg-white' }}
             >
               {promo_mode.map((type) => (
                 <SelectItem key={type.key}>{type.label}</SelectItem>
@@ -434,12 +470,11 @@ const PromotionForm = () => {
           control={control}
           render={({ field, fieldState }) => (
             <NumericFormat
+              key={promoMode}
               value={field.value ?? ''}
               onValueChange={(v) => {
                 const num = v.floatValue === undefined ? undefined : v.floatValue
-                setValue('mode_value', num, {
-                  shouldValidate: true
-                })
+                field.onChange(num)
               }}
               thousandSeparator={promoMode === 'fixed'}
               decimalScale={promoMode === 'fixed' ? 2 : 0}
@@ -452,50 +487,69 @@ const PromotionForm = () => {
               maxLength={promoMode === 'percentage' ? 3 : undefined}
               label='Valor'
               size='sm'
+              variant='bordered'
+              classNames={{ inputWrapper: 'bg-white' }}
               isInvalid={!!fieldState.error}
               errorMessage={fieldState.error?.message}
-              isClearable
-              onClear={() => {
-                setValue('mode_value', undefined, {
-                  shouldValidate: true
-                })
+              onFocus={(e) => {
+                setTimeout(() => e.currentTarget.select(), 0)
+              }}
+              onPointerDown={(e) => {
+                const el = e.currentTarget as HTMLInputElement
+                if (document.activeElement !== el) {
+                  e.preventDefault()
+                  el.focus()
+                  el.select()
+                }
               }}
             />
           )}
         />
       </div>
-      <Controller
-        name='valid_until'
-        control={control}
-        rules={{ required: 'La fecha es obligatoria' }}
-        render={({ field, fieldState }) => (
-          <div className='flex flex-col items-start'>
-            <DatePicker
-              {...field}
-              showMonthAndYearPickers
-              label='Vigencia'
-              size='sm'
-              isInvalid={!!fieldState.error}
-              errorMessage={fieldState.error?.message}
-              onChange={(date) => field.onChange(date)} // muy importante
-              value={field.value}
-              granularity='day'
-              minValue={today(getLocalTimeZone())}
-              //defaultValue={now(getLocalTimeZone())}
-            />
-          </div>
+      <div className='flex items-center justify-between gap-2'>
+        {discountType !== 'fixed' && selectedFrequency !== 'once' && (
+          <Controller
+            name='valid_until'
+            control={control}
+            rules={{ required: 'La fecha es obligatoria' }}
+            render={({ field, fieldState }) => (
+              <div className='w-1/2'>
+                <DatePicker
+                  {...field}
+                  showMonthAndYearPickers
+                  label='Vigencia'
+                  size='sm'
+                  isInvalid={!!fieldState.error}
+                  errorMessage={fieldState.error?.message}
+                  onChange={(date) => field.onChange(date)} // muy importante
+                  value={field.value}
+                  granularity='day'
+                  minValue={today(getLocalTimeZone()).add({ days: 1 })}
+                  variant='bordered'
+                  classNames={{
+                    inputWrapper: 'bg-white'
+                  }}
+                  calendarProps={{
+                    classNames: {
+                      title: 'text-xs capitalize-first-letter',
+                      pickerItem: 'capitalize'
+                    }
+                  }}
+                  //defaultValue={now(getLocalTimeZone())}
+                />
+              </div>
+            )}
+          />
         )}
-      />
-      <Switch size='sm' {...register('is_active')}>
-        Activo
-      </Switch>
+      </div>
+
       <div className='flex items-center justify-between'>
         <label>Limites</label>
         <Controller
           name='is_limited'
           render={({ field }) => (
             <Switch size='sm' isSelected={!!field.value} onValueChange={field.onChange} onBlur={field.onBlur} ref={field.ref}>
-              Activo
+              {field.value ? 'Si' : 'No'}
             </Switch>
           )}
         />
@@ -528,7 +582,7 @@ const PromotionForm = () => {
           name='is_conditioned'
           render={({ field }) => (
             <Switch size='sm' isSelected={!!field.value} onValueChange={field.onChange} onBlur={field.onBlur} ref={field.ref}>
-              Activo
+              {field.value ? 'Si' : 'No'}
             </Switch>
           )}
         />
@@ -545,16 +599,37 @@ const PromotionForm = () => {
             )}
           />
 
-          <Input
-            label='Cantidad'
-            type='text'
-            size='sm'
-            isInvalid={!!errors.condition}
-            errorMessage={errors.condition?.message as string}
-            {...register('condition')}
+          <Controller
+            name='condition'
+            render={({ field, fieldState }) => (
+              <Input
+                {...field}
+                label='Cantidad'
+                type='text'
+                size='sm'
+                isInvalid={!!fieldState.error}
+                errorMessage={fieldState.error?.message}
+              />
+            )}
           />
         </>
       )}
+
+      <Controller
+        name='is_active'
+        render={({ field }) => (
+          <Switch
+            size='sm'
+            isSelected={!!field.value}
+            onValueChange={field.onChange}
+            onBlur={field.onBlur}
+            ref={field.ref}
+            className='mt-4'
+          >
+            {field.value ? 'Promoción activada' : 'Promoción desactivada'}
+          </Switch>
+        )}
+      />
     </form>
   )
 }
