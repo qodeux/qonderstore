@@ -81,6 +81,10 @@ const OrderDetails = () => {
     onOpenPaymentConfirm()
   }
 
+  const handlePrintOrder = () => {
+    navigate('/admin/orden/imprimir/')
+  }
+
   const handleOrderCancel = () => {
     dispatch(setSelectedOrder(selectedOrder.id))
     onOpenConfirm()
@@ -300,7 +304,7 @@ const OrderDetails = () => {
         </div>
         <section className='mt-4 flex gap-2'>
           <Tooltip content='Imprimir orden'>
-            <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='secondary' onPress={() => window.print()}>
+            <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='secondary' onPress={handlePrintOrder}>
               <Printer className='w-6 h-6' />
             </Button>
           </Tooltip>
