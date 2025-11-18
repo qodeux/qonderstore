@@ -10,7 +10,8 @@ export const promoTypeMap = toRecord(promo_types)
 
 export const discount_types = [
   { key: 'season', label: 'Temporada' },
-  { key: 'code', label: 'Código' }
+  { key: 'code', label: 'Código' },
+  { key: 'fixed', label: 'Permanente' }
   //{ key: 'buy_one_get_one', label: 'Compra uno y lleva otro' }
 ]
 export type DiscountType = (typeof discount_types)[number]['key']
