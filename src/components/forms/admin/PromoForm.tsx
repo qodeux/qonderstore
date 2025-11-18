@@ -59,32 +59,12 @@ const PromotionForm = () => {
 
   //const subcategories = useMemo(() => categories.filter((c) => c.parent === (selectedCategory ?? -1)), [categories, selectedCategory])
 
-  // 🧱 Normaliza a number para evitar "[]" por string vs number
   const selectedCategoryNum = selectedCategory == null ? null : Number(selectedCategory)
 
   const subcategories = useMemo(() => {
     if (!categories?.length || selectedCategoryNum == null) return []
     return categories.filter((c) => Number(c.parent) === selectedCategoryNum)
   }, [categories, selectedCategoryNum])
-
-  // Agrega este useEffect para resetear subcategoría cuando cambia la categoría
-  useEffect(() => {
-    // Si cambió la categoría y hay subcategorías disponibles
-    if (selectedCategoryNum != null && subcategories.length > 0) {
-      const currentSubcat = getValues('subcategory')
-      // Verifica si la subcategoría actual es válida para las nuevas opciones
-      const isValidSubcat = subcategories.some((sc) => sc.id === currentSubcat)
-
-      if (!isValidSubcat && currentSubcat != null) {
-        // Si no es válida, resetea
-        setValue('subcategory', undefined, { shouldDirty: false })
-      }
-    }
-    // Si no hay subcategorías, limpia el campo
-    if (subcategories.length === 0) {
-      setValue('subcategory', undefined, { shouldDirty: false })
-    }
-  }, [selectedCategoryNum, subcategories.length, setValue, getValues])
 
   // Modifica el useEffect existente para manejar mejor el caso inicial
   useEffect(() => {
@@ -167,7 +147,13 @@ const PromotionForm = () => {
                   selectedKeys={field.value != null ? new Set([String(field.value)]) : new Set()}
                   onSelectionChange={(keys) => {
                     const raw = Array.from(keys as Set<React.Key>)[0]
-                    field.onChange(raw != null ? Number(raw) : undefined)
+                    const value = raw != null ? Number(raw) : undefined
+
+                    // actualiza categoría
+                    field.onChange(value)
+
+                    // 🔁 limpia subcategoría porque cambió de categoría
+                    setValue('subcategory', undefined, { shouldDirty: true })
                   }}
                   disallowEmptySelection
                   isInvalid={!!fieldState.error}
@@ -566,13 +552,20 @@ const PromotionForm = () => {
             )}
           />
 
-          <Input
-            label='Total'
-            type='text'
-            size='sm'
-            isInvalid={!!errors.limit}
-            errorMessage={errors.limit?.message as string}
-            {...register('limit')}
+          <Controller
+            name='limit'
+            render={({ field, fieldState }) => (
+              <Input
+                {...field}
+                label='Total'
+                type='text'
+                size='sm'
+                isInvalid={!!fieldState.error}
+                errorMessage={fieldState.error?.message}
+                variant='bordered'
+                classNames={{ inputWrapper: 'bg-white' }}
+              />
+            )}
           />
         </>
       )}
@@ -609,6 +602,8 @@ const PromotionForm = () => {
                 size='sm'
                 isInvalid={!!fieldState.error}
                 errorMessage={fieldState.error?.message}
+                variant='bordered'
+                classNames={{ inputWrapper: 'bg-white' }}
               />
             )}
           />
