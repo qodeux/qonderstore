@@ -6,7 +6,7 @@ import { DataTable, type ColumnDef } from '../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../components/common/ToolbarTable'
 import CloseRouteModal from '../../components/modals/admin/CloseRouteModal'
 import type { RootState } from '../../store/store'
-import { deliveryRoutesMap, deliveryTypesMap, storeShipment_status } from '../../types/storeOrders'
+import { delivery_types, deliveryRoutesMap, storeShipment_status } from '../../types/storeOrders'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const EnviosTienda = () => {
@@ -54,7 +54,7 @@ const EnviosTienda = () => {
       allowsSorting: true,
       align: 'center',
       preset: 'type',
-      presetConfig: { map: deliveryTypesMap }
+      presetConfig: { map: delivery_types, wrapper: { type: 'chip', variant: 'bordered' } }
     },
     {
       key: 'delivery_route',
