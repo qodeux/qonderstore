@@ -16,7 +16,14 @@ import type { CartItem } from '../../../store/slices/cartSlice'
 import { setSelectedOrder } from '../../../store/slices/storeOrdersSlice'
 import { useAppSelector } from '../../../store/store'
 import type { SaleType } from '../../../types/products'
-import { delivery_types, deliveryRoutesMap, storeOrder_status, type IPGeolocation, type SublocalityData } from '../../../types/storeOrders'
+import {
+  delivery_types,
+  deliveryRoutesMap,
+  storeOrder_status,
+  storeShipment_status,
+  type IPGeolocation,
+  type SublocalityData
+} from '../../../types/storeOrders'
 import { formatDate } from '../../../utils/date'
 import { formatMoney } from '../../../utils/money'
 
@@ -134,7 +141,7 @@ const OrderDetails = () => {
   }, [selectedOrder?.sublocality])
 
   const orderStatus = storeOrder_status.find((status) => status.key === selectedOrder?.order_status)
-  //const shipmentStatus = shipment_status.find((status) => status.key === selectedOrder?.shipment_status)
+  const shipmentStatus = storeShipment_status.find((status) => status.key === selectedOrder?.shipment_status)
 
   if (!id || !selectedOrder) {
     navigate(-1)
@@ -172,7 +179,12 @@ const OrderDetails = () => {
 
         <div className='col-span-2'>
           <h3 className='text-lg font-semibold mt-2'>
-            Datos de entrega {selectedOrder?.shipment_status && <Chip variant='flat'>{selectedOrder.shipment_status}</Chip>}
+            Datos de entrega{' '}
+            {selectedOrder?.shipment_status && (
+              <Chip variant='flat' color={shipmentStatus?.color}>
+                {shipmentStatus?.label}
+              </Chip>
+            )}
           </h3>
           <section className='flex justify-between'>
             <div className='text-sm'>

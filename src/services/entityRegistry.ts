@@ -13,6 +13,7 @@ export type EntityKind =
   | 'supplyOrders'
   | 'storeOrders'
   | 'brands'
+  | 'storeShipments'
 
 export type MenuAction<T> = {
   key: string
@@ -129,6 +130,10 @@ export const entityRegistry: Record<EntityKind, EntityAdapter<any>> = {
   },
   storeOrders: {
     table: 'store_orders',
+    getId: (r) => r.id
+  },
+  storeShipments: {
+    table: 'store_orders_view',
     getId: (r) => r.id
   }
 }
