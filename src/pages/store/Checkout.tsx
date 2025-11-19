@@ -105,6 +105,7 @@ const Checkout = () => {
 
   /** Carga bundle por CP: copia a postal_code, setea estado/municipio, llena colonias y selecciona preferida o primera */
   const loadCPBundle = async (cp: string, preferredColoniaName?: string) => {
+    setIsBannedCP(false) // Reset banned flag on new search
     if (!isFiveDigits(cp)) {
       setNeighborhoodsOptions([])
       setCanShipToCP(false)
@@ -139,8 +140,6 @@ const Checkout = () => {
 
       return
     }
-
-    console.log(cpData)
 
     clearErrors(['state', 'locality'])
 
@@ -216,6 +215,7 @@ const Checkout = () => {
   }
 
   /** Buscar por CP inicial (postal_code_lookup) */
+  /** Buscar por CP inicial (postal_code_lookup) */
   useEffect(() => {
     const run = async () => {
       const lookup = watchPostalCodeLookup ?? ''
@@ -229,9 +229,11 @@ const Checkout = () => {
       setSearchingPostalCode(false)
     }
     run()
+    return () => {
+      setIsBannedCP(false) // Reset banned flag on unmount
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchPostalCodeLookup])
-
   useEffect(() => {
     if (shippingPrice === null) return
 
@@ -900,10 +902,9 @@ const Checkout = () => {
 
               <Button
                 type='submit'
-                variant='solid'
+                isDisabled={formState.isSubmitting || (formState.isSubmitted && !formState.isValid)}
                 size='lg'
                 className='w-full bg-black text-white'
-                isDisabled={formState.submitCount > 0 && !formState.isValid}
               >
                 Realizar pedido
               </Button>
