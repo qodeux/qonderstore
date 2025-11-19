@@ -196,7 +196,7 @@ const ProviderModal = ({ isOpen, onOpenChange }: Props) => {
           <section className='flex flex-col items-center '></section>
 
           <Wizard
-            header={<RowSteps currentStep={wizardCurrentIndex} onStepChange={onStepClick} steps={WizardSteps} allowAllSteps={isEditing} />}
+            header={<RowSteps onStepChange={onStepClick} steps={WizardSteps} allowAllSteps={isEditing} />}
             footer={<WizardFooter getStepForm={(idx) => WizardSteps[idx]?.form} onConfirm={onConfirm} />}
             wrapper={<AnimatePresence initial={false} mode='wait' />}
           >

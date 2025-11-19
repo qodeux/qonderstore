@@ -1,9 +1,9 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
-import type { storeOrder } from '../../schemas/storeOrders.schema'
+import type { StoreOrder } from '../../schemas/storeOrders.schema'
 
 interface storeOrdersState {
-  selectedOrder: storeOrder | null
-  items: storeOrder[]
+  selectedOrder: StoreOrder | null
+  items: StoreOrder[]
   loading: boolean
   error: string | null
 }
@@ -19,7 +19,7 @@ const storeOrdersSlice = createSlice({
   name: 'storeOrders',
   initialState,
   reducers: {
-    setStoreOrders(state, action: PayloadAction<storeOrder[]>) {
+    setStoreOrders(state, action: PayloadAction<StoreOrder[]>) {
       state.items = action.payload
     },
     setSelectedOrder(state, action: PayloadAction<string>) {

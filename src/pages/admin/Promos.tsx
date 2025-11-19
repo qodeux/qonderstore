@@ -120,10 +120,8 @@ const Promotions = () => {
   }
 
   const handleEditPromotion = (id: number) => {
-    console.log(id)
     dispatch(setIsEditing(true))
     dispatch(setSelectedPromotion(id))
-
     onOpenPromotion()
   }
 

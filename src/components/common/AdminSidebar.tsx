@@ -68,7 +68,7 @@ const menuItems: MenuItem[] = [
     href: '/admin/solicitudes-acceso'
   },
   {
-    label: 'Órdenes',
+    label: 'Ordenes',
     icon: <Store className='w-5 h-5' />,
     href: '/admin/ordenes'
   },

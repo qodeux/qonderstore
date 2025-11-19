@@ -79,6 +79,7 @@ const Checkout = () => {
   const [cartHasDiscount, setCartHasDiscount] = useState(false)
   const [canShipToCP, setCanShipToCP] = useState<boolean>(false)
   const [neighborhoodsOptions, setNeighborhoodsOptions] = useState<Neighborhood[]>([])
+  const [isBannedCP, setIsBannedCP] = useState(false)
   const [isLoadingCP, setIsLoadingCP] = useState(false)
   const [searchingPostalCode, setSearchingPostalCode] = useState(false)
 
@@ -104,6 +105,7 @@ const Checkout = () => {
 
   /** Carga bundle por CP: copia a postal_code, setea estado/municipio, llena colonias y selecciona preferida o primera */
   const loadCPBundle = async (cp: string, preferredColoniaName?: string) => {
+    setIsBannedCP(false) // Reset banned flag on new search
     if (!isFiveDigits(cp)) {
       setNeighborhoodsOptions([])
       setCanShipToCP(false)
@@ -130,9 +132,20 @@ const Checkout = () => {
       return
     }
 
+    if (cpData[0]?.is_banned) {
+      setNeighborhoodsOptions([])
+      setCanShipToCP(false)
+      setError('postal_code_lookup', { type: 'manual' })
+      setIsBannedCP(true)
+
+      return
+    }
+
+    clearErrors(['state', 'locality'])
+
     // Estado / Municipio
     setValue('state', cpData[0]?.d_estado || '', { shouldDirty: true })
-    setValue('locality', cpData[0]?.D_mnpio || '', { shouldDirty: true })
+    setValue('locality', cpData[0]?.d_mnpio || '', { shouldDirty: true })
 
     // Colonias
     setNeighborhoodsOptions(cpData)
@@ -152,8 +165,6 @@ const Checkout = () => {
     })
 
     const { data } = await storeOrderService.getShippingPrice(Number(selected))
-
-    console.log(data)
 
     if (!data) {
       setShippingPrice(null)
@@ -204,6 +215,7 @@ const Checkout = () => {
   }
 
   /** Buscar por CP inicial (postal_code_lookup) */
+  /** Buscar por CP inicial (postal_code_lookup) */
   useEffect(() => {
     const run = async () => {
       const lookup = watchPostalCodeLookup ?? ''
@@ -217,9 +229,11 @@ const Checkout = () => {
       setSearchingPostalCode(false)
     }
     run()
+    return () => {
+      setIsBannedCP(false) // Reset banned flag on unmount
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchPostalCodeLookup])
-
   useEffect(() => {
     if (shippingPrice === null) return
 
@@ -386,31 +400,43 @@ const Checkout = () => {
               Antes de continuar necesitamos saber tu código postal para verificar la cobertura en tu zona, además de ayudarte a localizar
               tu dirección usaremos esta información para calcular los costos de envío.
             </p>
-            <Controller
-              control={control}
-              name='postal_code_lookup'
-              render={({ field, fieldState }) => (
-                <PatternFormat
-                  format='#####'
-                  customInput={Input}
-                  label='Código Postal'
-                  size='sm'
-                  className='w-full sm:max-w-[180px] my-4'
-                  value={field.value ?? ''}
-                  onValueChange={(v) => field.onChange(v.value)}
-                  inputMode='numeric'
-                  isAllowed={(vals) => vals.value.length <= 5}
-                  isClearable
-                  onClear={() => field.onChange('')}
-                  errorMessage={fieldState.error?.message}
-                  isInvalid={!!fieldState.error}
-                  classNames={{ inputWrapper: 'bg-white' }}
-                  variant='bordered'
-                  endContent={searchingPostalCode ? <Spinner size='sm' className='mr-2' /> : undefined}
-                  isDisabled={searchingPostalCode}
-                />
-              )}
-            />
+            <div className='flex items-center'>
+              <Controller
+                control={control}
+                name='postal_code_lookup'
+                render={({ field, fieldState }) => (
+                  <PatternFormat
+                    format='#####'
+                    customInput={Input}
+                    label='Código Postal'
+                    size='sm'
+                    className='w-full sm:max-w-[180px] my-4'
+                    value={field.value ?? ''}
+                    onValueChange={(v) => field.onChange(v.value)}
+                    inputMode='numeric'
+                    isAllowed={(vals) => vals.value.length <= 5}
+                    isClearable
+                    onClear={() => field.onChange('')}
+                    errorMessage={fieldState.error?.message}
+                    isInvalid={!!fieldState.error}
+                    classNames={{ inputWrapper: 'bg-white' }}
+                    variant='bordered'
+                    endContent={searchingPostalCode ? <Spinner size='sm' className='mr-2' /> : undefined}
+                    isDisabled={searchingPostalCode}
+                  />
+                )}
+              />
+            </div>
+          </div>
+        )}
+
+        {!canShipToCP && isBannedCP && (
+          <div className='flex justify-center'>
+            <Alert className='mt-4 max-w-lg' variant='faded' color='warning'>
+              <p>
+                Desafortunadamente no realizamos envíos para ese código postal. Intenta con otro código o contáctanos para más información.
+              </p>
+            </Alert>
           </div>
         )}
 
@@ -874,7 +900,12 @@ const Checkout = () => {
                 </div>
               </div>
 
-              <Button type='submit' variant='solid' size='lg' className='w-full bg-black text-white'>
+              <Button
+                type='submit'
+                isDisabled={formState.isSubmitting || (formState.isSubmitted && !formState.isValid)}
+                size='lg'
+                className='w-full bg-black text-white'
+              >
                 Realizar pedido
               </Button>
             </motion.footer>

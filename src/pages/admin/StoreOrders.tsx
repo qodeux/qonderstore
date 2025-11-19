@@ -10,7 +10,7 @@ import PaymentUploadModal from '../../components/modals/common/PaymentUploadModa
 import { storeOrderService } from '../../services/storeOrderService'
 import { setSelectedOrder } from '../../store/slices/storeOrdersSlice'
 import type { RootState } from '../../store/store'
-import { deliveryTypesMap, storeOrder_status } from '../../types/storeOrders'
+import { delivery_types, storeOrder_status } from '../../types/storeOrders'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
 
 const PedidosTienda = () => {
@@ -72,7 +72,7 @@ const PedidosTienda = () => {
       allowsSorting: true,
       align: 'center',
       preset: 'type',
-      presetConfig: { map: deliveryTypesMap }
+      presetConfig: { map: delivery_types, wrapper: { type: 'chip', variant: 'bordered' } }
     },
     {
       key: 'order_total',
@@ -111,8 +111,12 @@ const PedidosTienda = () => {
 
   const { isOpen: isOpenPaymentUpload, onOpen: OnOpenPaymentUpload, onOpenChange: onOpenChangePaymentUpload } = useDisclosure()
   const { isOpen: IsOpenPaymentConfirm, onOpen: onOpenPaymentConfirm, onOpenChange: OnOpenChangePaymentConfirm } = useDisclosure()
-
   const { isOpen: isOpenConfirm, onOpen: onOpenConfirm, onOpenChange: onOpenChangeConfirm } = useDisclosure()
+
+  const handleDetails = (row: Row) => {
+    sessionStorage.setItem('admin_selected_store_order', JSON.stringify(storeOrders.find((order) => order.id === row.id)))
+    navigate(`/admin/orden/${row.id}`)
+  }
 
   const handlePaymentUpload = (row: Row) => {
     dispatch(setSelectedOrder(row.id))
@@ -121,6 +125,11 @@ const PedidosTienda = () => {
   const handlePaymentConfirm = (row: Row) => {
     dispatch(setSelectedOrder(row.id))
     onOpenPaymentConfirm()
+  }
+
+  const handleOrderCancel = (row: Row) => {
+    dispatch(setSelectedOrder(row.id))
+    onOpenConfirm()
   }
   const onConfirmCancel = async () => {
     {
@@ -132,14 +141,40 @@ const PedidosTienda = () => {
     }
     onOpenChangeConfirm()
   }
-  const handleDetails = (row: Row) => {
-    sessionStorage.setItem('admin_selected_store_order', JSON.stringify(storeOrders.find((order) => order.id === row.id)))
-    navigate(`/admin/orden/${row.id}`)
-  }
 
-  const handleOrderCancel = (row: Row) => {
-    dispatch(setSelectedOrder(row.id))
-    onOpenConfirm()
+  const getRowActions = (row: Row) => {
+    switch (row.order_status) {
+      case 'pending':
+        return [
+          {
+            key: 'register_payment',
+            label: 'Registrar pago',
+            onPress: () => {
+              handlePaymentUpload(row)
+            }
+          },
+          {
+            key: 'cancel',
+            label: 'Cancelar orden',
+            onPress: () => {
+              handleOrderCancel(row)
+            }
+          }
+        ]
+
+      case 'paid':
+        return [
+          {
+            key: 'prove_payment',
+            label: 'Acreditar pago',
+            onPress: () => {
+              handlePaymentConfirm(row)
+            }
+          }
+        ]
+      default:
+        return []
+    }
   }
 
   const filteredRows = useMemo(() => {
@@ -179,29 +214,9 @@ const PedidosTienda = () => {
               onPress: (row) => {
                 handleDetails(row)
               }
-            },
-            {
-              key: 'register_payment',
-              label: 'Registrar pago',
-              onPress: (row) => {
-                handlePaymentUpload(row)
-              }
-            },
-            {
-              key: 'prove_payment',
-              label: 'Acreditar pago',
-              onPress: (row) => {
-                handlePaymentConfirm(row)
-              }
-            },
-            {
-              key: 'cancelled',
-              label: 'Cancelar orden',
-              onPress: (row) => {
-                handleOrderCancel(row)
-              }
             }
-          ]
+          ],
+          rowActions: (row: Row) => getRowActions(row)
         }}
       />
 

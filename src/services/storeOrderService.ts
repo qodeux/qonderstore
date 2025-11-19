@@ -122,11 +122,57 @@ export const storeOrderService = {
     return { data }
   },
   async updateOrderStatus(orderId: string, status: string) {
-    const { data, error } = await supabase.from('store_orders').update({ order_status: status }).eq('id', orderId)
+    const updateData = { order_status: status, shipment_status: status === 'credited' ? 'pending' : undefined }
+
+    const { data, error } = await supabase.from('store_orders').update(updateData).eq('id', orderId)
     if (error) {
       console.error('Error updating order status:', error)
       return { error }
     }
+    return { data }
+  },
+  async upsertPayment(payload: {
+    order_id: string
+    payment_proof?: string
+    confirm_proof?: string
+    status: string
+    amount?: number
+    reference?: string
+  }) {
+    let upsertData
+
+    switch (payload.status) {
+      case 'credited':
+        upsertData = {
+          order_id: payload.order_id,
+          payment_file_key: payload.payment_proof,
+          confirmation_file_key: payload.confirm_proof,
+          reference: payload.reference,
+          amount: payload.amount,
+          last_update: new Date().toISOString()
+        }
+        break
+      default:
+        upsertData = {
+          order_id: payload.order_id,
+          amount: payload.amount,
+          payment_file_key: payload.payment_proof
+        }
+        break
+    }
+
+    const { data, error } = await supabase.from('payments_received').upsert(upsertData).select().single()
+    if (error) {
+      console.error('Error registering payment proof:', error)
+      throw { error }
+    }
+
+    const { error: statusError } = await this.updateOrderStatus(payload.order_id, payload.status)
+    if (statusError) {
+      console.error('Error updating order status to paid:', statusError)
+      throw { statusError }
+    }
+
     return { data }
   }
 }

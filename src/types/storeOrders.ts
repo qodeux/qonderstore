@@ -30,7 +30,7 @@ export const delivery_types = [
   { key: 'standard', label: 'Estándar', color: 'primary' },
   { key: 'express', label: 'Urgente', color: 'danger' },
   { key: 'custom', label: 'Personalizado', color: 'secondary' },
-  { key: 'foreign', label: 'Foráneo', color: 'primary' }
+  { key: 'foreign', label: 'Foráneo', color: 'success' }
 ] as const
 
 export type DeliveryTypes = (typeof delivery_types)[number]['key']

@@ -19,32 +19,32 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
   const categories = useSelector((state: RootState) => state.categories.items)
 
   // Calcula los default values ANTES de crear el form
-  const defaultValues = useMemo(() => {
-    console.log('📋 Recalculando defaultValues:', { isEditing, promotionId: selectedPromotion?.id })
+  const buildDefaultValues = useMemo(() => {
+    //console.log('📋 Recalculando defaultValues:', { isEditing, promotionId: selectedPromotion })
 
     // ⚠️ CRÍTICO: Solo usar selectedPromotion si isEditing es TRUE
     if (!isEditing) {
       return {
         name: '',
-        promo_type: undefined,
-        promo_type_target_id: undefined,
-        category: undefined,
-        subcategory: undefined,
-        products: undefined,
-        discount_type: undefined,
-        frequency: undefined,
-        date: undefined,
-        week_days: undefined,
-        day_month: undefined,
-        code: undefined,
-        mode: undefined,
-        mode_value: undefined,
-        valid_until: undefined,
+        promo_type: null,
+        promo_type_target_id: null,
+        category: null,
+        subcategory: null,
+        products: null,
+        discount_type: null,
+        frequency: null,
+        date: null,
+        week_days: null,
+        day_month: null,
+        code: '',
+        mode: null,
+        mode_value: '',
+        valid_until: null,
         is_limited: false,
-        limit: undefined,
+        limit: null,
         is_conditioned: false,
-        condition_type: undefined,
-        condition: undefined,
+        condition_type: null,
+        condition: null,
         is_active: true
       }
     }
@@ -59,12 +59,12 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
 
     const hasParentCat = !!categoryTarget?.parent
 
-    console.log('🚀 Calculando defaultValues:', {
-      hasParentCat,
-      categoryTarget,
-      categoryId: categoryTarget?.id,
-      parentId: categoryTarget?.parent
-    })
+    // console.log('🚀 Calculando defaultValues:', {
+    //   hasParentCat,
+    //   categoryTarget,
+    //   categoryId: categoryTarget?.id,
+    //   parentId: categoryTarget?.parent
+    // })
 
     return {
       name: selectedPromotion.name,
@@ -86,7 +86,7 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
       valid_until: fromDbToDateValue(selectedPromotion.valid_until ?? null),
       is_limited: !!selectedPromotion.limit,
       limit_type: selectedPromotion.limit_type ?? undefined,
-      limit: selectedPromotion.limit ?? '',
+      limit: selectedPromotion.limit ?? null,
       is_conditioned: !!selectedPromotion.condition,
       condition_type: selectedPromotion.condition_type ?? undefined,
       condition: selectedPromotion.condition,
@@ -98,8 +98,8 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
   // Ahora el form se crea CON los defaultValues
   const promotionForm = useForm({
     resolver: zodResolver(promotionsInputSchema),
-    defaultValues, // ← Aquí están los valores iniciales
-    shouldUnregister: true,
+    defaultValues: buildDefaultValues, // ← Aquí están los valores iniciales
+    shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange'
   })
@@ -107,42 +107,17 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
   // Este useEffect SOLO resetea cuando cambian los valores y el modal está abierto
   useEffect(() => {
     if (isOpen) {
-      console.log('✅ Reseteando form con:', { isEditing, defaultValues })
+      //console.log('✅ Reseteando form con:', { isEditing, defaultValues: buildDefaultValues })
       // Forzar reset incluso si promotionForm no cambió
-      const resetValues =
-        isEditing && selectedPromotion
-          ? defaultValues
-          : {
-              promo_type: undefined,
-              promo_type_target_id: undefined,
-              category: undefined,
-              subcategory: undefined,
-              products: undefined,
-              discount_type: undefined,
-              frequency: undefined,
-              date: undefined,
-              week_days: undefined,
-              day_month: undefined,
-              code: undefined,
-              mode: undefined,
-              mode_value: undefined,
-              valid_until: undefined,
-              is_limited: false,
-              limit: undefined,
-              is_conditioned: false,
-              condition_type: undefined,
-              condition: undefined,
-              is_active: true
-            }
-      promotionForm.reset(resetValues, { keepDefaultValues: true })
+
+      promotionForm.reset(buildDefaultValues, { keepDefaultValues: true })
     }
-  }, [isOpen, isEditing, selectedPromotion?.id, promotionForm.reset])
+  }, [isOpen, isEditing, selectedPromotion?.id, promotionForm, buildDefaultValues, selectedPromotion])
   // ☝️ Agregamos isEditing y selectedPromotion?.id para forzar reset al cambiar modo
 
   const handleSubmitPromotion = async () => {
-    console.log(promotionForm.getValues())
     const isValid = await promotionForm.trigger()
-    console.log(promotionForm.formState.errors)
+    console.log('Erorres', promotionForm.formState.errors)
     if (!isValid) return
 
     const payload = promotionForm.getValues()
@@ -164,7 +139,17 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
   }
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='md' backdrop='blur'>
+    <Modal
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      size='md'
+      backdrop='blur'
+      classNames={{
+        base: 'bg-gray-50',
+        closeButton:
+          'focus:outline-none focus:ring-0 data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-0 cursor-pointer'
+      }}
+    >
       <ModalContent>
         {(onClose) => (
           <>

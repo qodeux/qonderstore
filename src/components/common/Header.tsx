@@ -71,7 +71,7 @@ const Header = () => {
   return (
     <Navbar
       onMenuOpenChange={setIsMenuOpen}
-      className='bg-black text-white fixed top-0 z-60 h-16'
+      className='bg-black text-white fixed top-0 z-40 h-16'
       maxWidth={isAuthenticated ? 'full' : '2xl'}
     >
       <NavbarMenuToggle aria-label={isMenuOpen ? 'Close menu' : 'Open menu'} className='sm:hidden' />

@@ -24,6 +24,7 @@ export const storeOrderSchema = z.object({
     .object({
       id: z.number(),
       price: z.number(),
+      discount: z.number(),
       quantity: z.number(),
       saleType: z.enum(['unit', 'bulk']),
       unitSelected: z.string()
@@ -51,7 +52,11 @@ export const storeOrderSchema = z.object({
   ]),
   order_total: z.number(),
   total_price: z.number(),
-  email: z.email()
+  email: z.email(),
+  payment_proof: z.string().optional(),
+  confirm_proof: z.string().optional(),
+  reference: z.string().optional(),
+  order_count: z.number()
 })
 
-export type storeOrder = z.infer<typeof storeOrderSchema>
+export type StoreOrder = z.infer<typeof storeOrderSchema>
