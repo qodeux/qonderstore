@@ -94,15 +94,15 @@ const EnviosTienda = () => {
     sessionStorage.setItem('admin_selected_store_order', JSON.stringify(storeOrders.find((order) => order.id === row.id)))
     navigate(`/admin/orden/${row.id}`)
   }
-  const handleCloseRoute = () => {
-    onOpenCloseRoute()
-  }
+  // const handleCloseRoute = () => {
+  //   onOpenCloseRoute()
+  // }
 
   const { isOpen: isOpenCloseRoute, onOpen: onOpenCloseRoute, onClose: onCloseCloseRoute } = useDisclosure()
 
   const filteredRows = useMemo(() => {
     const paidOrders = storeOrders.filter((order) => order.order_status === 'credited')
-    return applyToolbarFilters(paidOrders, ['name'], criteria)
+    return applyToolbarFilters(paidOrders, ['name', 'ci'], criteria)
   }, [storeOrders, criteria])
 
   return (
