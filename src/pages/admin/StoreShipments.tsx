@@ -114,7 +114,7 @@ const EnviosTienda = () => {
           { label: 'Status', column: 'shipment_status', multiple: true },
           { label: 'Ruta', column: 'delivery_route', multiple: true }
         ]}
-        buttons={[{ label: 'Cerrar ruta', onPress: handleCloseRoute, color: 'primary' as const }]}
+        // buttons={[{ label: 'Cerrar ruta', onPress: handleCloseRoute, color: 'primary' as const }]}
         onCriteriaChange={setCriteria}
       />
       <DataTable<Row>
