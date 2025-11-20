@@ -187,8 +187,13 @@ const PedidosTienda = () => {
         rows={storeOrders}
         searchFilter={['name']}
         filters={[
-          { label: 'Tipo de entrega', column: 'delivery_type', multiple: false },
-          { label: 'Status de la orden', column: 'order_status', multiple: true }
+          {
+            label: 'Tipo de entrega',
+            column: 'delivery_type',
+            multiple: false,
+            optionsMap: delivery_types
+          },
+          { label: 'Status de la orden', column: 'order_status', multiple: true, optionsMap: storeOrder_status }
         ]}
         //buttons={toolbarButtons}
         onCriteriaChange={setCriteria}
