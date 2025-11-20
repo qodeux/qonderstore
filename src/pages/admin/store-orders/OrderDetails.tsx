@@ -298,9 +298,11 @@ const OrderDetails = () => {
                 <div className='text-xl text-right w-full'>
                   Productos: <span className='font-bold'>{formatMoney(selectedOrder?.total_price ?? 0)}</span>
                 </div>
-                <div className='text-xl text-right w-full'>
-                  Envío: <span className='font-bold'>{formatMoney(selectedOrder?.shipping_price ?? 0)}</span>
-                </div>
+                {selectedOrder?.shipping_price !== 0 && (
+                  <div className='text-xl text-right w-full'>
+                    Envío: <span className='font-bold'>{formatMoney(selectedOrder?.shipping_price ?? 0)}</span>
+                  </div>
+                )}
 
                 {/* {cartHasDiscount && (
                       <div className='text-right text-2xl w-full'>
