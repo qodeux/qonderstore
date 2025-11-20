@@ -14,6 +14,7 @@ export type EntityKind =
   | 'storeOrders'
   | 'brands'
   | 'storeShipments'
+  | 'paymentMethods'
 
 export type MenuAction<T> = {
   key: string
@@ -135,5 +136,12 @@ export const entityRegistry: Record<EntityKind, EntityAdapter<any>> = {
   storeShipments: {
     table: 'store_orders_view',
     getId: (r) => r.id
+  },
+  paymentMethods: {
+    table: 'config',
+    getId: (r) => r.id,
+    update: async (id, patch) => {
+      await supabase.from('config').update(patch).eq('id', id)
+    }
   }
 }
