@@ -1,11 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Button, Input, Select, SelectItem } from '@heroui/react'
-import { CopyPlus, SquareMousePointer } from 'lucide-react'
+import { Button, Input, Select, SelectItem, Tooltip } from '@heroui/react'
+import { CopyCheck, CopyPlus, SquareMousePointer } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 
 export type SelectionBehavior = 'replace' | 'toggle'
+
+type OptionLike = {
+  key: string | number
+  label: string
+}
 
 export type ToolbarButton = {
   label: string
@@ -21,6 +26,7 @@ export type ToolbarFilter<T> = {
   column: keyof T // Columna a filtrar (ej. "category")
   multiple?: boolean // true por defecto
   formatOption?: (v: unknown) => string // opcional: cómo mostrar cada opción
+  optionsMap?: Record<string, string> | ReadonlyArray<OptionLike>
 }
 
 export type ToolbarCriteria<T> = {
@@ -59,6 +65,29 @@ type Props<T extends Record<string, any>> = {
 // Helper interno para serializar valores a string
 const toKey = (v: unknown) => (v == null ? '' : String(v))
 
+const resolveLabel = <T extends Record<string, any>>(f: ToolbarFilter<T>, rawValue: unknown): string => {
+  const v = toKey(rawValue)
+
+  // 1) formatOption manda primero si existe
+  if (f.formatOption) return f.formatOption(v)
+
+  // 2) optionsMap como Record<string, string>
+  if (f.optionsMap) {
+    if (Array.isArray(f.optionsMap)) {
+      // 2a) optionsMap como array [{ key, label }]
+      const found = f.optionsMap.find((opt) => toKey(opt.key) === v)
+      if (found) return found.label
+    } else {
+      // 2b) optionsMap como objeto { [key]: label }
+      const label = f.optionsMap[v]
+      if (label) return label
+    }
+  }
+
+  // 3) fallback: el valor crudo
+  return v
+}
+
 export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
   const {
     rows,
@@ -76,6 +105,7 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
   const [searchText, setSearchText] = useState('')
   // estado local de selección por filtro
   const [selected, setSelected] = useState<Partial<Record<string, Set<string>>>>({})
+  const [selectionMode, setSelectionMode] = useState<'single' | 'multiple'>('multiple')
 
   // Deriva opciones únicas por filtro a partir de las filas actuales
   const filterOptions = useMemo(() => {
@@ -98,11 +128,15 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
       const arr = Array.from(set).sort((a, b) => a.localeCompare(b))
       result[f.column as string] = arr.map((v) => ({
         value: v,
-        label: f.formatOption ? f.formatOption(v) : v
+        label: resolveLabel(f, v)
       }))
     }
     return result
   }, [rows, filters])
+
+  const toggleSelectionMode = () => {
+    setSelectionMode((prev) => (prev === 'multiple' ? 'single' : 'multiple'))
+  }
 
   // Notifica criterios al padre
   useEffect(() => {
@@ -112,10 +146,26 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
     })
   }, [searchText, selected, onCriteriaChange])
 
+  useEffect(() => {
+    //Si cambiamos de multiple a single, limpiamos todas las selecciones excepto la primera de cada filtro
+    if (selectionMode === 'single') {
+      setSelected((prev) => {
+        const newSelected: Partial<Record<string, Set<string>>> = {}
+        for (const [key, setVals] of Object.entries(prev)) {
+          if (setVals.size > 0) {
+            const first = Array.from(setVals)[0]
+            newSelected[key] = new Set([first])
+          }
+        }
+        return newSelected
+      })
+    }
+  }, [selectionMode])
+
   return (
     <div className={`flex justify-between items-center gap-4 ${className ?? ''}`}>
       {/* IZQUIERDA: búsqueda + filtros derivados + extras */}
-      <section className='flex-grow flex items-center gap-4 md:max-w-xl'>
+      <section className='flex-grow flex items-center gap-2 md:max-w-xl'>
         {searchFilter?.length ? (
           <Input
             label='Buscar...'
@@ -143,7 +193,7 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
               key={key}
               className='max-w-60'
               label={f.label}
-              selectionMode={f.multiple === false ? 'single' : 'multiple'}
+              selectionMode={f.multiple === false ? 'single' : selectionMode}
               isClearable
               size='sm'
               selectedKeys={current}
@@ -162,6 +212,14 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
             </Select>
           )
         })}
+
+        {filters && filters?.length > 0 && (
+          <Tooltip content={selectionMode === 'multiple' ? 'Selección multiple' : 'Selección simple'} placement='right'>
+            <Button isIconOnly variant='ghost' color='secondary' onPress={toggleSelectionMode}>
+              {selectionMode === 'multiple' ? <SquareMousePointer className='w-5 h-5' /> : <CopyCheck className='w-5 h-5' />}
+            </Button>
+          </Tooltip>
+        )}
 
         {leftExtra}
       </section>
