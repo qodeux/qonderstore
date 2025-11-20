@@ -54,7 +54,7 @@ const Checkout = () => {
       street_address: '',
       street_number: '',
       interior_number: undefined,
-      delivery_type: undefined,
+      delivery_type: 'standard',
       delivery_date: 'today',
       delivery_route: undefined,
       shipping_price: 0,
@@ -238,13 +238,19 @@ const Checkout = () => {
     if (shippingPrice === null) return
 
     if (watchDeliveryType === 'express') {
-      setValue('shipping_price', (watchShippingPrice ?? 0) + 150, { shouldValidate: true, shouldDirty: true })
+      const newPrice = shippingPrice + 150
+      setValue('shipping_price', newPrice, {
+        shouldValidate: true,
+        shouldDirty: true
+      })
     } else if (watchDeliveryType === 'standard' || watchDeliveryType === 'custom') {
-      // Quitar recargo si lo hay
-      const baseShippingPrice = shippingPrice ? shippingPrice : null
-      setValue('shipping_price', baseShippingPrice, { shouldValidate: true, shouldDirty: true })
+      const baseShippingPrice = shippingPrice ?? null
+      setValue('shipping_price', baseShippingPrice, {
+        shouldValidate: true,
+        shouldDirty: true
+      })
     }
-  }, [watchDeliveryType, setValue, shippingPrice, watchShippingPrice])
+  }, [watchDeliveryType, shippingPrice, setValue])
 
   const handlePromoApply = () => {
     if ((watchCouponCode ?? '').toUpperCase() !== 'QONDER10') {
@@ -623,7 +629,8 @@ const Checkout = () => {
                           <>
                             <Radio value={'standard'}>Próxima ruta disponible</Radio>
                             <Radio value={'custom'}>Seleccionar ruta</Radio>
-                            <Radio value={'express'}>Entrega express</Radio>
+                            {shippingPrice !== null && <Radio value={'express'}>Entrega express</Radio>}
+                            {user?.role !== 'customer' && <Radio value={'pickup'}>Pickup</Radio>}
                           </>
                         ) : (
                           <Radio value={'foreign'}>Envío foráneo</Radio>
