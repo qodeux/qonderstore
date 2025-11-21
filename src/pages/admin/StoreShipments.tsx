@@ -111,8 +111,8 @@ const EnviosTienda = () => {
         rows={storeOrders}
         searchFilter={['name']}
         filters={[
-          { label: 'Status', column: 'shipment_status', multiple: true },
-          { label: 'Ruta', column: 'delivery_route', multiple: true }
+          { label: 'Status', column: 'shipment_status', multiple: true, optionsMap: storeShipment_status },
+          { label: 'Ruta', column: 'delivery_route', multiple: true, optionsMap: deliveryRoutesMap }
         ]}
         // buttons={[{ label: 'Cerrar ruta', onPress: handleCloseRoute, color: 'primary' as const }]}
         onCriteriaChange={setCriteria}
