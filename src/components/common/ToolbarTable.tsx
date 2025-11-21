@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Button, Input, Select, SelectItem, Tooltip } from '@heroui/react'
+import { Button, Input, Select, SelectItem, Tooltip, useDisclosure } from '@heroui/react'
 import { CopyCheck, CopyPlus, SquareMousePointer } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
+import MobileFiltersModal from '../modals/admin/MobileFiltersModal'
 
 export type SelectionBehavior = 'replace' | 'toggle'
 
@@ -107,6 +108,8 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
   const [selected, setSelected] = useState<Partial<Record<string, Set<string>>>>({})
   const [selectionMode, setSelectionMode] = useState<'single' | 'multiple'>('multiple')
 
+  const { isOpen, onOpen, onOpenChange } = useDisclosure()
+
   // Deriva opciones únicas por filtro a partir de las filas actuales
   const filterOptions = useMemo(() => {
     if (!filters?.length) return {}
@@ -165,7 +168,7 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
   return (
     <div className={`flex justify-between items-center gap-4 ${className ?? ''}`}>
       {/* IZQUIERDA: búsqueda + filtros derivados + extras */}
-      <section className='flex-grow flex items-center gap-2 '>
+      <section className='hidden md:flex flex-grow  items-center gap-2 '>
         {searchFilter?.length ? (
           <Input
             label='Buscar...'
@@ -224,6 +227,10 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
         {leftExtra}
       </section>
 
+      <section className='flex-grow md:hidden'>
+        <Button onPress={onOpen}>Filtrar resultados</Button>
+      </section>
+
       {/* DERECHA: toggle behavior + botones globales */}
       <section className='flex items-center gap-2'>
         {enableToggleBehavior && onToggleBehavior ? (
@@ -253,6 +260,74 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
           </Button>
         ))}
       </section>
+      <MobileFiltersModal isOpen={isOpen} onOpenChange={onOpenChange}>
+        {searchFilter?.length ? (
+          <Input
+            label='Buscar...'
+            type='text'
+            size='sm'
+            variant='bordered'
+            className='max-w-full'
+            classNames={{ inputWrapper: 'bg-white' }}
+            value={searchText}
+            onClear={() => setSearchText('')}
+            onValueChange={(v) => setSearchText(v ?? '')}
+          />
+        ) : null}
+
+        {filters?.map((f) => {
+          const key = f.column as string
+          const options = filterOptions[key] ?? []
+          // no muestres el filtro si no hay opciones
+          if (!options.length) return null
+
+          const current = selected[key] ?? new Set<string>()
+
+          return (
+            <Select
+              key={key}
+              className='max-w-full'
+              label={f.label}
+              selectionMode={f.multiple === false ? 'single' : selectionMode}
+              isClearable
+              size='sm'
+              selectedKeys={current}
+              variant='bordered'
+              classNames={{ trigger: 'bg-white' }}
+              onSelectionChange={(keys) => {
+                // keys puede ser Set<Key> o string cuando es single
+                const setVals = typeof keys === 'string' ? new Set([keys]) : new Set(Array.from(keys).map((k) => String(k)))
+
+                setSelected((prev) => ({ ...prev, [key]: setVals }))
+              }}
+            >
+              {options.map((opt) => (
+                <SelectItem key={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </Select>
+          )
+        })}
+
+        {filters && filters?.length > 0 && (
+          <Tooltip content={selectionMode === 'multiple' ? 'Cambiar a selección simple' : 'Cambiar a selección multiple'} placement='right'>
+            <Button variant='ghost' color='secondary' onPress={toggleSelectionMode}>
+              {selectionMode === 'multiple' ? (
+                <>
+                  <SquareMousePointer className='w-5 h-5' />
+                  Cambiar a selección simple
+                </>
+              ) : (
+                <>
+                  <CopyCheck className='w-5 h-5' />
+                  Cambiar a selección multiple
+                </>
+              )}
+            </Button>
+          </Tooltip>
+        )}
+
+        {leftExtra}
+      </MobileFiltersModal>
     </div>
   )
 }
