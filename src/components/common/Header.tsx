@@ -30,7 +30,7 @@ const Header = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const { totalQuantity } = useSelector((state: RootState) => state.cart)
+  const { items } = useSelector((state: RootState) => state.cart)
 
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
@@ -106,11 +106,11 @@ const Header = () => {
                 <Badge
                   className='dark'
                   color='danger'
-                  content={totalQuantity}
+                  content={items.length}
                   shape='circle'
                   classNames={{ badge: 'absolute bottom-3' }}
                   placement='bottom-right'
-                  isInvisible={totalQuantity === 0}
+                  isInvisible={items.length === 0}
                 >
                   <Button isIconOnly variant='light' onPress={handleToggleCart} className='text-white' radius='full'>
                     <ShoppingCart />
