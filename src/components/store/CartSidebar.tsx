@@ -1,7 +1,7 @@
 // components/store/CatalogSidebar.tsx
 import { Button, Input } from '@heroui/react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { X } from 'lucide-react'
+import { CircleCheck, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
@@ -165,7 +165,10 @@ const CartSidebar = ({ isOpen }: Props) => {
               </div>
             </div>
 
-            <Button onPress={handleCheckout}>Realizar pedido</Button>
+            <Button className='border-2 border-black bg-white hover:bg-black hover:text-white' onPress={handleCheckout}>
+              <CircleCheck />
+              Realizar pedido
+            </Button>
           </motion.footer>
         )}
       </AnimatePresence>
