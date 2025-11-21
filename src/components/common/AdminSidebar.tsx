@@ -19,7 +19,6 @@ import {
 } from 'lucide-react'
 import { useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
-import { useDeviceScreen } from '../../hooks/useDeviceScreen'
 import type { RootState } from '../../store/store'
 
 interface AdminSidebarProps {
@@ -113,7 +112,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
   const location = useLocation()
   const [expandedItem, setExpandedItem] = useState<string | null>(null)
   const { user } = useSelector((state: RootState) => state.auth)
-  const { isDesktop } = useDeviceScreen()
 
   const toggleExpand = (label: string) => {
     setExpandedItem(expandedItem === label ? null : label)

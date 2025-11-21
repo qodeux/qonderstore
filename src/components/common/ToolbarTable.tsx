@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { Button, Input, Select, SelectItem, Tooltip, useDisclosure } from '@heroui/react'
 import { CopyCheck, CopyPlus, SquareMousePointer } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -80,7 +79,7 @@ const resolveLabel = <T extends Record<string, any>>(f: ToolbarFilter<T>, rawVal
       if (found) return found.label
     } else {
       // 2b) optionsMap como objeto { [key]: label }
-      const label = f.optionsMap[v]
+      const label = (f.optionsMap as Record<string, string>)[v]
       if (label) return label
     }
   }
@@ -155,7 +154,7 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
       setSelected((prev) => {
         const newSelected: Partial<Record<string, Set<string>>> = {}
         for (const [key, setVals] of Object.entries(prev)) {
-          if (setVals.size > 0) {
+          if (setVals && setVals.size > 0) {
             const first = Array.from(setVals)[0]
             newSelected[key] = new Set([first])
           }
