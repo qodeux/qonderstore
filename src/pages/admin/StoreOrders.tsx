@@ -190,7 +190,7 @@ const PedidosTienda = () => {
           {
             label: 'Tipo de entrega',
             column: 'delivery_type',
-            multiple: false,
+            multiple: true,
             optionsMap: delivery_types
           },
           { label: 'Status de la orden', column: 'order_status', multiple: true, optionsMap: storeOrder_status }
