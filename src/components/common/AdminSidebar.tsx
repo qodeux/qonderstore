@@ -19,10 +19,12 @@ import {
 } from 'lucide-react'
 import { useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
+import { useDeviceScreen } from '../../hooks/useDeviceScreen'
 import type { RootState } from '../../store/store'
 
 interface AdminSidebarProps {
   isOpen: boolean
+  onToggle?: () => void
 }
 
 interface MenuItem {
@@ -111,6 +113,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
   const location = useLocation()
   const [expandedItem, setExpandedItem] = useState<string | null>(null)
   const { user } = useSelector((state: RootState) => state.auth)
+  const { isDesktop } = useDeviceScreen()
 
   const toggleExpand = (label: string) => {
     setExpandedItem(expandedItem === label ? null : label)
@@ -137,9 +140,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
   return (
     <aside
       className={`
-        sticky top-0 bg-white shadow-sm w-64  h-[calc(100vh-4rem)]
-        transition-transform duration-300 z-30
-        ${isOpen ? 'translate-x-0' : '-translate-x-64'}
+          bg-white shadow-sm   h-[calc(100vh-4rem)]
+        transition-all duration-300 z-30
+        ${isOpen ? ' w-64 opacity-100' : 'w-0 opacity-0'}
       `}
     >
       <nav className='p-4'>
@@ -204,7 +207,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
                   `}
                   >
                     {item.icon}
-                    <span>{item.label}</span>
+                    {<span>{item.label}</span>}
                   </button>
                 )}
               </li>
