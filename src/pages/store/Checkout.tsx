@@ -894,7 +894,7 @@ const Checkout = () => {
               <Button
                 type='submit'
                 isDisabled={formState.isSubmitting || (formState.isSubmitted && !formState.isValid)}
-                size='lg'
+                size='md'
                 className='w-full bg-black text-white'
               >
                 Realizar pedido

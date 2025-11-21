@@ -165,9 +165,12 @@ const CartSidebar = ({ isOpen }: Props) => {
               </div>
             </div>
 
-            <Button className='border-2 border-black bg-white hover:bg-black hover:text-white' onPress={handleCheckout}>
+            <Button
+              className='border-2 border-black bg-white hover:bg-black hover:text-white hover:!opacity-100 data-[hover=true]:opacity-100'
+              onPress={handleCheckout}
+            >
               <CircleCheck />
-              Realizar pedido
+              Iniciar pedido
             </Button>
           </motion.footer>
         )}
