@@ -242,12 +242,12 @@ const Account = () => {
                       <p className='text-2xl'>
                         Total: <span className='font-bold'>{formatMoney(order.order_total)}</span>
                       </p>
-                      <p>
+                      <div>
                         Estado:{' '}
                         <Chip variant='flat' color={orderStatus?.color}>
                           {orderStatus?.label}
                         </Chip>
-                      </p>
+                      </div>
                     </div>
                   </Card>
                 )
