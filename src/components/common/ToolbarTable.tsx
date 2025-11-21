@@ -165,7 +165,7 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
   return (
     <div className={`flex justify-between items-center gap-4 ${className ?? ''}`}>
       {/* IZQUIERDA: búsqueda + filtros derivados + extras */}
-      <section className='flex-grow flex items-center gap-2 md:max-w-xl'>
+      <section className='flex-grow flex items-center gap-2 '>
         {searchFilter?.length ? (
           <Input
             label='Buscar...'
@@ -214,7 +214,7 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
         })}
 
         {filters && filters?.length > 0 && (
-          <Tooltip content={selectionMode === 'multiple' ? 'Selección multiple' : 'Selección simple'} placement='right'>
+          <Tooltip content={selectionMode === 'multiple' ? 'Cambiar a selección simple' : 'Cambiar a selección multiple'} placement='right'>
             <Button isIconOnly variant='ghost' color='secondary' onPress={toggleSelectionMode}>
               {selectionMode === 'multiple' ? <SquareMousePointer className='w-5 h-5' /> : <CopyCheck className='w-5 h-5' />}
             </Button>
