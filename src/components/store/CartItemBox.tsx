@@ -21,8 +21,21 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
   const dispatch = useDispatch()
   const subtotal = readOnly ? item.price - (item.discount ?? 0) : item.price * item.quantity - (item.discount ?? 0)
 
-  const handleDeleteItem = () => dispatch(removeItem({ id: item.id }))
-  const handleChangeQty = (q: number) => dispatch(updateQuantity({ id: item.id, quantity: q }))
+  const handleDeleteItem = () =>
+    dispatch(
+      removeItem({
+        id: item.id,
+        unitSelected: item.unitSelected ?? item.base_unit
+      })
+    )
+  const handleChangeQty = (q: number) =>
+    dispatch(
+      updateQuantity({
+        id: item.id,
+        unitSelected: item.unitSelected ?? item.base_unit, // importantísimo
+        quantity: q
+      })
+    )
 
   const handleChangeUnit = (u: string) => {
     // Si el item ya trae item.units, no necesitas pasar unitsMap

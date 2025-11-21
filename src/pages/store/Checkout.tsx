@@ -54,7 +54,7 @@ const Checkout = () => {
       street_address: '',
       street_number: '',
       interior_number: undefined,
-      delivery_type: undefined,
+      delivery_type: 'standard',
       delivery_date: 'today',
       delivery_route: undefined,
       shipping_price: 0,
@@ -237,14 +237,27 @@ const Checkout = () => {
   useEffect(() => {
     if (shippingPrice === null) return
 
-    if (watchDeliveryType === 'express') {
-      setValue('shipping_price', (watchShippingPrice ?? 0) + 150, { shouldValidate: true, shouldDirty: true })
-    } else if (watchDeliveryType === 'standard' || watchDeliveryType === 'custom') {
-      // Quitar recargo si lo hay
-      const baseShippingPrice = shippingPrice ? shippingPrice : null
-      setValue('shipping_price', baseShippingPrice, { shouldValidate: true, shouldDirty: true })
+    if (watchDeliveryType === 'pickup') {
+      setValue('shipping_price', 0, {
+        shouldValidate: true,
+        shouldDirty: true
+      })
     }
-  }, [watchDeliveryType, setValue, shippingPrice, watchShippingPrice])
+
+    if (watchDeliveryType === 'express') {
+      const newPrice = shippingPrice + 150
+      setValue('shipping_price', newPrice, {
+        shouldValidate: true,
+        shouldDirty: true
+      })
+    } else if (watchDeliveryType === 'standard' || watchDeliveryType === 'custom') {
+      const baseShippingPrice = shippingPrice ?? null
+      setValue('shipping_price', baseShippingPrice, {
+        shouldValidate: true,
+        shouldDirty: true
+      })
+    }
+  }, [watchDeliveryType, shippingPrice, setValue])
 
   const handlePromoApply = () => {
     if ((watchCouponCode ?? '').toUpperCase() !== 'QONDER10') {
@@ -623,7 +636,8 @@ const Checkout = () => {
                           <>
                             <Radio value={'standard'}>Próxima ruta disponible</Radio>
                             <Radio value={'custom'}>Seleccionar ruta</Radio>
-                            <Radio value={'express'}>Entrega express</Radio>
+                            {shippingPrice !== null && <Radio value={'express'}>Entrega express</Radio>}
+                            {user?.role !== 'customer' && <Radio value={'pickup'}>Pickup</Radio>}
                           </>
                         ) : (
                           <Radio value={'foreign'}>Envío foráneo</Radio>
@@ -631,44 +645,46 @@ const Checkout = () => {
                       </RadioGroup>
                     )}
                   />
-                  <Controller
-                    name='shipping_price'
-                    control={control}
-                    render={({ field, fieldState }) => (
-                      <NumericFormat
-                        variant='bordered'
-                        className='max-w-[150px]'
-                        classNames={{ inputWrapper: 'bg-white' }}
-                        label='Precio de envío'
-                        value={field.value ?? ''}
-                        onValueChange={(v) => field.onChange(v.floatValue ?? undefined)}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        getInputRef={field.ref}
-                        thousandSeparator
-                        decimalScale={2}
-                        fixedDecimalScale
-                        allowNegative={false}
-                        prefix='$ '
-                        inputMode='decimal'
-                        customInput={Input}
-                        size='sm'
-                        isInvalid={!!fieldState.error}
-                        errorMessage={fieldState.error?.message}
-                        onFocus={(e) => {
-                          setTimeout(() => e.currentTarget.select(), 0)
-                        }}
-                        onPointerDown={(e) => {
-                          const el = e.currentTarget as HTMLInputElement
-                          if (document.activeElement !== el) {
-                            e.preventDefault()
-                            el.focus()
-                            el.select()
-                          }
-                        }}
-                      />
-                    )}
-                  />
+                  {watchDeliveryType !== 'pickup' && (
+                    <Controller
+                      name='shipping_price'
+                      control={control}
+                      render={({ field, fieldState }) => (
+                        <NumericFormat
+                          variant='bordered'
+                          className='max-w-[150px]'
+                          classNames={{ inputWrapper: 'bg-white' }}
+                          label='Precio de envío'
+                          value={field.value ?? ''}
+                          onValueChange={(v) => field.onChange(v.floatValue ?? undefined)}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          getInputRef={field.ref}
+                          thousandSeparator
+                          decimalScale={2}
+                          fixedDecimalScale
+                          allowNegative={false}
+                          prefix='$ '
+                          inputMode='decimal'
+                          customInput={Input}
+                          size='sm'
+                          isInvalid={!!fieldState.error}
+                          errorMessage={fieldState.error?.message}
+                          onFocus={(e) => {
+                            setTimeout(() => e.currentTarget.select(), 0)
+                          }}
+                          onPointerDown={(e) => {
+                            const el = e.currentTarget as HTMLInputElement
+                            if (document.activeElement !== el) {
+                              e.preventDefault()
+                              el.focus()
+                              el.select()
+                            }
+                          }}
+                        />
+                      )}
+                    />
+                  )}
                 </div>
 
                 {watchDeliveryType === 'custom' && (
@@ -885,7 +901,7 @@ const Checkout = () => {
                     </motion.span>
                   )}
                 </div>
-                {watchDeliveryType !== undefined && (
+                {watchDeliveryType !== undefined && watchShippingPrice !== 0 && (
                   <div className='text-2xl text-right w-full'>
                     Envío : <span className='font-bold'>{formatMoney(watchShippingPrice ?? 0)}</span>
                   </div>

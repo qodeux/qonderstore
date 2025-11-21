@@ -16,7 +16,14 @@ import type { CartItem } from '../../../store/slices/cartSlice'
 import { setSelectedOrder } from '../../../store/slices/storeOrdersSlice'
 import { useAppSelector } from '../../../store/store'
 import type { SaleType } from '../../../types/products'
-import { delivery_types, deliveryRoutesMap, storeOrder_status, type IPGeolocation, type SublocalityData } from '../../../types/storeOrders'
+import {
+  delivery_types,
+  deliveryRoutesMap,
+  storeOrder_status,
+  storeShipment_status,
+  type IPGeolocation,
+  type SublocalityData
+} from '../../../types/storeOrders'
 import { formatDate } from '../../../utils/date'
 import { formatMoney } from '../../../utils/money'
 
@@ -134,7 +141,7 @@ const OrderDetails = () => {
   }, [selectedOrder?.sublocality])
 
   const orderStatus = storeOrder_status.find((status) => status.key === selectedOrder?.order_status)
-  //const shipmentStatus = shipment_status.find((status) => status.key === selectedOrder?.shipment_status)
+  const shipmentStatus = storeShipment_status.find((status) => status.key === selectedOrder?.shipment_status)
 
   if (!id || !selectedOrder) {
     navigate(-1)
@@ -172,7 +179,12 @@ const OrderDetails = () => {
 
         <div className='col-span-2'>
           <h3 className='text-lg font-semibold mt-2'>
-            Datos de entrega {selectedOrder?.shipment_status && <Chip variant='flat'>{selectedOrder.shipment_status}</Chip>}
+            Datos de entrega{' '}
+            {selectedOrder?.shipment_status && (
+              <Chip variant='flat' color={shipmentStatus?.color}>
+                {shipmentStatus?.label}
+              </Chip>
+            )}
           </h3>
           <section className='flex justify-between'>
             <div className='text-sm'>
@@ -238,7 +250,7 @@ const OrderDetails = () => {
           </div>
         )}
       </Card>
-      <section className='w-[380px] md:sticky md:top-0 h-fit '>
+      <section className='w-full md:w-[380px] md:sticky md:top-0 h-fit '>
         <div className='flex flex-col w-full border border-foreground-400 rounded-md  bg-white shadow-md overflow-hidden'>
           {cartItems.length !== 0 && (
             <motion.header
@@ -286,9 +298,11 @@ const OrderDetails = () => {
                 <div className='text-xl text-right w-full'>
                   Productos: <span className='font-bold'>{formatMoney(selectedOrder?.total_price ?? 0)}</span>
                 </div>
-                <div className='text-xl text-right w-full'>
-                  Envío: <span className='font-bold'>{formatMoney(selectedOrder?.shipping_price ?? 0)}</span>
-                </div>
+                {selectedOrder?.shipping_price !== 0 && (
+                  <div className='text-xl text-right w-full'>
+                    Envío: <span className='font-bold'>{formatMoney(selectedOrder?.shipping_price ?? 0)}</span>
+                  </div>
+                )}
 
                 {/* {cartHasDiscount && (
                       <div className='text-right text-2xl w-full'>

@@ -99,19 +99,11 @@ const CartSidebar = ({ isOpen }: Props) => {
               </motion.div>
             </div>
           )}
-          <AnimatePresence>
-            {cartItems.map((item, index) => (
-              <motion.div
-                key={`${item.id}-${item.unitSelected ?? item.base_unit}-${index}`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: 200 }}
-                transition={{ duration: 0.2 }}
-              >
-                <CartItemBox item={item} isLast={index === cartItems.length - 1} listRef={listRef} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
+          {cartItems.map((item, index) => (
+            <div key={`${item.id}-${item.unitSelected ?? item.base_unit}-${index}`}>
+              <CartItemBox item={item} isLast={index === cartItems.length - 1} listRef={listRef} />
+            </div>
+          ))}
         </section>
 
         {cartItems.length !== 0 && (

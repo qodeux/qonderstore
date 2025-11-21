@@ -131,7 +131,7 @@ const Promotions = () => {
         <ToolbarTable<Row>
           rows={filteredRows}
           searchFilter={['name']}
-          filters={[{ label: 'Tipo de promoción', column: 'promo_type', multiple: true }]}
+          filters={[{ label: 'Tipo de promoción', column: 'promo_type', multiple: true, optionsMap: promoTypeMap }]}
           enableToggleBehavior
           selectionBehavior={selectionBehavior}
           onToggleBehavior={toggleSelectionBehavior}
