@@ -1,9 +1,10 @@
 import { Button } from '@heroui/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Trash } from 'lucide-react'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { clearError, removeItem, updateQuantity, updateUnit, type CartItem } from '../../store/slices/cartSlice'
+import { bulkUnitsAvailable, type BulkUnit } from '../../types/products'
 import { all_units } from '../../types/storeOrders'
 import { formatMoney } from '../../utils/money'
 import PresignedImage from '../common/cloudflare-r2/PresignedImage'
@@ -17,22 +18,44 @@ type CartItemBoxProps = {
   readOnly?: boolean
 }
 
+// helper: gramos por unidad para bulk
+const getBulkUnitFactorInGrams = (unitKey: BulkUnit | null): number => {
+  if (!unitKey) return 1
+  const found = bulkUnitsAvailable.find((u) => u.key === unitKey)
+  return found?.value ?? 1
+}
+
 const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
   const dispatch = useDispatch()
   const subtotal = readOnly ? item.price - (item.discount ?? 0) : item.price * item.quantity - (item.discount ?? 0)
 
-  const handleDeleteItem = () => dispatch(removeItem({ id: item.id }))
-  const handleChangeQty = (q: number) => dispatch(updateQuantity({ id: item.id, quantity: q }))
+  // error local para cosas como "Cantidad máxima alcanzada"
+  const [localError, setLocalError] = useState<string | null>(null)
+
+  const handleDeleteItem = () =>
+    dispatch(
+      removeItem({
+        id: item.id,
+        unitSelected: item.unitSelected ?? item.base_unit
+      })
+    )
+
+  const handleChangeQty = (q: number) =>
+    dispatch(
+      updateQuantity({
+        id: item.id,
+        unitSelected: item.unitSelected ?? item.base_unit, // importantísimo
+        quantity: q
+      })
+    )
 
   const handleChangeUnit = (u: string) => {
-    // Si el item ya trae item.units, no necesitas pasar unitsMap
     dispatch(updateUnit({ id: item.id, unit: u, unitsMap: item.units }))
   }
 
   const scrollToBottom = useCallback(() => {
     const el = listRef?.current
     if (!el) return
-    // Espera al layout/animación de Framer antes de scrollear
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
@@ -40,19 +63,43 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
     })
   }, [listRef])
 
-  // Limpia el error 3 segundos después de aparecer
-  useEffect(() => {
-    if (item.error) {
-      if (isLast) {
-        scrollToBottom()
-      }
+  // error combinado: preferimos el local si existe
+  const errorMessage = localError ?? item.error ?? null
 
-      const timer = setTimeout(() => {
-        dispatch(clearError({ id: item.id }))
-      }, 2000)
-      return () => clearTimeout(timer)
+  // Limpia el error 2s después de aparecer (tanto Redux como local)
+  useEffect(() => {
+    if (!errorMessage) return
+
+    if (isLast) {
+      scrollToBottom()
     }
-  }, [item.error, item.id, dispatch, isLast, scrollToBottom])
+
+    const timer = setTimeout(() => {
+      if (item.error) {
+        dispatch(clearError({ id: item.id }))
+      }
+      if (localError) {
+        setLocalError(null)
+      }
+    }, 2000)
+
+    return () => clearTimeout(timer)
+  }, [errorMessage, item.error, item.id, dispatch, isLast, scrollToBottom, localError])
+
+  // ====== MAX QUANTITY SEGÚN TIPO ======
+  const rawStock = Number(item.stock ?? 0)
+  let maxQuantity: number
+
+  if (item.saleType === 'bulk') {
+    // stock en gramos → convertir a la unidad del item (gr/oz/lb)
+    const unitKey = (item.unitSelected ?? item.base_unit ?? null) as BulkUnit | null
+    const gramsPerUnit = getBulkUnitFactorInGrams(unitKey)
+    if (rawStock <= 0 || gramsPerUnit <= 0) maxQuantity = 0
+    else maxQuantity = Math.floor(rawStock / gramsPerUnit)
+  } else {
+    // unit: stock interpretado como número de piezas
+    maxQuantity = rawStock > 0 ? rawStock : item.quantity || 1
+  }
 
   return (
     <article className='flex flex-col gap-4'>
@@ -80,8 +127,13 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
 
       {!readOnly && (
         <section className='flex gap-2 justify-between'>
-          {/* Forzamos al error si el quantity es mayor al stock */}
-          <QuantitySelector quantity={item.quantity} setQuantity={handleChangeQty} maxQuantity={item.stock ? item.stock + 1 : 1} />
+          <QuantitySelector
+            quantity={item.quantity}
+            setQuantity={handleChangeQty}
+            maxQuantity={maxQuantity}
+            onError={setLocalError} // 👈 aquí mostramos "Cantidad máxima alcanzada"
+          />
+
           {item.saleType === 'bulk' && (
             <UnitSelector
               quantity={item.quantity}
@@ -91,6 +143,7 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
               onChange={handleChangeUnit}
             />
           )}
+
           <Button isIconOnly size='lg' color='danger' variant='ghost' onPress={handleDeleteItem}>
             <Trash />
           </Button>
@@ -98,7 +151,7 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
       )}
 
       <AnimatePresence>
-        {item.error && (
+        {errorMessage && (
           <motion.p
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -106,7 +159,7 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
             transition={{ duration: 0.2, type: 'spring', stiffness: 500, damping: 30 }}
             className='text-sm text-danger animate-fade-in'
           >
-            {item.error}
+            {errorMessage}
           </motion.p>
         )}
       </AnimatePresence>

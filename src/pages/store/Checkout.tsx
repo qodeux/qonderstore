@@ -328,9 +328,11 @@ const Checkout = () => {
     }
   )
 
-  // if (cartItems.length === 0) {
-  //   navigate('/tienda/productos')
-  // }
+  useEffect(() => {
+    if (cartItems.length === 0) {
+      navigate('/tienda/productos')
+    }
+  }, [cartItems.length, navigate])
 
   return (
     <form
@@ -788,62 +790,35 @@ const Checkout = () => {
       </div>
 
       {/* Columna derecha (carrito) */}
-      <div className='flex flex-col w-full md:sticky md:top-20 lg:max-h-[65vh] h-fit border border-foreground-400 rounded-md overflow-hidden bg-white shadow-md'>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, type: 'spring' }}
+        className='flex flex-col w-full md:sticky md:top-20 lg:max-h-[65vh] h-fit border border-foreground-400 rounded-md overflow-hidden bg-white shadow-md'
+      >
         <AnimatePresence>
           {cartItems.length !== 0 && (
-            <motion.header
-              key='cart-header'
-              initial={{ y: -100 }}
-              animate={{ y: 0 }}
-              exit={{ y: -100 }}
-              transition={{ duration: 0.2, delay: 0.2, type: 'spring' }}
-              className='px-4 py-2 flex items-center justify-between border-b border-foreground-400'
-            >
+            <header key='cart-header' className='px-4 py-2 flex items-center justify-between border-b border-foreground-400'>
               <h2 className='text-lg'>Resumen de tu pedido</h2>
               <motion.span className='text-sm text-gray-500'>
                 {cartItems.length} {cartItems.length === 1 ? 'artículo' : 'artículos'}
               </motion.span>
-            </motion.header>
+            </header>
           )}
 
           <section ref={listRef} className='flex flex-col gap-4 overflow-y-auto overflow-x-hidden p-4'>
-            {cartItems.length === 0 && (
-              <div className='text-center h-full flex flex-col items-center justify-center gap-2 p-4'>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.5, type: 'spring' }}
-                >
-                  <img src='/errors/empty-cart.webp' alt='' />
-                  <h4 className='text-xl font-bold'>No hay nada aquí</h4>
-                  <p className='text-gray-500 text-sm text-balance'>
-                    Houston... tenemos un carrito vacío. Agrega algo para comenzar el viaje.
-                  </p>
-                </motion.div>
-              </div>
-            )}
             <AnimatePresence>
               {cartItems.map((item, index) => (
-                <motion.div
-                  key={`${item.id}-${item.unitSelected ?? item.base_unit}-${index}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: 200 }}
-                  transition={{ duration: 0.2 }}
-                >
+                <div key={`${item.id}-${item.unitSelected ?? item.base_unit}-${index}`}>
                   <CartItemBox item={item} isLast={index === cartItems.length - 1} listRef={listRef} />
-                </motion.div>
+                </div>
               ))}
             </AnimatePresence>
           </section>
 
           {cartItems.length !== 0 && (
-            <motion.footer
+            <footer
               key='cart-footer'
-              initial={{ y: 100 }}
-              animate={{ y: 0 }}
-              exit={{ y: 100 }}
-              transition={{ duration: 0.2, delay: 0.3, type: 'spring' }}
               className='flex flex-col shrink-0 p-4 border-t border-foreground-400 bg-white gap-4 overflow-hidden z-10 sticky bottom-0 w-full'
             >
               <AnimatePresence>
@@ -919,15 +894,15 @@ const Checkout = () => {
               <Button
                 type='submit'
                 isDisabled={formState.isSubmitting || (formState.isSubmitted && !formState.isValid)}
-                size='lg'
+                size='md'
                 className='w-full bg-black text-white'
               >
                 Realizar pedido
               </Button>
-            </motion.footer>
+            </footer>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
     </form>
   )
 }

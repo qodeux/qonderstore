@@ -1,7 +1,7 @@
 // components/store/CatalogSidebar.tsx
 import { Button, Input } from '@heroui/react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { X } from 'lucide-react'
+import { CircleCheck, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
@@ -93,22 +93,17 @@ const CartSidebar = ({ isOpen }: Props) => {
                 <p className='text-gray-500 text-sm text-balance'>
                   Houston... tenemos un carrito vacío. Agrega algo para comenzar el viaje.
                 </p>
+                <Button className='bg-black text-white mt-2' onPress={() => navigate('/tienda/productos')}>
+                  Ver productos
+                </Button>
               </motion.div>
             </div>
           )}
-          <AnimatePresence>
-            {cartItems.map((item, index) => (
-              <motion.div
-                key={`${item.id}-${item.unitSelected ?? item.base_unit}-${index}`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: 200 }}
-                transition={{ duration: 0.2 }}
-              >
-                <CartItemBox item={item} isLast={index === cartItems.length - 1} listRef={listRef} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
+          {cartItems.map((item, index) => (
+            <div key={`${item.id}-${item.unitSelected ?? item.base_unit}-${index}`}>
+              <CartItemBox item={item} isLast={index === cartItems.length - 1} listRef={listRef} />
+            </div>
+          ))}
         </section>
 
         {cartItems.length !== 0 && (
@@ -170,7 +165,13 @@ const CartSidebar = ({ isOpen }: Props) => {
               </div>
             </div>
 
-            <Button onPress={handleCheckout}>Realizar pedido</Button>
+            <Button
+              className='border-2 border-black bg-white hover:bg-black hover:text-white hover:!opacity-100 data-[hover=true]:opacity-100'
+              onPress={handleCheckout}
+            >
+              <CircleCheck />
+              Iniciar pedido
+            </Button>
           </motion.footer>
         )}
       </AnimatePresence>
