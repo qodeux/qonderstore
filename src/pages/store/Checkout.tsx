@@ -790,7 +790,12 @@ const Checkout = () => {
       </div>
 
       {/* Columna derecha (carrito) */}
-      <div className='flex flex-col w-full md:sticky md:top-20 lg:max-h-[65vh] h-fit border border-foreground-400 rounded-md overflow-hidden bg-white shadow-md'>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, type: 'spring' }}
+        className='flex flex-col w-full md:sticky md:top-20 lg:max-h-[65vh] h-fit border border-foreground-400 rounded-md overflow-hidden bg-white shadow-md'
+      >
         <AnimatePresence>
           {cartItems.length !== 0 && (
             <header key='cart-header' className='px-4 py-2 flex items-center justify-between border-b border-foreground-400'>
@@ -897,7 +902,7 @@ const Checkout = () => {
             </footer>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
     </form>
   )
 }
