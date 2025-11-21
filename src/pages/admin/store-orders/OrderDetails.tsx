@@ -250,7 +250,7 @@ const OrderDetails = () => {
           </div>
         )}
       </Card>
-      <section className='w-[380px] md:sticky md:top-0 h-fit '>
+      <section className='w-full md:w-[380px] md:sticky md:top-0 h-fit '>
         <div className='flex flex-col w-full border border-foreground-400 rounded-md  bg-white shadow-md overflow-hidden'>
           {cartItems.length !== 0 && (
             <motion.header
