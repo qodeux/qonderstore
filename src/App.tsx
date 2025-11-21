@@ -5,6 +5,7 @@ import { AuthOverlay } from './components/AuthOverlay'
 import ScrollToTop from './components/common/ScrollToTop'
 import { SessionBootstrapper } from './components/SessionBootstraper'
 import { useProductBrands } from './hooks/useBrands'
+import { useCartStorageSync } from './hooks/useCartStorageSync'
 import { useCategories } from './hooks/useCategories'
 import { useProducts } from './hooks/useProducts'
 import { usePromotions } from './hooks/usePromotions'
@@ -17,6 +18,8 @@ function App() {
   useProducts()
   useProductBrands()
   usePromotions()
+
+  useCartStorageSync()
 
   return (
     <HeroUIProvider navigate={navigate} useHref={useHref}>

@@ -93,6 +93,9 @@ const CartSidebar = ({ isOpen }: Props) => {
                 <p className='text-gray-500 text-sm text-balance'>
                   Houston... tenemos un carrito vacío. Agrega algo para comenzar el viaje.
                 </p>
+                <Button className='bg-black text-white mt-2' onPress={() => navigate('/tienda/productos')}>
+                  Ver productos
+                </Button>
               </motion.div>
             </div>
           )}

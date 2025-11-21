@@ -26,7 +26,7 @@ type CartState = {
   totalDiscount: number // ahorro total
 }
 
-const STORAGE_KEY = 'qonderstore_cart_v1'
+export const STORAGE_KEY = 'qonderstore_cart_v1'
 
 // ====== Utils ======
 const toCents = (n: number) => Math.round((n ?? 0) * 100)
