@@ -1,4 +1,5 @@
 import z from 'zod'
+import { emptyToNull } from '../utils/zod-helpers'
 
 // export const storeOrderItemSchema = z.object({
 //   id: number;
@@ -79,3 +80,12 @@ export const storeOrderRatingSchema = z.object({
   comment: z.string().optional()
 })
 export type StoreOrderRating = z.infer<typeof storeOrderRatingSchema>
+
+export const productRatingSchema = z.object({
+  product_id: z.number(),
+  order_id: z.string(),
+  rating_score: z.number().min(1).max(5),
+  rating_comment: emptyToNull(z.string().optional())
+})
+
+export type ProductRating = z.infer<typeof productRatingSchema>

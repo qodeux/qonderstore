@@ -1,35 +1,52 @@
 import { Button, Chip, Textarea } from '@heroui/react'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Rating } from '@smastrom/react-rating'
 import { AnimatePresence, motion } from 'framer-motion'
 import { CircleCheckBig } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import { productRatingSchema } from '../../../schemas/storeOrders.schema'
+import { storeOrderService } from '../../../services/storeOrderService'
 import type { CartItem } from '../../../store/slices/cartSlice'
+import { useAppSelector } from '../../../store/store'
 import PresignedImage from '../../common/cloudflare-r2/PresignedImage'
 
 type Props = {
   item: CartItem
 }
 const OrderProductReviewForm = ({ item }: Props) => {
+  const { selectedOrder } = useAppSelector((state) => state.storeOrders)
   const { control, handleSubmit, watch, setValue } = useForm({
+    resolver: zodResolver(productRatingSchema),
     mode: 'all',
     defaultValues: {
-      review_product: item?.id,
-      rating_product: 0,
-      review_comment: ''
+      order_id: selectedOrder?.id,
+      product_id: item?.id,
+      rating_score: 0,
+      rating_comment: ''
     }
   })
   const [showReviewForm, setShowReviewForm] = useState(false)
-  const watchComment = watch('review_product')
+  const watchComment = watch('rating_comment')
+  const handleSubmitReview = handleSubmit(
+    async (data) => {
+      console.log('Review data:', data)
 
-  const handleSubmitReview = handleSubmit((data) => {
-    console.log('Review data:', data)
-  })
+      try {
+        await storeOrderService.createProductRating(data)
+      } catch (error) {
+        console.error('Error submitting product review:', error)
+      }
+    },
+    (errors) => {
+      console.log('Review errors:', errors)
+    }
+  )
 
   const cancelReview = () => {
     // lógica para cancelar la reseña
     setShowReviewForm(false)
-    setValue('review_product', '')
+    setValue('rating_comment', '')
   }
 
   const toggleReviewForm = () => {
@@ -47,7 +64,7 @@ const OrderProductReviewForm = ({ item }: Props) => {
       </figure>
       <section className='flex flex-col w-2/3 items-start relative '>
         <h3 className='md:text-lg font-semibold'>{item.title}</h3>
-        <Controller name={`rating_product`} control={control} render={({ field }) => <Rating {...field} className='pl-8' />} />
+        <Controller name={`rating_score`} control={control} render={({ field }) => <Rating {...field} className='pl-8' />} />
         <footer className='flex justify-end w-full gap-2 items-center mt-1 '>
           {!watchComment ? (
             <Button size='sm' onPress={toggleReviewForm} variant='light'>
@@ -71,7 +88,7 @@ const OrderProductReviewForm = ({ item }: Props) => {
               className='absolute bg-white text-right w-full h-full  space-y-3'
             >
               <Controller
-                name={`review_comment`}
+                name={`rating_comment`}
                 control={control}
                 render={({ field }) => (
                   <Textarea {...field} maxRows={2} radius='sm' placeholder='Escribe tu reseña...' classNames={{ inputWrapper: 'pe-0' }} />

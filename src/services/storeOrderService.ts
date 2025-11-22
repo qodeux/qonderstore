@@ -1,6 +1,6 @@
 import supabase from '../lib/supabase'
 import type { CheckoutFormInput } from '../schemas/checkout.schema'
-import type { StoreOrderRating } from '../schemas/storeOrders.schema'
+import type { ProductRating, StoreOrderRating } from '../schemas/storeOrders.schema'
 import type { CartItem } from '../store/slices/cartSlice'
 
 export type Metadata = {
@@ -180,6 +180,14 @@ export const storeOrderService = {
     const { data, error } = await supabase.from('store_order_ratings').insert(payload).select().single()
     if (error) {
       console.error('Error creating order rating:', error)
+      throw { error }
+    }
+    return { data }
+  },
+  createProductRating: async (payload: ProductRating) => {
+    const { data, error } = await supabase.from('product_ratings').insert(payload).select().single()
+    if (error) {
+      console.error('Error creating product rating:', error)
       throw { error }
     }
     return { data }
