@@ -2,20 +2,23 @@ import { Avatar, Button, Card, Chip, Tab, Tabs, useDisclosure } from '@heroui/re
 import { motion } from 'framer-motion'
 import { Bell, Calendar, Heart, Package, Settings2, Shield, Star, Trophy, User } from 'lucide-react'
 import { useEffect } from 'react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useSearchParams } from 'react-router'
 import CustomAlert from '../../components/common/CustomAlert'
 import UserDataForm from '../../components/forms/customer/UserDataForm'
 import ManageAddressModal from '../../components/modals/customer/ManageAddressModal'
+import OrderDetailsModal from '../../components/modals/customer/OrderDetailsModal'
 import ProductItem from '../../components/store/ProductItem'
 import type { Product } from '../../schemas/products.schema'
 import { selectProductsWithBestPromo } from '../../store/selectors/productsWithPromo'
+import { setSelectedOrder } from '../../store/slices/storeOrdersSlice'
 import { useAppSelector } from '../../store/store'
-import { storeOrder_status } from '../../types/storeOrders'
+import { storeOrder_status, storeShipment_status } from '../../types/storeOrders'
 import { formatDate } from '../../utils/date'
 import { formatMoney } from '../../utils/money'
 
 const Account = () => {
+  const dispatch = useDispatch()
   const { user } = useAppSelector((state) => state.auth)
   const products = useSelector(selectProductsWithBestPromo)
 
@@ -25,9 +28,10 @@ const Account = () => {
   // Get the active tab from URL query parameter or default to "overview"
   const activeTab = searchParams.get('tab') || 'general'
 
-  const { items: orders } = useAppSelector((state) => state.storeOrders)
+  const { items: orders, selectedOrder } = useAppSelector((state) => state.storeOrders)
 
   const { isOpen: isAddressModalOpen, onOpenChange: onAddressModalOpenChange, onOpen: onAddressModalOpen } = useDisclosure()
+  const { isOpen: isOrderDetailsOpen, onOpenChange: onOrderDetailsOpenChange, onOpen: onOrderDetailsOpen } = useDisclosure()
 
   const favs = [67, 137]
 
@@ -102,12 +106,23 @@ const Account = () => {
     }
   }
 
+  const handleOpenOrderDetails = (orderId: string) => {
+    dispatch(setSelectedOrder(orderId))
+    onOrderDetailsOpen()
+  }
+
+  useEffect(() => {
+    if (selectedOrder) {
+      dispatch(setSelectedOrder(selectedOrder.id))
+    }
+  }, [dispatch, orders, selectedOrder])
+
   useEffect(() => {
     document.title = `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} - Qonder Store`
   }, [activeTab])
 
   return (
-    <div className='container mx-auto p-6 md:p-8 space-y-6'>
+    <div className='container mx-auto p-2 md:p-8 space-y-6'>
       <section className='flex gap-4 items-center'>
         <Avatar className='w-26 h-26 text-large' src='https://i.pravatar.cc/150?u=a04258114e29026708c' />
         <div>
@@ -219,6 +234,7 @@ const Account = () => {
             ) : (
               orders.map((order) => {
                 const orderStatus = storeOrder_status.find((status) => status.key === order.order_status)
+                const shipmentStatus = storeShipment_status.find((status) => status.key === order.shipment_status)
 
                 return (
                   <Card
@@ -227,10 +243,11 @@ const Account = () => {
                     isPressable
                     fullWidth
                     key={order.id}
+                    onPress={() => handleOpenOrderDetails(order.id)}
                   >
                     <div className='text-left'>
                       <h3>
-                        <span className='text-neutral-500'>Pedido:</span> {order.id}
+                        <span className='text-neutral-500'>Pedido:</span> {order.id.split('-')[0]}
                       </h3>
                       <p>
                         <span className='text-neutral-500'>Fecha: </span>
@@ -244,15 +261,22 @@ const Account = () => {
                       </p>
                       <div>
                         Estado:{' '}
-                        <Chip variant='flat' color={orderStatus?.color}>
-                          {orderStatus?.label}
-                        </Chip>
+                        {order.shipment_status !== null ? (
+                          <Chip variant='flat' color={shipmentStatus?.color}>
+                            {shipmentStatus?.label}
+                          </Chip>
+                        ) : (
+                          <Chip variant='flat' color={orderStatus?.color}>
+                            {orderStatus?.label}
+                          </Chip>
+                        )}
                       </div>
                     </div>
                   </Card>
                 )
               })
             )}
+            <OrderDetailsModal isOpen={isOrderDetailsOpen} onOpenChange={onOrderDetailsOpenChange} />
           </Tab>
           <Tab
             key='favoritos'

@@ -1,5 +1,14 @@
 import z from 'zod'
 
+// export const storeOrderItemSchema = z.object({
+//   id: number;
+//   discount: number;
+//   quantity: number;
+//   price: number;
+//     saleType: SaleType;
+//     unitSelected: string
+// })
+
 export const storeOrderSchema = z.object({
   id: z.string(),
   ci: z.number(),
@@ -56,7 +65,17 @@ export const storeOrderSchema = z.object({
   payment_proof: z.string().optional(),
   confirm_proof: z.string().optional(),
   reference: z.string().optional(),
-  order_count: z.number()
+  order_count: z.number(),
+  has_order_rating: z.boolean().optional()
 })
 
 export type StoreOrder = z.infer<typeof storeOrderSchema>
+
+export const storeOrderRatingSchema = z.object({
+  order_id: z.string(),
+  total_points: z.number(),
+  rating_overall: z.number().min(1).max(5),
+  rating_product_quality: z.number().min(1).max(5),
+  comment: z.string().optional()
+})
+export type StoreOrderRating = z.infer<typeof storeOrderRatingSchema>

@@ -15,26 +15,17 @@ import { selectProductsWithBestPromo } from '../../../store/selectors/productsWi
 import type { CartItem } from '../../../store/slices/cartSlice'
 import { setSelectedOrder } from '../../../store/slices/storeOrdersSlice'
 import { useAppSelector } from '../../../store/store'
-import type { SaleType } from '../../../types/products'
 import {
   delivery_types,
   deliveryRoutesMap,
   storeOrder_status,
   storeShipment_status,
   type IPGeolocation,
+  type OrderItem,
   type SublocalityData
 } from '../../../types/storeOrders'
 import { formatDate } from '../../../utils/date'
 import { formatMoney } from '../../../utils/money'
-
-type OrderItem = {
-  id: number
-  price: number
-  discount: number
-  quantity: number
-  saleType: SaleType
-  unitSelected: string
-}
 
 const OrderDetails = () => {
   const navigate = useNavigate()

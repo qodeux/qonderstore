@@ -1,4 +1,5 @@
 import { toRecord } from './helpers'
+import type { SaleType } from './products'
 
 export const storeOrder_status = [
   { key: 'pending', label: 'Pago pendiente', color: 'warning' },
@@ -81,4 +82,13 @@ export type SublocalityData = {
   D_mnpio: string
   d_estado: string
   d_ciudad: string
+}
+
+export type OrderItem = {
+  id: number
+  price: number
+  discount: number
+  quantity: number
+  saleType: SaleType
+  unitSelected: string
 }
