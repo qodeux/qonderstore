@@ -20,7 +20,7 @@ import { formatMoney } from '../../utils/money'
 
 const Account = () => {
   const dispatch = useDispatch()
-  const { user } = useAppSelector((state) => state.auth)
+  const { user, favs } = useAppSelector((state) => state.auth)
   const products = useSelector(selectProductsWithBestPromo)
 
   const navigate = useNavigate()
@@ -36,9 +36,7 @@ const Account = () => {
   const { isOpen: isAddressModalOpen, onOpenChange: onAddressModalOpenChange, onOpen: onAddressModalOpen } = useDisclosure()
   const { isOpen: isOrderDetailsOpen, onOpenChange: onOrderDetailsOpenChange, onOpen: onOrderDetailsOpen } = useDisclosure()
 
-  const favs = [67, 137]
-
-  const favoriteProducts: Product[] = products.filter((product: Product) => favs.includes(product.id))
+  const favoriteProducts: Product[] = products.filter((product: Product) => favs.find((fav) => fav.product_id === product.id))
 
   const medals = [
     { id: '1', name: 'Primera Compra', icon: <Star className='w-6 h-6' />, description: 'Realizaste tu primera compra' },
@@ -283,25 +281,27 @@ const Account = () => {
             )}
             <OrderDetailsModal isOpen={isOrderDetailsOpen} onOpenChange={onOrderDetailsOpenChange} />
           </Tab>
-          <Tab
-            key='favoritos'
-            title={
-              <div className='flex items-center gap-2'>
-                <Heart size={18} />
-                <span className='hidden sm:block'>Favoritos</span>
-              </div>
-            }
-          >
-            {favs.length === 0 ? (
-              <p className='text-gray-600'>No tienes productos favoritos aún.</p>
-            ) : (
-              <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'>
-                {favoriteProducts.map((product) => (
-                  <ProductItem key={product.id} item={product} isRelated />
-                ))}
-              </div>
-            )}
-          </Tab>
+          {favs.length > 0 && (
+            <Tab
+              key='favoritos'
+              title={
+                <div className='flex items-center gap-2'>
+                  <Heart size={18} />
+                  <span className='hidden sm:block'>Favoritos</span>
+                </div>
+              }
+            >
+              {favs.length === 0 ? (
+                <p className='text-gray-600'>No tienes productos favoritos aún.</p>
+              ) : (
+                <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'>
+                  {favoriteProducts.map((product) => (
+                    <ProductItem key={product.id} item={product} isRelated />
+                  ))}
+                </div>
+              )}
+            </Tab>
+          )}
           <Tab
             key='notificaciones'
             title={

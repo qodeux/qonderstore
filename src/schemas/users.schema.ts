@@ -37,3 +37,10 @@ export const User = z.object({
 })
 
 export type User = z.infer<typeof User>
+
+export const UserFavShcema = z.object({
+  user_id: z.string().optional(),
+  product_id: z.number()
+})
+
+export type UserFav = z.infer<typeof UserFavShcema>

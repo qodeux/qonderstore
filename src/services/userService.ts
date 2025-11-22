@@ -1,7 +1,7 @@
 import { addToast } from '@heroui/react'
 import supabase from '../lib/supabase'
 import type { CreateAccountInput } from '../schemas/createAccount.schema'
-import type { UserInputCreate, UserInputUpdate } from '../schemas/users.schema'
+import type { UserFav, UserInputCreate, UserInputUpdate } from '../schemas/users.schema'
 
 export const userService = {
   fetchUser: async () => {
@@ -269,5 +269,47 @@ export const userService = {
       return { error }
     }
     return { data }
+  },
+  fetchUserFavorites: async () => {
+    const { data, error } = await supabase.from('user_favs').select('*')
+    if (error) {
+      console.error('Error fetching user favorites:', error)
+      return { error }
+    }
+    return { data }
+  },
+  addProductFav: async (payload: UserFav) => {
+    const { data: favoriteInserted, error: favoriteError } = await supabase.from('user_favs').insert([payload]).select().single()
+    if (favoriteError) {
+      console.error('Error inserting favorite:', favoriteError)
+      throw { error: favoriteError }
+    }
+
+    // addToast({
+    //   title: 'Agregado a favoritos',
+    //   description: `El producto ha sido agregado a favoritos.`,
+    //   color: 'primary',
+    //   variant: 'bordered',
+    //   shouldShowTimeoutProgress: true,
+    //   timeout: 4000
+    // })
+
+    return favoriteInserted
+  },
+  removeProductFav: async (payload: UserFav) => {
+    const { error } = await supabase.from('user_favs').delete().eq('product_id', payload.product_id)
+    if (error) {
+      console.error('Error deleting favorite:', error)
+      throw { error }
+    }
+
+    // addToast({
+    //   title: 'Eliminado de favoritos',
+    //   description: `El producto ha sido eliminado de favoritos.`,
+    //   color: 'primary',
+    //   variant: 'bordered',
+    //   shouldShowTimeoutProgress: true,
+    //   timeout: 4000
+    // })
   }
 }
