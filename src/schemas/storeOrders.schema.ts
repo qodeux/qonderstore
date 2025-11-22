@@ -86,7 +86,10 @@ export const productRatingSchema = z.object({
   product_id: z.number(),
   order_id: z.string(),
   rating_score: z.number().min(1).max(5),
-  rating_comment: emptyToNull(z.string().optional()),
+  rating_comment: emptyToNull(z.string().optional()).refine((v) => v === null || (typeof v === 'string' && v.length >= 20), {
+    message: '+20 caracteres requeridos'
+  }),
+  earned_points: z.number().min(5),
   created_at: z.string().optional()
 })
 
