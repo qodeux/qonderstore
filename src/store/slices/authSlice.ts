@@ -1,6 +1,6 @@
 // store/slices/authSlice.ts
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import { User } from '../../schemas/users.schema'
+import { User, type UserFav } from '../../schemas/users.schema'
 import { authService } from '../../services/authService'
 
 type AuthStatus = 'idle' | 'checking' | 'authenticated' | 'unauthenticated'
@@ -13,6 +13,7 @@ interface AuthState {
   error: string | null
   isAuthenticated: boolean
   logoutInProgress: boolean
+  favs: UserFav[]
 }
 
 const initialState: AuthState = {
@@ -22,7 +23,8 @@ const initialState: AuthState = {
   loading: false,
   error: null,
   isAuthenticated: false,
-  logoutInProgress: false
+  logoutInProgress: false,
+  favs: []
 }
 
 /** LOGIN: siempre devuelve User o rechaza */
@@ -143,6 +145,9 @@ const authSlice = createSlice({
       state.logoutInProgress = true
       state.status = 'checking' // fuerza overlay en protegidas
       // ¡no toques isAuthenticated aquí! así evitas Navigate prematuro
+    },
+    setUserFavs(state, action: { payload: UserFav[] }) {
+      state.favs = action.payload
     }
   },
   extraReducers: (builder) => {
@@ -229,5 +234,5 @@ const authSlice = createSlice({
   }
 })
 
-export const { authLoggedOut, beginLogout } = authSlice.actions
+export const { authLoggedOut, beginLogout, setUserFavs } = authSlice.actions
 export default authSlice.reducer

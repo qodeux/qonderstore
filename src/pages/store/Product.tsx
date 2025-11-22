@@ -1,8 +1,8 @@
-import { Button, Chip, Progress } from '@heroui/react'
+import { Button, Chip, Progress, Tooltip } from '@heroui/react'
 import { Rating } from '@smastrom/react-rating'
 import '@smastrom/react-rating/style.css'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronRight, HeartPlus } from 'lucide-react'
+import { ChevronRight, HeartMinus, HeartPlus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useParams } from 'react-router'
@@ -13,6 +13,7 @@ import SwipperSlider from '../../components/common/swiper/SwipperSlider'
 import ProductItem from '../../components/store/ProductItem'
 import QuantitySelector from '../../components/store/QuantitySelector'
 import UnitSelector from '../../components/store/UnitSelector'
+import { userService } from '../../services/userService'
 import { makeSelectProductWithPromoBySlug, selectProductsWithBestPromo } from '../../store/selectors/productsWithPromo'
 import { addItem } from '../../store/slices/cartSlice'
 import { setCartOpen } from '../../store/slices/uiSlice'
@@ -25,6 +26,7 @@ type AnyRecord = Record<string, any>
 
 const Product = () => {
   const { slug } = useParams()
+  const { user, favs } = useSelector((state: RootState) => state.auth)
   const dispatch = useDispatch()
 
   const categories = useSelector((state: RootState) => state.categories.items)
@@ -33,6 +35,8 @@ const Product = () => {
   const product = useSelector(selectBySlug)
   const products = useSelector(selectProductsWithBestPromo).filter((p) => p.is_active)
   const cartItems = useSelector((s: RootState) => s.cart.items)
+
+  const isFav = favs.some((fav) => fav.product_id === product?.id)
 
   const rating = 4
   const [quantity, setQuantity] = useState(product?.min_sale ? product.min_sale : 1)
@@ -194,6 +198,29 @@ const Product = () => {
     dispatch(setCartOpen(true))
   }
 
+  // ---------- FAVORITOS ----------
+  const handleAddtoFavs = async () => {
+    if (!product) return
+    try {
+      await userService.addProductFav({
+        product_id: product.id
+      })
+    } catch (error) {
+      console.error('Error adding product to favorites:', error)
+    }
+  }
+  const handleRemovefromFavs = async () => {
+    if (!user || !product) return
+    try {
+      await userService.removeProductFav({
+        product_id: product.id,
+        user_id: user.id
+      })
+    } catch (error) {
+      console.error('Error removing product from favorites:', error)
+    }
+  }
+
   useEffect(() => {
     if (!QuantityError) return
     const timer = setTimeout(() => setQuantityError(null), 2000)
@@ -240,9 +267,39 @@ const Product = () => {
 
             <div className='flex items-center justify-between'>
               <h2 className='text-3xl md:text-4xl font-bold'>{product.name}</h2>
-              <Button isIconOnly radius='full' size='md'>
-                <HeartPlus size={36} className='m-2' />
-              </Button>
+              {isFav ? (
+                <motion.div
+                  key={product.id + 'fav'}
+                  initial={{ scale: 0 }}
+                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.1 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <Tooltip content='Quitar de favoritos' placement='left'>
+                    <Button isIconOnly className='' variant='solid' color='danger' size='sm' onPress={handleRemovefromFavs}>
+                      <HeartMinus />
+                    </Button>
+                  </Tooltip>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={product.id + 'Notfav'}
+                  initial={{ scale: 1 }}
+                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.1 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <Tooltip content='Agregar a favoritos' placement='left'>
+                    <Button isIconOnly className='' variant='ghost' color='danger' size='sm' onPress={handleAddtoFavs}>
+                      <HeartPlus />
+                    </Button>
+                  </Tooltip>
+                </motion.div>
+              )}
             </div>
 
             {product.brand && (
