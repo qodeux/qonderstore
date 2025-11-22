@@ -51,8 +51,6 @@ const OrderDetailsModal = ({ isOpen, onOpenChange }: Props) => {
       })
     : []
 
-  console.log(selectedOrder?.id)
-
   const formRaiting = useForm({
     mode: 'all',
     shouldUnregister: false,
@@ -136,14 +134,14 @@ const OrderDetailsModal = ({ isOpen, onOpenChange }: Props) => {
               <div className='flex flex-col w-full border border-foreground-400 rounded-md  bg-white shadow-md overflow-hidden'>
                 {cartItems.length !== 0 && (
                   <header key='cart-header' className='px-4 py-2 flex items-center justify-between border-b border-foreground-400'>
-                    <h2 className='text-lg'>Resumen del pedido</h2>
+                    <h2 className='font-semibold text-lg'>Resumen del pedido</h2>
                     <motion.span className='text-sm text-gray-500'>
                       {cartItems.length} {cartItems.length === 1 ? 'artículo' : 'artículos'}
                     </motion.span>
                   </header>
                 )}
 
-                <section className='flex flex-col gap-4 overflow-y-auto max-h-[32vh]    p-4'>
+                <section className='flex flex-col gap-4 overflow-y-auto max-h-[260px] md:max-h-[32vh]    p-4'>
                   <AnimatePresence>
                     {cartItems.map((item, index) => (
                       <motion.div
@@ -194,22 +192,13 @@ const OrderDetailsModal = ({ isOpen, onOpenChange }: Props) => {
             </Tab>
             <Tab key='shipping' title='Entrega'>
               <div>
-                <h3 className='text-lg font-semibold'>Datos de contacto</h3>
-                <p>Nombre: {selectedOrder?.name}</p>
-                <p>Teléfono: {selectedOrder?.phone}</p>
-                {selectedOrder?.email && <p>Correo electrónico: {selectedOrder?.email}</p>}
-
-                <h3 className='text-lg font-semibold mt-2'>
-                  Datos de entrega{' '}
-                  {selectedOrder?.shipment_status && (
-                    <Chip variant='flat' color={shipmentStatus?.color}>
-                      {shipmentStatus?.label}
-                    </Chip>
-                  )}
-                </h3>
+                <h3 className='text-lg font-semibold mt-2'>Datos de entrega </h3>
                 <section className='flex justify-between'>
                   <div className='text-sm'>
-                    <p>
+                    <p>Nombre: {selectedOrder?.name}</p>
+                    <p>Teléfono: {selectedOrder?.phone}</p>
+                    {selectedOrder?.email && <p>Correo electrónico: {selectedOrder?.email}</p>}
+                    <p className='pt-4'>
                       {selectedOrder?.street_address} {selectedOrder?.street_number}{' '}
                       {selectedOrder?.interior_number && `Int. ${selectedOrder.interior_number}`}
                     </p>
@@ -220,10 +209,6 @@ const OrderDetailsModal = ({ isOpen, onOpenChange }: Props) => {
                     <p>Código postal: {selectedOrder?.postal_code}</p>
                   </div>
                   <div className='text-right'>
-                    <p className='flex flex-col'>
-                      <span className='font-semibold'>{formatDate(selectedOrder?.delivery_date, 'short', 'es-MX', 'utc')}</span>
-                      <span className='text-xs'>Entrega solicitada</span>
-                    </p>
                     {selectedOrder?.delivery_route && (
                       <p>
                         Ruta:{' '}
@@ -237,12 +222,31 @@ const OrderDetailsModal = ({ isOpen, onOpenChange }: Props) => {
 
                 {selectedOrder?.address_notes && <p>Notas de entrega: {selectedOrder.address_notes}</p>}
                 {selectedOrder?.google_location && (
-                  <AddressMap
-                    coords={{ lat: selectedOrder.google_location.lat, lng: selectedOrder.google_location.lng }}
-                    mapHeight={240}
-                    customerView={true}
-                    zoom={18}
-                  />
+                  <div className='relative  rounded-lg '>
+                    <AddressMap
+                      coords={{ lat: selectedOrder.google_location.lat, lng: selectedOrder.google_location.lng }}
+                      mapHeight={240}
+                      customerView={true}
+                      zoom={18}
+                    />
+                    <footer className='absolute bottom-0 z-80 w-full bg-gray-100 flex items-center justify-between p-2 border-1 border-gray-300 rounded-b-lg'>
+                      <p className='flex flex-col'>
+                        <span className='font-semibold'>{formatDate(selectedOrder?.delivery_date, 'short', 'es-MX', 'utc')}</span>
+                        <span className='text-xs'>Entrega solicitada</span>
+                      </p>
+
+                      <p className='flex flex-col items-end'>
+                        {selectedOrder.shipment_status === 'delivered' && (
+                          <span className='font-semibold'>{formatDate(selectedOrder?.delivery_date, 'full', 'es-MX', 'utc')}</span>
+                        )}
+                        {selectedOrder?.shipment_status && (
+                          <Chip variant='flat' color={shipmentStatus?.color} size='sm'>
+                            {shipmentStatus?.label}
+                          </Chip>
+                        )}
+                      </p>
+                    </footer>
+                  </div>
                 )}
               </div>
             </Tab>
@@ -301,9 +305,9 @@ const OrderDetailsModal = ({ isOpen, onOpenChange }: Props) => {
 
                 {hasOrderRaiting && (
                   <div className='p-4 pt-0'>
-                    <p className='mb-4'>¡Gracias por calificar tu experiencia de compra!</p>
+                    <p className='mb-4 text-center text-balance'>¡Gracias por calificar tu experiencia de compra!</p>
 
-                    <p>Puedes ganar más puntos calificando los productos que recibiste.</p>
+                    <p className='text-sm'>Puedes ganar más puntos calificando y reseñando los productos que recibiste.</p>
 
                     {cartItems.map((item) => (
                       <article key={item.id} className='mt-4'>

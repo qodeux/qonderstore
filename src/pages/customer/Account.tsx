@@ -51,7 +51,7 @@ const Account = () => {
       date: '2000-01-23T01:23:45.678+09:00',
       message: 'Tu pedido ha sido recibido y está siendo procesado.',
       order: '99ce52ff',
-      color: 'primary',
+      color: 'primary' as const,
       icon: 'Bike'
     },
     {
@@ -60,7 +60,7 @@ const Account = () => {
       date: '2000-01-23T01:23:45.678+09:00',
       message: 'Tu pedido ha sido enviado en la ruta de las 11:00',
       order: '99ce52ff',
-      color: 'success',
+      color: 'success' as const,
       icon: 'Truck'
     },
     {
@@ -69,7 +69,7 @@ const Account = () => {
       date: '2000-01-23T01:23:45.678+09:00',
       message: 'Tu pedido ha sido ha sido cancelado por falta de pago',
       order: '99ce52ff',
-      color: 'danger',
+      color: 'danger' as const,
       icon: 'CircleOff'
     },
     {
@@ -78,7 +78,7 @@ const Account = () => {
       date: '2000-01-23T01:23:45.678+09:00',
       message: 'Tienes un pago pendiente para el pedido, puedes subir el comprobante aquí',
       order: '99ce52ff',
-      color: 'warning',
+      color: 'warning' as const,
       icon: 'CreditCard',
       type: 'payment'
     },
@@ -88,7 +88,7 @@ const Account = () => {
       date: '2000-01-23T01:23:45.678+09:00',
       message: 'Tu pedido ha tenido un problema y  contacta con soporte',
       order: '99ce52ff',
-      color: 'danger',
+      color: 'danger' as const,
       icon: 'TriangleAlert'
     }
   ]
@@ -253,7 +253,9 @@ const Account = () => {
                         <span className='text-neutral-500'>Fecha: </span>
                         {formatDate(order.created_at)}
                       </p>
-                      <p className='text-lg'>{order.total_items} artículos</p>
+                      <p className='text-lg'>
+                        {order.total_items} {order.total_items === 1 ? 'artículo' : 'artículos'}
+                      </p>
                     </div>
                     <div className='text-left md:text-right space-y-2'>
                       <p className='text-2xl'>
