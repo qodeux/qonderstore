@@ -2,13 +2,14 @@ import { Button, Chip, Textarea } from '@heroui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Rating } from '@smastrom/react-rating'
 import { AnimatePresence, motion } from 'framer-motion'
-import { CircleCheckBig } from 'lucide-react'
+import { CircleCheckBig, MessageCircle } from 'lucide-react'
 import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
-import { productRatingSchema } from '../../../schemas/storeOrders.schema'
+import { Controller, useForm, type Resolver } from 'react-hook-form'
+import { productRatingSchema, type ProductRating } from '../../../schemas/storeOrders.schema'
 import { storeOrderService } from '../../../services/storeOrderService'
 import type { CartItem } from '../../../store/slices/cartSlice'
 import { useAppSelector } from '../../../store/store'
+import { formatDate } from '../../../utils/date'
 import PresignedImage from '../../common/cloudflare-r2/PresignedImage'
 
 type Props = {
@@ -16,18 +17,26 @@ type Props = {
 }
 const OrderProductReviewForm = ({ item }: Props) => {
   const { selectedOrder } = useAppSelector((state) => state.storeOrders)
-  const { control, handleSubmit, watch, setValue } = useForm({
-    resolver: zodResolver(productRatingSchema),
+  const { productRatings } = useAppSelector((state) => state.users)
+
+  //Revisar si el producto ya tiene una reseña
+  const existingRating = productRatings?.find((rating) => rating.product_id === item.id && rating.order_id === selectedOrder?.id)
+
+  const { control, handleSubmit, watch, setValue } = useForm<ProductRating>({
+    resolver: zodResolver(productRatingSchema) as Resolver<ProductRating>,
     mode: 'all',
     defaultValues: {
       order_id: selectedOrder?.id,
       product_id: item?.id,
-      rating_score: 0,
-      rating_comment: ''
+      rating_score: existingRating ? existingRating.rating_score : 0,
+      rating_comment: existingRating ? existingRating.rating_comment : ''
     }
   })
   const [showReviewForm, setShowReviewForm] = useState(false)
   const watchComment = watch('rating_comment')
+
+  console.log(productRatings)
+
   const handleSubmitReview = handleSubmit(
     async (data) => {
       console.log('Review data:', data)
@@ -64,20 +73,37 @@ const OrderProductReviewForm = ({ item }: Props) => {
       </figure>
       <section className='flex flex-col w-2/3 items-start relative '>
         <h3 className='md:text-lg font-semibold'>{item.title}</h3>
-        <Controller name={`rating_score`} control={control} render={({ field }) => <Rating {...field} className='pl-8' />} />
-        <footer className='flex justify-end w-full gap-2 items-center mt-1 '>
-          {!watchComment ? (
-            <Button size='sm' onPress={toggleReviewForm} variant='light'>
-              Agregar reseña
+        <Controller
+          name={`rating_score`}
+          control={control}
+          render={({ field }) => <Rating {...field} className='pl-8' readOnly={!!existingRating} />}
+        />
+        {!existingRating ? (
+          <footer className='flex justify-end w-full gap-2 items-center mt-1 '>
+            {!watchComment ? (
+              <Button size='sm' onPress={toggleReviewForm} variant='light'>
+                Agregar reseña
+              </Button>
+            ) : (
+              <span className='text-xs text-gray-500 '>Reseña agregada</span>
+            )}
+            <Button size='sm' color='primary' variant='ghost' type='submit'>
+              Calificar
+              <CircleCheckBig className='p-0.5' />
             </Button>
-          ) : (
-            <span className='text-xs text-gray-500 '>Reseña agregada</span>
-          )}
-          <Button size='sm' color='primary' variant='ghost' type='submit'>
-            Calificar
-            <CircleCheckBig className='p-0.5' />
-          </Button>
-        </footer>
+          </footer>
+        ) : (
+          <footer className='flex items-center justify-end w-full gap-2 mt-1'>
+            <div className=' text-xs  font-medium flex flex-col text-right'>
+              {formatDate(existingRating?.created_at)} <span>Reseña enviada</span>{' '}
+            </div>
+            {existingRating?.rating_comment && (
+              <div>
+                <MessageCircle />
+              </div>
+            )}
+          </footer>
+        )}
         <AnimatePresence>
           {showReviewForm && (
             <motion.div
@@ -91,14 +117,21 @@ const OrderProductReviewForm = ({ item }: Props) => {
                 name={`rating_comment`}
                 control={control}
                 render={({ field }) => (
-                  <Textarea {...field} maxRows={2} radius='sm' placeholder='Escribe tu reseña...' classNames={{ inputWrapper: 'pe-0' }} />
+                  <Textarea
+                    value={field.value ?? ''}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    maxRows={2}
+                    radius='sm'
+                    placeholder='Escribe tu reseña...'
+                    classNames={{ inputWrapper: 'pe-0' }}
+                  />
                 )}
               />
               <footer className='flex gap-2 justify-end'>
                 <Button size='sm' onPress={cancelReview} color='danger' variant='light'>
                   Cancelar
                 </Button>
-                {watchComment && (
+                {watchComment !== '' && (
                   <Button size='sm' color='primary' onPress={toggleReviewForm} variant='ghost'>
                     Guardar
                   </Button>

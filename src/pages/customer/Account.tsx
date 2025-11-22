@@ -9,6 +9,7 @@ import UserDataForm from '../../components/forms/customer/UserDataForm'
 import ManageAddressModal from '../../components/modals/customer/ManageAddressModal'
 import OrderDetailsModal from '../../components/modals/customer/OrderDetailsModal'
 import ProductItem from '../../components/store/ProductItem'
+import { useProductRatings } from '../../hooks/useProductRatings'
 import type { Product } from '../../schemas/products.schema'
 import { selectProductsWithBestPromo } from '../../store/selectors/productsWithPromo'
 import { setSelectedOrder } from '../../store/slices/storeOrdersSlice'
@@ -24,6 +25,8 @@ const Account = () => {
 
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+
+  useProductRatings({ userId: user?.id })
 
   // Get the active tab from URL query parameter or default to "overview"
   const activeTab = searchParams.get('tab') || 'general'

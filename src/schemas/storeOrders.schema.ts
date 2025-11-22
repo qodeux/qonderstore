@@ -82,10 +82,12 @@ export const storeOrderRatingSchema = z.object({
 export type StoreOrderRating = z.infer<typeof storeOrderRatingSchema>
 
 export const productRatingSchema = z.object({
+  id: z.number().optional(),
   product_id: z.number(),
   order_id: z.string(),
   rating_score: z.number().min(1).max(5),
-  rating_comment: emptyToNull(z.string().optional())
+  rating_comment: emptyToNull(z.string().optional()),
+  created_at: z.string().optional()
 })
 
 export type ProductRating = z.infer<typeof productRatingSchema>
