@@ -34,7 +34,7 @@ const OrderDetailsModal = ({ isOpen, onOpenChange }: Props) => {
   const shipmentStatus = storeShipment_status.find((status) => status.key === selectedOrder?.shipment_status)
   const [sublocalityData, setSublocalityData] = useState<SublocalityData | null>(null)
 
-  const [hasOrderRaiting, setHasOrderRaiting] = useState<boolean | undefined>(selectedOrder?.has_order_rating)
+  const [hasOrderRaiting, setHasOrderRaiting] = useState<boolean>(false)
 
   const { isOpen: isPaymentUploadOpen, onOpenChange: onPaymentUploadOpenChange, onOpen: onPaymentUploadOpen } = useDisclosure()
 
@@ -235,7 +235,7 @@ const OrderDetailsModal = ({ isOpen, onOpenChange }: Props) => {
                         <span className='text-xs'>Entrega solicitada</span>
                       </p>
 
-                      <p className='flex flex-col items-end'>
+                      <div className='flex flex-col items-end'>
                         {selectedOrder.shipment_status === 'delivered' && (
                           <span className='font-semibold'>{formatDate(selectedOrder?.delivery_date, 'full', 'es-MX', 'utc')}</span>
                         )}
@@ -244,7 +244,7 @@ const OrderDetailsModal = ({ isOpen, onOpenChange }: Props) => {
                             {shipmentStatus?.label}
                           </Chip>
                         )}
-                      </p>
+                      </div>
                     </footer>
                   </div>
                 )}
@@ -252,7 +252,7 @@ const OrderDetailsModal = ({ isOpen, onOpenChange }: Props) => {
             </Tab>
             {selectedOrder.shipment_status === 'delivered' && (
               <Tab key='review' title='Valoración'>
-                {!hasOrderRaiting && (
+                {!selectedOrder?.has_order_rating && (
                   <form className='p-4 pt-0' onSubmit={handleSubmitOrderRaiting}>
                     <p className='text-sm mb-4'>
                       Muchas gracias por realizar tu compra en nuestra tienda, ayudános a mejorar nuestro servicio y responde a esta
@@ -303,7 +303,7 @@ const OrderDetailsModal = ({ isOpen, onOpenChange }: Props) => {
                   </form>
                 )}
 
-                {hasOrderRaiting && (
+                {(selectedOrder?.has_order_rating || hasOrderRaiting) && (
                   <div className='p-4 pt-0'>
                     <p className='mb-4 text-center text-balance'>¡Gracias por calificar tu experiencia de compra!</p>
 
