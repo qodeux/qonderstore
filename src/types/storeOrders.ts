@@ -1,4 +1,5 @@
 import { toRecord } from './helpers'
+import type { SaleType } from './products'
 
 export const storeOrder_status = [
   { key: 'pending', label: 'Pago pendiente', color: 'warning' },
@@ -12,7 +13,7 @@ export type StoreOrderStatus = (typeof storeOrder_status)[number]['key']
 export const storeOrdersStatusMap = toRecord(storeOrder_status)
 
 export const storeShipment_status = [
-  { key: 'pending', label: 'Pendiente', color: 'warning' },
+  { key: 'pending', label: 'Envío pendiente', color: 'warning' },
   { key: 'processing', label: 'En proceso', color: 'primary' },
   { key: 'ready_for_pickup', label: 'Listo para recolección', color: 'success' },
   { key: 'picked_up', label: 'Recolectado', color: 'success' },
@@ -81,4 +82,13 @@ export type SublocalityData = {
   D_mnpio: string
   d_estado: string
   d_ciudad: string
+}
+
+export type OrderItem = {
+  id: number
+  price: number
+  discount: number
+  quantity: number
+  saleType: SaleType
+  unitSelected: string
 }

@@ -261,5 +261,13 @@ export const userService = {
       return
     }
     return addressUpdated
+  },
+  fetchUserProductRatings: async (userId: string) => {
+    const { data, error } = await supabase.from('product_ratings').select('*').eq('user_id', userId)
+    if (error) {
+      console.error('Error fetching user ratings:', error)
+      return { error }
+    }
+    return { data }
   }
 }
