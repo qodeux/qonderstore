@@ -11,7 +11,14 @@ type Props = {
   item: CartItem
 }
 const OrderProductReviewForm = ({ item }: Props) => {
-  const { control, handleSubmit, watch, setValue } = useForm()
+  const { control, handleSubmit, watch, setValue } = useForm({
+    mode: 'all',
+    defaultValues: {
+      review_product: item?.id,
+      rating_product: 0,
+      review_comment: ''
+    }
+  })
   const [showReviewForm, setShowReviewForm] = useState(false)
   const watchComment = watch('review_product')
 
@@ -31,7 +38,7 @@ const OrderProductReviewForm = ({ item }: Props) => {
   }
 
   return (
-    <form className='flex gap-4 overflow-hidden' onSubmit={handleSubmitReview}>
+    <form className='flex gap-2 overflow-hidden' onSubmit={handleSubmitReview}>
       <figure className='aspect-square w-1/3 bg-gray-200 border border-gray-300 flex items-center justify-center text-gray-500 text-xs rounded-xl overflow-hidden relative'>
         {item.image ? <PresignedImage keyPath={item.image} expires={300} /> : 'Sin imagen'}
         <Chip className='absolute top-0 -right-0 rounded-bl-xl' radius='none' color='success' size='sm'>
@@ -49,7 +56,7 @@ const OrderProductReviewForm = ({ item }: Props) => {
           ) : (
             <span className='text-xs text-gray-500 '>Reseña agregada</span>
           )}
-          <Button size='sm' color='primary' variant='ghost'>
+          <Button size='sm' color='primary' variant='ghost' type='submit'>
             Calificar
             <CircleCheckBig className='p-0.5' />
           </Button>
@@ -64,17 +71,21 @@ const OrderProductReviewForm = ({ item }: Props) => {
               className='absolute bg-white text-right w-full h-full  space-y-3'
             >
               <Controller
-                name={`review_product`}
+                name={`review_comment`}
                 control={control}
-                render={({ field }) => <Textarea {...field} maxRows={2} radius='sm' placeholder='Escribe tu reseña...' />}
+                render={({ field }) => (
+                  <Textarea {...field} maxRows={2} radius='sm' placeholder='Escribe tu reseña...' classNames={{ inputWrapper: 'pe-0' }} />
+                )}
               />
               <footer className='flex gap-2 justify-end'>
                 <Button size='sm' onPress={cancelReview} color='danger' variant='light'>
                   Cancelar
                 </Button>
-                <Button size='sm' color='primary' onPress={toggleReviewForm} variant='ghost'>
-                  Guardar
-                </Button>
+                {watchComment && (
+                  <Button size='sm' color='primary' onPress={toggleReviewForm} variant='ghost'>
+                    Guardar
+                  </Button>
+                )}
               </footer>
             </motion.div>
           )}
