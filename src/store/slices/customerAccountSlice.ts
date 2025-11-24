@@ -1,7 +1,7 @@
-import type { Address } from '../../schemas/address.schema'
+import type { AddressInput } from '../../schemas/address.schema'
 
 interface CustomerAccountState {
   loading: boolean
-  addresses: Address[]
-  selectedAddress?: Address | null
+  addresses: AddressInput[]
+  selectedAddress?: AddressInput | null
 }

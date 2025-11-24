@@ -1,5 +1,6 @@
 import { addToast } from '@heroui/react'
 import supabase from '../lib/supabase'
+import type { AddressInput } from '../schemas/address.schema'
 import type { CreateAccountInput } from '../schemas/createAccount.schema'
 import type { UserFav, UserInputCreate, UserInputUpdate } from '../schemas/users.schema'
 
@@ -225,22 +226,86 @@ export const userService = {
       })
     }, 1000)
   },
-  addAddress: async (userId: string, addressData: any) => {
-    const { data: addressInserted, error: addressError } = await supabase
-      .from('addresses')
-      .insert([
-        {
-          user_id: userId,
-          ...addressData
-        }
-      ])
-      .select()
-      .single()
+  fetchAdresses: async () => {
+    const { data, error } = await supabase.from('user_addresses_view').select('*')
+    if (error) {
+      console.error('Error fetching addresses:', error)
+      return { error }
+    }
+    return { data }
+  },
+  addAddress: async (payload: AddressInput) => {
+    const omit = <T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> => {
+      return Object.fromEntries(Object.entries(obj).filter(([k]) => !keys.includes(k as K))) as Omit<T, K>
+    }
+
+    const insertData = omit(payload, ['has_marker', 'locality', 'state', 'postal_code_lookup'])
+
+    const { data: addressInserted, error: addressError } = await supabase.from('user_addresses').insert(insertData).select().single()
+
+    if (addressInserted && payload.is_primary) {
+      // Si la nueva dirección es primaria, actualizar las demás para que no lo sean
+      const { error } = await supabase.rpc('set_primary_address', { addr_id: addressInserted.id })
+
+      if (error) {
+        console.error('Error setting primary address:', error)
+      }
+    }
+
     if (addressError) {
       console.error('Error inserting address:', addressError)
       return { error: addressError }
     }
     return addressInserted
+  },
+  deleteAddress: async (addressId: number) => {
+    if (!addressId) {
+      console.error('El id de la dirección es obligatorio para eliminar')
+      return
+    }
+
+    const { error, count } = await supabase.from('user_addresses').delete({ count: 'exact' }).eq('id', addressId)
+
+    if (error) {
+      throw error
+    }
+
+    if (count === 0) {
+      console.error('Delete blocked by RLS or record not found')
+      throw new Error('No autorizado o registro inexistente')
+    }
+
+    //Seleccionar una nueva dirección primaria si la eliminada era primaria
+    const { data: remainingAddresses, error: fetchError } = await supabase
+      .from('user_addresses')
+      .select('*')
+      .order('created_at', { ascending: true })
+    if (fetchError) {
+      console.error('Error fetching remaining addresses:', fetchError)
+      return
+    }
+    if (remainingAddresses && remainingAddresses.length > 0) {
+      const hasPrimary = remainingAddresses.some((addr) => addr.is_primary)
+      if (!hasPrimary) {
+        const newPrimaryId = remainingAddresses[0].id
+        const { error: primaryError } = await supabase.rpc('set_primary_address', { addr_id: newPrimaryId })
+        if (primaryError) {
+          console.error('Error setting new primary address:', primaryError)
+        }
+      }
+    }
+  },
+  setPrimaryAddress: async (addressId: number) => {
+    if (!addressId) {
+      console.error('El id de la dirección es obligatorio para establecer como primaria')
+      return
+    }
+    const { error } = await supabase.rpc('set_primary_address', { addr_id: addressId })
+
+    if (error) {
+      console.error('Error setting primary address:', error)
+      return { error }
+    }
   },
   updateAddress: async (addressId: number, addressData: any) => {
     if (!addressId) {

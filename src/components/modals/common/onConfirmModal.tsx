@@ -26,7 +26,7 @@ const OnConfirmModal = ({ isOpen, onOpenChange, title, action, message, onConfir
                   className='mt-4'
                   classNames={{ title: 'font-bold', description: 'text-xs' }}
                   title='Advertencia'
-                  description={`Esto no se puede deshacer. La imagen sera eliminada de forma permanente.`}
+                  description={`Esto no se puede deshacer. `}
                 />
               )}
               {action === 'cancel' && (
