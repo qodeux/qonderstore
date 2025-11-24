@@ -20,7 +20,6 @@ export const useUserFavs = () => {
     const channel = supabase
       .channel('realtime:UserFavs')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_favs' }, async () => {
-        console.log('Favs change')
         await fetchUserFavs()
       })
       .subscribe()

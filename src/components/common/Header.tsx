@@ -21,7 +21,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
 import Logo from '../../assets/logo-full-Q.svg?react'
 import { logoutUser } from '../../store/slices/authSlice'
-import { openModal, setCartOpen, setEditMode, setModal } from '../../store/slices/uiSlice'
+import { setCartOpen } from '../../store/slices/uiSlice'
 import type { AppDispatch, RootState } from '../../store/store'
 
 const Header = () => {
@@ -45,12 +45,12 @@ const Header = () => {
     navigate('/login')
   }
 
-  const handleAccountModalOpen = () => {
-    console.log('Abriendo modal de cuenta...')
-    dispatch(setModal('account'))
-    dispatch(setEditMode(true))
-    dispatch(openModal())
-  }
+  // const handleAccountModalOpen = () => {
+  //   console.log('Abriendo modal de cuenta...')
+  //   dispatch(setModal('account'))
+  //   dispatch(setEditMode(true))
+  //   dispatch(openModal())
+  // }
 
   const handleToggleCart = () => {
     console.log('Abriendo carrito...')
@@ -59,7 +59,6 @@ const Header = () => {
   }
 
   const handleGoToFavs = () => {
-    console.log('Navegando a favoritos...')
     navigate('/mi-cuenta?tab=favoritos')
     // Lógica para navegar a la página de favoritos
   }
