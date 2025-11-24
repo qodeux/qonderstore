@@ -146,7 +146,7 @@ const OrderDetailsModal = ({ isOpen, onOpenChange }: Props) => {
                     {cartItems.map((item, index) => (
                       <motion.div
                         key={`${item.id}-${item.unitSelected ?? item.unitSelected}-${index}`}
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, x: 200 }}
                         transition={{ duration: 0.2 }}
@@ -160,10 +160,6 @@ const OrderDetailsModal = ({ isOpen, onOpenChange }: Props) => {
                 {cartItems.length !== 0 && (
                   <motion.footer
                     key='cart-footer'
-                    initial={{ y: 100 }}
-                    animate={{ y: 0 }}
-                    exit={{ y: 100 }}
-                    transition={{ duration: 0.2, delay: 0.3, type: 'spring' }}
                     className='flex flex-col shrink-0 p-4 border-t border-foreground-400 bg-white gap-4 overflow-hidden z-10 sticky bottom-0 w-full'
                   >
                     <div className='flex flex-col justify-between items-center'>
