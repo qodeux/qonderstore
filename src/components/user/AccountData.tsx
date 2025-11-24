@@ -1,6 +1,6 @@
 import { Button, cn, Radio, RadioGroup, Tooltip, useDisclosure } from '@heroui/react'
 import { motion } from 'framer-motion'
-import { Calendar, Shield, Star, Trash2, Trophy } from 'lucide-react'
+import { Calendar, Shield, Star, Trash2 } from 'lucide-react'
 import React from 'react'
 import type { Address } from '../../schemas/address.schema'
 import { userService } from '../../services/userService'
@@ -36,12 +36,12 @@ const AccountData = () => {
   const { isOpen: isConfirmModalOpen, onOpen: onConfirmModalOpen, onOpenChange: onConfirmModalOpenChange } = useDisclosure()
   const [selectedAddress, setSelectedAddress] = React.useState<Address | null>(null)
 
-  const medals = [
-    { id: '1', name: 'Primera Compra', icon: <Star className='w-6 h-6' />, description: 'Realizaste tu primera compra' },
-    { id: '2', name: 'Cannasieur', icon: <Star className='w-6 h-6' />, description: 'Haz comprado mas de 10 variedades de flor' },
-    { id: '3', name: 'Money Maker', icon: <Star className='w-6 h-6' />, description: 'Realizaste una compra de mas de 10k ' },
-    { id: '4', name: 'Comprador Frecuente', icon: <Trophy className='w-6 h-6' />, description: '5 compras realizadas' }
-  ]
+  //   const medals = [
+  //     { id: '1', name: 'Primera Compra', icon: <Star className='w-6 h-6' />, description: 'Realizaste tu primera compra' },
+  //     { id: '2', name: 'Cannasieur', icon: <Star className='w-6 h-6' />, description: 'Haz comprado mas de 10 variedades de flor' },
+  //     { id: '3', name: 'Money Maker', icon: <Star className='w-6 h-6' />, description: 'Realizaste una compra de mas de 10k ' },
+  //     { id: '4', name: 'Comprador Frecuente', icon: <Trophy className='w-6 h-6' />, description: '5 compras realizadas' }
+  //   ]
 
   const handleAddAddress = () => {
     onAddressModalOpen()

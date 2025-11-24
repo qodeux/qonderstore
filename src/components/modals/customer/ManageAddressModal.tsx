@@ -72,7 +72,7 @@ const ManageAddressModal = ({ isOpen, onOpenChange }: Props) => {
     let transaction
 
     if (isEditing) {
-      transaction = await userService.updateAddress(1, payload)
+      transaction = await userService.updateAddress(payload)
     } else {
       transaction = await userService.addAddress(payload)
     }
@@ -80,17 +80,17 @@ const ManageAddressModal = ({ isOpen, onOpenChange }: Props) => {
     if (transaction?.error) {
       console.error(transaction.error)
 
-      if (transaction.error.code === '23505') {
-        const details = transaction.error?.details ?? ''
-        if (details.includes('Key (user_name)')) {
-          addressForm.setError('user_name', { message: 'El usuario ya existe' })
-        } else {
-          console.error('Error desconocido:', details)
-        }
-      } else if (transaction.error === 'A user with this email address has already been registered') {
-        addressForm.setError('email', { message: 'El email ya está registrado' })
-      }
-      return
+      // if (transaction.error.code === '23505') {
+      //   const details = transaction.error?.details ?? ''
+      //   if (details.includes('Key (user_name)')) {
+      //     addressForm.setError('user_name', { message: 'El usuario ya existe' })
+      //   } else {
+      //     console.error('Error desconocido:', details)
+      //   }
+      // } else if (transaction.error === 'A user with this email address has already been registered') {
+      //   addressForm.setError('email', { message: 'El email ya está registrado' })
+      // }
+      // return
     }
 
     onOpenChange()

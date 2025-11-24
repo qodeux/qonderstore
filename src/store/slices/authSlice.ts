@@ -1,6 +1,6 @@
 // store/slices/authSlice.ts
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import type { Address, AddressInput } from '../../schemas/address.schema'
+import type { Address } from '../../schemas/address.schema'
 import { User, type UserFav } from '../../schemas/users.schema'
 import { authService } from '../../services/authService'
 
@@ -152,7 +152,7 @@ const authSlice = createSlice({
     setUserFavs(state, action: { payload: UserFav[] }) {
       state.favs = action.payload
     },
-    setUserAddresses(state, action: { payload: AddressInput[] }) {
+    setUserAddresses(state, action: { payload: Address[] }) {
       state.addresses = action.payload
     }
   },
@@ -197,7 +197,7 @@ const authSlice = createSlice({
       })
       .addCase(logoutUser.rejected, (state, action) => {
         state.logoutInProgress = false
-        //state.error = action.payload || 'Logout failed'
+        state.error = action.payload || 'Logout failed'
         state.isAuthenticated = false
         state.user = null
         state.status = 'unauthenticated'
@@ -225,18 +225,17 @@ const authSlice = createSlice({
       })
 
     /** REFRESH silencioso: NO tocar status/loading para evitar blink */
-    builder
-      .addCase(refreshProfileSilent.fulfilled, (state, action) => {
-        if (action.payload) {
-          state.user = action.payload
-          state.isAuthenticated = true
-          // status se mantiene (normalmente 'authenticated')
-        }
-      })
-      // Rechazo silencioso: no movemos status/loading
-      .addCase(refreshProfileSilent.rejected, (state) => {
-        // opcional: podrías loguear un error global si te interesa
-      })
+    builder.addCase(refreshProfileSilent.fulfilled, (state, action) => {
+      if (action.payload) {
+        state.user = action.payload
+        state.isAuthenticated = true
+        // status se mantiene (normalmente 'authenticated')
+      }
+    })
+    // Rechazo silencioso: no movemos status/loading
+    // .addCase(refreshProfileSilent.rejected, (state) => {
+    //   // opcional: podrías loguear un error global si te interesa
+    // })
   }
 })
 

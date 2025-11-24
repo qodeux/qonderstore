@@ -307,17 +307,15 @@ export const userService = {
       return { error }
     }
   },
-  updateAddress: async (addressId: number, addressData: any) => {
-    if (!addressId) {
+  updateAddress: async (payload: AddressInput) => {
+    if (!payload.id) {
       console.error('El id de la dirección es obligatorio para actualizar')
       return
     }
     const { data: addressUpdated, error: addressError } = await supabase
-      .from('addresses')
-      .update({
-        ...addressData
-      })
-      .eq('id', addressId)
+      .from('user_addresses')
+      .update(payload)
+      .eq('id', payload.id)
       .select()
       .single()
 
@@ -349,16 +347,6 @@ export const userService = {
       console.error('Error inserting favorite:', favoriteError)
       throw { error: favoriteError }
     }
-
-    // addToast({
-    //   title: 'Agregado a favoritos',
-    //   description: `El producto ha sido agregado a favoritos.`,
-    //   color: 'primary',
-    //   variant: 'bordered',
-    //   shouldShowTimeoutProgress: true,
-    //   timeout: 4000
-    // })
-
     return favoriteInserted
   },
   removeProductFav: async (payload: UserFav) => {
@@ -367,14 +355,5 @@ export const userService = {
       console.error('Error deleting favorite:', error)
       throw { error }
     }
-
-    // addToast({
-    //   title: 'Eliminado de favoritos',
-    //   description: `El producto ha sido eliminado de favoritos.`,
-    //   color: 'primary',
-    //   variant: 'bordered',
-    //   shouldShowTimeoutProgress: true,
-    //   timeout: 4000
-    // })
   }
 }

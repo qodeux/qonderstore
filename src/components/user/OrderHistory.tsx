@@ -30,7 +30,7 @@ const OrderHistory = () => {
     }
   }, [dispatch, orders, selectedOrder])
   return (
-    <div>
+    <div className='space-y-2'>
       {orders.length === 0 ? (
         <p className='text-gray-600'>Aún no has realizado ningún pedido.</p>
       ) : (
