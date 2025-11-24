@@ -18,3 +18,5 @@ export const postalCode5 = (message = 'Debe ser un CP de 5 dígitos') =>
     .string()
     .trim()
     .regex(/^\d{5}$/, message)
+
+export const emptyToNull = <T extends z.ZodTypeAny>(schema: T) => z.preprocess((v) => (v === '' ? null : v), schema.nullable())

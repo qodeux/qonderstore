@@ -6,11 +6,16 @@ import Header from '../components/common/Header'
 import ScrollToTopButton from '../components/common/ScrollToTopButton'
 import CartSidebar from '../components/store/CartSidebar'
 import { useStoreOrders } from '../hooks/useStoreOrders'
+import { useUserFavs } from '../hooks/useUserFavs'
+import { useUserSavedAdresses } from '../hooks/useUserSavedAdresses'
 import { setCartOpen } from '../store/slices/uiSlice'
 import type { RootState } from '../store/store'
 
 const FrontwebLayout = () => {
   useStoreOrders()
+
+  useUserFavs()
+  useUserSavedAdresses()
 
   const footerRef = useRef<HTMLDivElement | null>(null)
   const spacerRef = useRef<HTMLDivElement | null>(null)

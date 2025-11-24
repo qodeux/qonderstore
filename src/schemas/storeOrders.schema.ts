@@ -1,4 +1,14 @@
 import z from 'zod'
+import { emptyToNull } from '../utils/zod-helpers'
+
+// export const storeOrderItemSchema = z.object({
+//   id: number;
+//   discount: number;
+//   quantity: number;
+//   price: number;
+//     saleType: SaleType;
+//     unitSelected: string
+// })
 
 export const storeOrderSchema = z.object({
   id: z.string(),
@@ -56,7 +66,31 @@ export const storeOrderSchema = z.object({
   payment_proof: z.string().optional(),
   confirm_proof: z.string().optional(),
   reference: z.string().optional(),
-  order_count: z.number()
+  order_count: z.number(),
+  has_order_rating: z.boolean().optional()
 })
 
 export type StoreOrder = z.infer<typeof storeOrderSchema>
+
+export const storeOrderRatingSchema = z.object({
+  order_id: z.string(),
+  total_points: z.number(),
+  rating_overall: z.number().min(1).max(5),
+  rating_product_quality: z.number().min(1).max(5),
+  comment: z.string().optional()
+})
+export type StoreOrderRating = z.infer<typeof storeOrderRatingSchema>
+
+export const productRatingSchema = z.object({
+  id: z.number().optional(),
+  product_id: z.number(),
+  order_id: z.string(),
+  rating_score: z.number().min(1).max(5),
+  rating_comment: emptyToNull(z.string().optional()).refine((v) => v === null || (typeof v === 'string' && v.length >= 20), {
+    message: '+20 caracteres requeridos'
+  }),
+  earned_points: z.number().min(5),
+  created_at: z.string().optional()
+})
+
+export type ProductRating = z.infer<typeof productRatingSchema>

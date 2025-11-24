@@ -1,5 +1,5 @@
 import { Button, Input, Spinner, Tooltip } from '@heroui/react'
-import { Autocomplete, GoogleMap, MarkerF } from '@react-google-maps/api'
+import { GoogleMap, MarkerF } from '@react-google-maps/api'
 import { Crosshair } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDeviceScreen } from '../../hooks/useDeviceScreen'
@@ -44,6 +44,7 @@ type Props = {
   region?: string // default 'MX'
   /** Mostrar marcador cuando solo hay centro por CP (normalmente false) */
   showMarkerOnPostalCenter?: boolean
+  onMarkerChange?: (hasMarker: boolean, value?: AddressResult | null) => void
 }
 
 const containerStyle: React.CSSProperties = {
@@ -79,6 +80,7 @@ const mapToMX = (place: google.maps.places.PlaceResult): AddressComponentsMX => 
   const country = mapLong.get('country') || undefined
   const country_code = mapShort.get('country') || undefined
   const street = [route, street_number].filter(Boolean).join(' ')
+
   return {
     street_number,
     route,
@@ -108,7 +110,8 @@ export default function AddressMapPicker({
   country = 'mx',
   language = 'es',
   region = 'MX',
-  showMarkerOnPostalCenter = false
+  showMarkerOnPostalCenter = false,
+  onMarkerChange
 }: Props) {
   const { isLoaded } = useGoogleMaps(language, region)
   const { isMobile } = useDeviceScreen()
@@ -121,10 +124,16 @@ export default function AddressMapPicker({
   const [hasAddress, setHasAddress] = useState<boolean>(false) // marcador solo con dirección explícita
   const [isCenteredFromCP, setIsCenteredFromCP] = useState<boolean>(false) // ya centramos por CP
 
+  // Autocomplete (Data API)
+  const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([])
+  const [showPredictions, setShowPredictions] = useState(false)
+  const [loadingPredictions, setLoadingPredictions] = useState(false)
+
   const mapRef = useRef<google.maps.Map | null>(null)
-  const autoRef = useRef<google.maps.places.Autocomplete | null>(null)
-  const inputRef = useRef<HTMLInputElement | null>(null)
   const geocoderRef = useRef<google.maps.Geocoder | null>(null)
+  const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null)
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
+
   const debounceRef = useRef<number | null>(null)
   const lastCpRef = useRef<string | null>(null)
 
@@ -136,39 +145,63 @@ export default function AddressMapPicker({
   const onLoadMap = useCallback((map: google.maps.Map) => {
     mapRef.current = map
     ensureGeocoder()
+
+    // PlacesService para getDetails
+    if (!placesServiceRef.current) {
+      placesServiceRef.current = new google.maps.places.PlacesService(map)
+    }
   }, [])
 
   const onUnmount = useCallback(() => {
     mapRef.current = null
     geocoderRef.current = null
+    placesServiceRef.current = null
   }, [])
 
+  // Crear AutocompleteService cuando esté cargado Google
+  useEffect(() => {
+    if (!isLoaded) return
+    if (!autocompleteServiceRef.current) {
+      autocompleteServiceRef.current = new google.maps.places.AutocompleteService()
+    }
+  }, [isLoaded])
+
+  const applyResult = useCallback(
+    (addrText: string, coords: LatLng, components: AddressComponentsMX, placeId?: string) => {
+      const result: AddressResult = {
+        address: addrText,
+        coords,
+        placeId,
+        components
+      }
+
+      setCenter(coords)
+      setZoom(19)
+      setAddress(addrText)
+      setHasAddress(true)
+
+      onChange?.(result)
+      onMarkerChange?.(true, result)
+    },
+    [onChange, onMarkerChange]
+  )
+
   const commitChange = useCallback(
-    (placeLike: {
-      formatted_address?: string | null
-      geometry?: { location?: google.maps.LatLng | null } | null
-      place_id?: string
-      address_components?: google.maps.GeocoderAddressComponent[]
-    }) => {
+    (placeLike: google.maps.places.PlaceResult) => {
       const loc = placeLike.geometry?.location
       if (!loc) return
       const coords = { lat: loc.lat(), lng: loc.lng() }
-      const addrText = placeLike.formatted_address || inputRef.current?.value || ''
-      const components = mapToMX(placeLike as unknown as google.maps.places.PlaceResult)
+      const addrText = placeLike.formatted_address || address || ''
+      const components = mapToMX(placeLike)
 
       if (country?.toLowerCase() === 'mx') {
         const cc = (components.country_code || '').toUpperCase()
         if (cc && cc !== 'MX') console.warn('Resultado fuera de México:', addrText)
       }
 
-      setCenter(coords)
-      //Zoom automático al seleccionar dirección
-      setZoom(19)
-      setAddress(addrText)
-      setHasAddress(true) // ahora sí hay una dirección
-      onChange?.({ address: addrText, coords, placeId: placeLike.place_id, components })
+      applyResult(addrText, coords, components, placeLike.place_id)
     },
-    [onChange, country]
+    [applyResult, address, country]
   )
 
   const geocodeLatLng = useCallback(async (coords: LatLng) => {
@@ -176,13 +209,6 @@ export default function AddressMapPicker({
     const { results } = await geocoder.geocode({ location: coords })
     return results?.[0] ?? null
   }, [])
-
-  const handlePlaceChanged = useCallback(() => {
-    if (!autoRef.current) return
-    const place = autoRef.current.getPlace()
-    if (!place?.geometry?.location) return
-    commitChange(place)
-  }, [commitChange])
 
   const onMarkerDragEnd = useCallback(
     async (e: google.maps.MapMouseEvent) => {
@@ -194,14 +220,20 @@ export default function AddressMapPicker({
         if (result) {
           commitChange(result)
         } else {
-          onChange?.({ address, coords, components: {} as AddressComponentsMX })
+          const fallback: AddressResult = {
+            address,
+            coords,
+            components: {} as AddressComponentsMX
+          }
+          onChange?.(fallback)
           setHasAddress(true)
+          onMarkerChange?.(true, fallback)
         }
       } catch (err) {
         console.error(err)
       }
     },
-    [address, commitChange, geocodeLatLng, onChange]
+    [address, commitChange, geocodeLatLng, onChange, onMarkerChange]
   )
 
   const handleUseMyLocation = useCallback(() => {
@@ -218,10 +250,16 @@ export default function AddressMapPicker({
           if (result) {
             commitChange(result)
           } else {
+            const fallback: AddressResult = {
+              address: '',
+              coords,
+              components: {} as AddressComponentsMX
+            }
             setCenter(coords)
             setZoom(17)
-            onChange?.({ address: '', coords, components: {} as AddressComponentsMX })
+            onChange?.(fallback)
             setHasAddress(true)
+            onMarkerChange?.(true, fallback)
           }
         } catch (e) {
           console.error(e)
@@ -244,7 +282,7 @@ export default function AddressMapPicker({
       },
       { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 }
     )
-  }, [commitChange, geocodeLatLng, onChange])
+  }, [commitChange, geocodeLatLng, onChange, onMarkerChange])
 
   const mapStyle = useMemo(
     () => ({
@@ -253,6 +291,66 @@ export default function AddressMapPicker({
     }),
     [mapHeight]
   )
+
+  // 🔍 Manejo de Autocomplete (Data API + dropdown propio)
+  const requestPredictions = useCallback(
+    (input: string) => {
+      if (!autocompleteServiceRef.current) return
+      if (!input || input.length < 3) {
+        setPredictions([])
+        setShowPredictions(false)
+        return
+      }
+
+      setLoadingPredictions(true)
+      autocompleteServiceRef.current.getPlacePredictions(
+        {
+          input,
+          componentRestrictions: { country: (country || 'mx').toUpperCase() },
+          types: ['address']
+        },
+        (preds) => {
+          setLoadingPredictions(false)
+          const list = preds || []
+          setPredictions(list)
+          setShowPredictions(list.length > 0)
+        }
+      )
+    },
+    [country]
+  )
+
+  const handleAddressChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    const value = e.target.value
+    setAddress(value)
+
+    if (debounceRef.current) window.clearTimeout(debounceRef.current)
+    debounceRef.current = window.setTimeout(() => {
+      requestPredictions(value)
+    }, 250)
+  }
+
+  const handlePredictionClick = (prediction: google.maps.places.AutocompletePrediction) => {
+    setAddress(prediction.description)
+    setShowPredictions(false)
+    setPredictions([])
+
+    if (!placesServiceRef.current) return
+
+    placesServiceRef.current.getDetails(
+      {
+        placeId: prediction.place_id,
+        fields: ['formatted_address', 'geometry', 'address_component', 'place_id']
+      },
+      (place, status) => {
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !place) {
+          console.warn('getDetails falló:', status)
+          return
+        }
+        commitChange(place)
+      }
+    )
+  }
 
   // 👉 Geocode del CP ANTES de renderizar el <GoogleMap> (center inicia en null si hay CP)
   useEffect(() => {
@@ -266,6 +364,14 @@ export default function AddressMapPicker({
     const geocoder = ensureGeocoder()
     if (lastCpRef.current === cp) return
 
+    // 👇 NUEVO: si ya hay marcador (dirección elegida),
+    // NO recentramos al centro del CP, solo marcamos que el mapa ya puede verse.
+    if (hasAddress) {
+      lastCpRef.current = cp
+      setIsCenteredFromCP(true)
+      return
+    }
+
     if (debounceRef.current) window.clearTimeout(debounceRef.current)
     debounceRef.current = window.setTimeout(() => {
       geocoder.geocode({ address: cp, componentRestrictions: { country: (country || 'mx').toUpperCase() } }, (results, status) => {
@@ -274,19 +380,17 @@ export default function AddressMapPicker({
           if (g?.viewport) {
             const c = g.viewport.getCenter()
             if (c) setCenter({ lat: c.lat(), lng: c.lng() })
-            //Zoom automático al geocode por CP
-            setZoom(14)
+            setZoom(15)
           } else if (g?.location) {
             const loc = g.location
             setCenter({ lat: loc.lat(), lng: loc.lng() })
-            setZoom(14)
+            setZoom(15)
           }
           lastCpRef.current = cp
-          setHasAddress(false) // solo centrado por CP
-          setIsCenteredFromCP(true) // ya podemos renderizar el mapa
+          // 👇 YA NO hacemos setHasAddress(false) aquí
+          setIsCenteredFromCP(true)
         } else {
           console.warn('Geocode CP falló:', status)
-          // En caso de fallo, evita quedarte sin mapa: usa defaultCenter
           if (center === null) setCenter(defaultCenter)
           setIsCenteredFromCP(true)
         }
@@ -296,11 +400,10 @@ export default function AddressMapPicker({
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current)
     }
-  }, [postalCode, country, isLoaded, defaultCenter, center])
+    // 👇 importante agregar hasAddress a las deps
+  }, [postalCode, country, isLoaded, defaultCenter, center, hasAddress])
 
   // ⛔️ No renderizamos el mapa hasta que tengamos center calculado:
-  // - Si hay postalCode: esperamos a isCenteredFromCP
-  // - Si NO hay postalCode: center ya viene con defaultCenter
   const shouldShowMap = center !== null && (postalCode ? isCenteredFromCP : true)
 
   if (!isLoaded) {
@@ -322,33 +425,46 @@ export default function AddressMapPicker({
     <div className='flex flex-col gap-3'>
       <div className='w-full relative' style={{ height: mapHeight }}>
         <div className='flex items-center gap-2 w-full absolute z-10 bg-white/60 backdrop-blur-sm p-3 border border-gray-300 '>
-          <Autocomplete
-            onLoad={(ac) => (autoRef.current = ac)}
-            onPlaceChanged={handlePlaceChanged}
-            options={{
-              fields: ['geometry', 'formatted_address', 'address_components', 'place_id', 'name'],
-              types: ['address'],
-              componentRestrictions: { country }
-            }}
-            className=' w-full'
-          >
+          {/* Input propio + dropdown de predicciones */}
+          <div className='relative w-full'>
             <Input
-              ref={inputRef}
               value={address}
               placeholder={placeholder}
               label='Dirección'
               size='sm'
               variant='bordered'
               classNames={{ inputWrapper: 'bg-white' }}
-              onChange={(e) => setAddress(e.target.value)}
+              onChange={handleAddressChange}
               isClearable
               onClear={() => {
                 setAddress('')
-                //setCenter(null)
-                //setZoom(2)
+                setPredictions([])
+                setShowPredictions(false)
+                setHasAddress(false)
+                onMarkerChange?.(false, null)
               }}
             />
-          </Autocomplete>
+
+            {showPredictions && (
+              <div className='absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border bg-white shadow-lg'>
+                {loadingPredictions && <div className='px-3 py-2 text-xs text-gray-500'>Buscando direcciones…</div>}
+                {!loadingPredictions && predictions.length === 0 && <div className='px-3 py-2 text-xs text-gray-500'>Sin resultados</div>}
+                {predictions.map((p) => (
+                  <button
+                    key={p.place_id}
+                    type='button'
+                    onClick={() => handlePredictionClick(p)}
+                    className='flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-gray-100'
+                  >
+                    <span>{p.structured_formatting?.main_text || p.description}</span>
+                    {p.structured_formatting?.secondary_text && (
+                      <span className='text-xs text-gray-500'>{p.structured_formatting.secondary_text}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <Tooltip content='Usar mi ubicación actual'>
             <Button
@@ -364,6 +480,7 @@ export default function AddressMapPicker({
             </Button>
           </Tooltip>
         </div>
+
         <GoogleMap
           mapContainerStyle={mapStyle}
           center={center!}
@@ -393,24 +510,11 @@ export default function AddressMapPicker({
           <div className='pointer-events-none absolute bottom-0 w-full flex items-center justify-start'>
             <div className='bg-white/80 backdrop-blur rounded-xl px-4 py-2 text-sm  shadow rounded-br-none rounded-tl-none'>
               <p className='text-lg font-semibold'>¿La ubicación del mapa es correcta? </p>
-              <p>Ajusta el marcador si es necesario, o cambia los datos en el siguiente formulario</p>
+              <p>Ajusta el marcador si es necesario, o ajusta los datos en el siguiente formulario</p>
             </div>
           </div>
         )}
       </div>
-
-      {/* Debug  */}
-      {/* <div className='text-sm opacity-70 space-y-1'>
-        <div>
-          <b>Dirección:</b> {address || '—'}
-        </div>
-        <div>
-          <b>Lat:</b> {center!.lat.toFixed(6)} &nbsp; <b>Lng:</b> {center!.lng.toFixed(6)}
-        </div>
-        <div>
-          <b>Marcador activo:</b> {hasAddress ? 'sí' : 'no'}
-        </div>
-      </div> */}
     </div>
   )
 }
