@@ -13,8 +13,13 @@ import SwipperSlider from '../../components/common/swiper/SwipperSlider'
 import ProductItem from '../../components/store/ProductItem'
 import QuantitySelector from '../../components/store/QuantitySelector'
 import UnitSelector from '../../components/store/UnitSelector'
+import { useBestLinePromotion } from '../../hooks/useBestLinePromotion'
 import { userService } from '../../services/userService'
-import { makeSelectProductWithPromoBySlug, selectProductsWithBestPromo } from '../../store/selectors/productsWithPromo'
+import {
+  makeSelectProductWithPromoBySlug,
+  makeSelectPromotionsForProduct,
+  selectProductsWithBestPromo
+} from '../../store/selectors/productsWithPromo'
 import { addItem } from '../../store/slices/cartSlice'
 import { setCartOpen } from '../../store/slices/uiSlice'
 import type { RootState } from '../../store/store'
@@ -34,6 +39,7 @@ const Product = () => {
   const selectBySlug = makeSelectProductWithPromoBySlug(slug ?? '')
   const product = useSelector(selectBySlug)
   const products = useSelector(selectProductsWithBestPromo).filter((p) => p.is_active)
+
   const cartItems = useSelector((s: RootState) => s.cart.items)
 
   const isFav = favs.some((fav) => fav.product_id === product?.id)
@@ -58,7 +64,7 @@ const Product = () => {
     setUnitSelected((prev) => prev ?? nextDefault)
   }, [product?.base_unit, product?.units])
 
-  const baseFinalPrice = Number(product?.finalPrice ?? product?.price ?? 0)
+  // ---------- UNIDADES & PRECIOS ----------
   const baseOriginalPrice = Number(product?.price ?? 0)
 
   const resolveUnitPriceFrom = (base: number, unitKey: string | null): number => {
@@ -73,11 +79,30 @@ const Product = () => {
     return Math.ceil(base)
   }
 
-  const unitPrice = useMemo(() => resolveUnitPriceFrom(baseFinalPrice, unitSelected), [baseFinalPrice, unitSelected])
+  // precio unitario BASE (sin descuento) según la unidad seleccionada
   const unitOriginalPrice = useMemo(() => resolveUnitPriceFrom(baseOriginalPrice, unitSelected), [baseOriginalPrice, unitSelected])
 
-  const hasPromo = Boolean(product?.hasPromotion) && unitOriginalPrice > unitPrice
-  const total = useMemo(() => unitPrice * quantity, [unitPrice, quantity])
+  // promos candidatas ya las tienes:
+  const { promotions } = useSelector(makeSelectPromotionsForProduct(product?.id ?? 0))
+
+  // calculamos la mejor promo PARA ESTA CANTIDAD
+  const {
+    hasPromotion,
+    finalSubtotal,
+    totalDiscount,
+    discountPercent,
+    unitFinalPrice // precio unitario con promo
+  } = useBestLinePromotion({
+    unitPrice: unitOriginalPrice,
+    quantity,
+    promotions
+  })
+
+  // precio unitario mostrado (ya con descuento si aplica)
+  const unitPrice = unitFinalPrice
+
+  // total mostrado
+  const total = useMemo(() => (quantity > 0 ? finalSubtotal : unitPrice * quantity), [finalSubtotal, unitPrice, quantity])
 
   // ---------- HELPERS INVENTARIO (BULK) ----------
   // bulkUnitsAvailable:
@@ -179,6 +204,7 @@ const Product = () => {
     }
 
     const unitKey = unitSelected ?? product.base_unit
+
     dispatch(
       addItem({
         id: product.id,
@@ -188,9 +214,12 @@ const Product = () => {
         units: product.units,
         base_unit: product.base_unit,
         unitSelected: unitKey ?? undefined,
-        basePrice: Number(product.price ?? 0),
-        price: unitPrice,
-        discount: 0,
+        basePrice: Number(product.price ?? 0), // base sin descuento
+        price: unitPrice, // unitario ya con promo
+        discount:
+          hasPromotion && quantity > 0
+            ? totalDiscount / quantity // descuento unitario
+            : 0,
         quantity,
         stock: Number(product.stock ?? Number.POSITIVE_INFINITY)
       })
@@ -344,31 +373,32 @@ const Product = () => {
           <p>{product.description}</p>
 
           {/* === PRECIOS === */}
-          <div className='flex items-center justify-between'>
+          <section className='md:flex justify-between space-y-4'>
             <div className='flex flex-col'>
               <div className='flex items-baseline gap-3'>
+                {/* precio unitario con promo (si la hay) */}
                 <span className='text-3xl font-bold'>{formatMoney(unitPrice)}</span>
-                {hasPromo && <span className='text-lg line-through text-neutral-500'>{formatMoney(unitOriginalPrice)}</span>}
+                {/* precio original tachado si hay promo */}
+                {hasPromotion && <span className='text-lg line-through text-neutral-500'>{formatMoney(unitOriginalPrice)}</span>}
               </div>
-              {hasPromo ? (
+              {hasPromotion ? (
                 <div>
                   Precio con descuento{' '}
                   <Chip color='success' variant='flat' size='sm' className='font-medium'>
-                    <span>{product.discountPercent ? `-${product.discountPercent.toFixed(0)}%` : `$${product.discountAmount}`}</span>
+                    <span>{discountPercent ? `-${discountPercent.toFixed(0)}%` : `-$${totalDiscount.toFixed(2)}`}</span>
                   </Chip>
                 </div>
               ) : (
                 <span>Precio normal</span>
               )}
             </div>
-
             {quantity > 1 && (
-              <div className='flex flex-col'>
+              <div className='flex flex-col md:items-end'>
                 <span className='text-3xl font-bold'>{formatMoney(total)}</span>
-                <span className='text-right'>Total</span>
+                <span className='md:text-right'>Total</span>
               </div>
             )}
-          </div>
+          </section>
 
           {(product.stock ?? 0) > 0 && (
             <>
@@ -457,7 +487,7 @@ const Product = () => {
       </section>
 
       {/* === RELACIONADOS === */}
-      <section className='my-8 container mx-auto px-8'>
+      <section className='my-8 container mx-auto px-8 max-w-full'>
         <header className='mb-4'>
           <h3 className='text-2xl font-semibold'>Productos relacionados</h3>
         </header>
