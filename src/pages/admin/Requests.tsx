@@ -108,7 +108,7 @@ const Requests = () => {
       <ToolbarTable<Row>
         rows={requests}
         searchFilter={['alias']}
-        filters={[{ label: 'Status', column: 'status', multiple: true }]}
+        filters={[{ label: 'Status', column: 'status', multiple: true, optionsMap: request_status }]}
         enableToggleBehavior
         onCriteriaChange={setCriteria}
       />

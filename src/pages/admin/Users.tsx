@@ -108,7 +108,7 @@ const Users = () => {
         <ToolbarTable<Row>
           rows={users}
           searchFilter={['user_name']}
-          filters={[{ label: 'Rol', column: 'role', multiple: true }]}
+          filters={[{ label: 'Rol', column: 'role', multiple: true, optionsMap: userRoleMap }]}
           buttons={[
             {
               label: 'Agregar usuario',

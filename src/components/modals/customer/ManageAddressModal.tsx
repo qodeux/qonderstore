@@ -1,10 +1,10 @@
 import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { FormProvider, useForm } from 'react-hook-form'
-import { addressSchema } from '../../../schemas/address.schema'
+import { addressInputSchema } from '../../../schemas/address.schema'
 import { userService } from '../../../services/userService'
 import { useAppSelector } from '../../../store/store'
-import AddressForm from '../../forms/customer/AddressForm'
+import AddressFinder from '../../common/AddressFinder'
 
 type Props = {
   isOpen: boolean
@@ -48,63 +48,59 @@ const ManageAddressModal = ({ isOpen, onOpenChange }: Props) => {
   // }, [isEditing, selectedUser])
 
   const addressForm = useForm({
-    resolver: zodResolver(addressSchema),
-    shouldUnregister: true,
+    resolver: zodResolver(addressInputSchema),
+    shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange'
   })
 
   const {
-    formState: { isDirty }
+    formState: { isDirty, errors }
   } = addressForm
 
   const handleSubmitAddress = async () => {
     if (!user) return
     const isValid = await addressForm.trigger()
-    if (!isValid) return
-
+    if (!isValid) {
+      console.log('Errores en el formulario:', errors)
+      return
+    }
     const payload = addressForm.getValues()
+
+    console.log(payload)
+
     let transaction
 
     if (isEditing) {
-      transaction = await userService.updateAddress(1, payload)
+      transaction = await userService.updateAddress(payload)
     } else {
-      transaction = await userService.addAddress(user.id, payload)
+      transaction = await userService.addAddress(payload)
     }
 
     if (transaction?.error) {
       console.error(transaction.error)
 
-      if (transaction.error.code === '23505') {
-        const details = transaction.error?.details ?? ''
-        if (details.includes('Key (user_name)')) {
-          addressForm.setError('user_name', { message: 'El usuario ya existe' })
-        } else {
-          console.error('Error desconocido:', details)
-        }
-      } else if (transaction.error === 'A user with this email address has already been registered') {
-        addressForm.setError('email', { message: 'El email ya está registrado' })
-      }
-      return
+      // if (transaction.error.code === '23505') {
+      //   const details = transaction.error?.details ?? ''
+      //   if (details.includes('Key (user_name)')) {
+      //     addressForm.setError('user_name', { message: 'El usuario ya existe' })
+      //   } else {
+      //     console.error('Error desconocido:', details)
+      //   }
+      // } else if (transaction.error === 'A user with this email address has already been registered') {
+      //   addressForm.setError('email', { message: 'El email ya está registrado' })
+      // }
+      // return
     }
 
     onOpenChange()
   }
 
-  // Manejo de apertura/cierre del modal
-  // useEffect(() => {
-  //   const setDefaults = async () => {
-  //     const defaults = await buildFormValues()
-  //     addressForm.reset(defaults, { keepDirty: false, keepErrors: false })
-  //   }
-
-  //   void setDefaults()
-  // }, [isOpen, isEditing, selectedUser, buildFormValues, addressForm])
-
   return (
     <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
+      isDismissable={false}
       size='2xl'
       backdrop='blur'
       scrollBehavior='inside'
@@ -125,7 +121,7 @@ const ManageAddressModal = ({ isOpen, onOpenChange }: Props) => {
                 <div className='py-6 text-center text-sm text-gray-500'>Cargando datos del usuario…</div>
               ) : (
                 <FormProvider {...addressForm}>
-                  <AddressForm />
+                  <AddressFinder finderModule='manageAddress' />
                 </FormProvider>
               )}
             </ModalBody>

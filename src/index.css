@@ -21,3 +21,7 @@
 .route-fade {
     animation: route-fade .40s ease-out both;
 }
+
+.capitalize-first-letter::first-letter {
+    text-transform: uppercase;
+}

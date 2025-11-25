@@ -1,14 +1,14 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { SupplyOrder } from '../../schemas/providersOrders.schema'
 
-interface supplyOrdersState {
+export type SupplyOrdersState = {
   selectedOrder: SupplyOrder | null
   items: SupplyOrder[]
   loading: boolean
   error: string | null
 }
 
-const initialState: supplyOrdersState = {
+const initialState: SupplyOrdersState = {
   selectedOrder: null,
   items: [],
   loading: false,

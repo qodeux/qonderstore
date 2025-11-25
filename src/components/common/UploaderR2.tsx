@@ -1,10 +1,11 @@
 // RHF_R2Uploader.tsx
-import { Button, Tooltip } from '@heroui/react'
+import { Button, Spinner, Tooltip } from '@heroui/react'
 import { CircleX } from 'lucide-react'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { type FileRejection, useDropzone } from 'react-dropzone'
 import { useFormContext, useWatch } from 'react-hook-form'
 import Gallery from './cloudflare-r2/Gallery'
+import PresignedImage from './cloudflare-r2/PresignedImage'
 
 type ItemSigned = {
   key: string
@@ -28,9 +29,12 @@ type Props = {
   publicBaseUrl?: string
   /** Vida de la presigned GET (segundos) para previews en privado */
   previewExpiresIn?: number
+  instructions?: React.ReactNode | string
+  uploadType?: 'gallery' | 'file'
+  onUploadComplete?: (items: ItemSigned[]) => void
 }
 
-const RHF_R2Uploader: React.FC<Props> = ({
+const UploaderR2: React.FC<Props> = ({
   name,
   prefix = 'uploads',
   mode = 'private',
@@ -40,13 +44,17 @@ const RHF_R2Uploader: React.FC<Props> = ({
   disabled,
   uploadLabel = 'Subir archivos',
   publicBaseUrl,
-  previewExpiresIn = 60
+  previewExpiresIn = 60,
+  instructions = undefined,
+  uploadType = 'gallery',
+  onUploadComplete
 }) => {
   const {
     setValue,
     getValues,
     formState: { errors },
-    control
+    control,
+    clearErrors
   } = useFormContext()
 
   // Observa el valor actual del campo (array de keys o URLs) desde RHF
@@ -55,16 +63,22 @@ const RHF_R2Uploader: React.FC<Props> = ({
   // Estado local de archivos seleccionados (antes de subir)
   const [files, setFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
+  const [fileUploaded, setFileUploaded] = useState<boolean>(false)
   const [progress, setProgress] = useState<Record<string, number>>({}) // key -> 0..100
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const [dimensions, setDimensions] = useState<Record<string, { w: number; h: number }>>({})
   const fileKey = (f: File) => `${f.name}-${f.size}-${f.lastModified}`
 
-  const onDrop = useCallback((accepted: File[]) => {
-    if (!accepted?.length) return
-    setFiles((prev) => [...prev, ...accepted])
-  }, [])
+  const onDrop = useCallback(
+    (accepted: File[]) => {
+      if (!accepted?.length) return
+      setFiles((prev) => [...prev, ...accepted])
+      setFileUploaded(false)
+      clearErrors()
+    },
+    [clearErrors]
+  )
 
   const { getRootProps, getInputProps, isDragActive, fileRejections } = useDropzone({
     onDrop,
@@ -153,6 +167,13 @@ const RHF_R2Uploader: React.FC<Props> = ({
 
       // 4) Limpiar selección local
       setFiles([])
+
+      // 5) Callback externo
+
+      if (onUploadComplete) {
+        setFileUploaded(true)
+        onUploadComplete(items)
+      }
     } catch (e: unknown) {
       setErrorMsg((e as Error)?.message || 'Error subiendo archivos')
     } finally {
@@ -173,30 +194,51 @@ const RHF_R2Uploader: React.FC<Props> = ({
     }
   }
 
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile()
+          if (file) onDrop([file])
+        }
+      }
+    }
+
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [onDrop])
+
   return (
     <div className='space-y-2'>
       {/* Dropzone */}
-      <div
-        {...getRootProps()}
-        className={`rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition
+      {(uploadType === 'gallery' || (uploadType === 'file' && !hasFiles && !fileUploaded)) && (
+        <div
+          {...getRootProps()}
+          className={`rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition
         ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}
         ${disabled ? 'opacity-60 pointer-events-none' : ''}`}
-      >
-        <input {...getInputProps()} />
-        {isDragActive ? (
-          <p>Suelta los archivos aquí…</p>
-        ) : (
-          <>
-            <p className='font-medium'>Arrastra y suelta, o haz clic para seleccionar</p>
-            <p className='text-xs text-gray-500'>
-              Para mejores resultados, usa imágenes <strong>cuadradas</strong> de mínimo <strong>800px</strong> en formato jpg
-            </p>
-            <p className='text-xs text-gray-500 mt-1'>
-              Hasta {maxFiles} imágenes de máximo <strong>{(maxSize / (1024 * 1024)).toFixed(0)}MB</strong> cada una.
-            </p>
-          </>
-        )}
-      </div>
+        >
+          <input {...getInputProps()} />
+          {isDragActive ? (
+            <p>Suelta los archivos aquí…</p>
+          ) : instructions ? (
+            instructions
+          ) : (
+            <>
+              <p className='font-medium'>Arrastra y suelta, o haz clic para seleccionar</p>
+              <p className='text-xs text-gray-500'>
+                Para mejores resultados, usa imágenes <strong>cuadradas</strong> de mínimo <strong>800px</strong> en formato jpg
+              </p>
+              <p className='text-xs text-gray-500 mt-1'>
+                Hasta {maxFiles} imágenes de máximo <strong>{(maxSize / (1024 * 1024)).toFixed(0)}MB</strong> cada una.
+              </p>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Rechazos */}
       {fileRejections.length > 0 && (
@@ -213,7 +255,7 @@ const RHF_R2Uploader: React.FC<Props> = ({
 
       {/* Selección local + progreso */}
       {hasFiles && (
-        <ul className='grid grid-cols-2 md:grid-cols-4 gap-3'>
+        <ul className={`grid  gap-3 ${uploadType === 'gallery' ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-1'}`}>
           {files.map((file, idx) => {
             const preview = URL.createObjectURL(file)
             const k = fileKey(file)
@@ -222,7 +264,7 @@ const RHF_R2Uploader: React.FC<Props> = ({
             const anyPct = Object.values(progress)[0]
             return (
               <li key={`${file.name}-${idx}`} className='relative'>
-                <figure>
+                <figure className='aspect-square'>
                   <Tooltip content='Eliminar archivo'>
                     <button
                       className='text-danger bg-white absolute top-0 right-0 rounded-full rounded-tr-none p-1 hover:bg-danger hover:text-white '
@@ -236,7 +278,7 @@ const RHF_R2Uploader: React.FC<Props> = ({
                   <img
                     src={preview}
                     alt={file.name}
-                    className='h-32 w-full object-cover rounded-xl border-1 border-neutral-300'
+                    className={`${uploadType === 'gallery' ? 'h-32' : 'h-auto'} w-full  object-cover rounded-xl border-1 border-neutral-300`}
                     onLoad={(e) => {
                       // Solo calcular para imágenes y solo en la sección local
                       if (file.type?.startsWith('image/')) {
@@ -247,18 +289,37 @@ const RHF_R2Uploader: React.FC<Props> = ({
                     }}
                   />
                 </figure>
-                <div className='mt-1 flex flex-col items-center justify-between text-xs'>
-                  <span className='whitespace-nowrap'>
-                    {file.type?.startsWith('image/') ? (dims ? `${dims.w}×${dims.h} px` : '…') : ''}
-                  </span>
-                  <span className='text-gray-500 '>
-                    {file.size < 1024
-                      ? `${file.size} B`
-                      : file.size < 1024 * 1024
-                        ? `${(file.size / 1024).toFixed(2)} KB`
-                        : `${(file.size / 1024 / 1024).toFixed(2)} MB`}
-                  </span>
-                </div>
+                <footer className='flex justify-between mt-2'>
+                  <div className='mt-1 flex flex-col items-start justify-between text-xs'>
+                    <span className='whitespace-nowrap'>
+                      {uploadType === 'file' && 'Resolución: '}
+                      {file.type?.startsWith('image/') ? (dims ? `${dims.w}×${dims.h} px` : '…') : ''}
+                    </span>
+                    <span className='text-gray-500 '>
+                      {uploadType === 'file' && 'Tamaño: '}
+                      {file.size < 1024
+                        ? `${file.size} B`
+                        : file.size < 1024 * 1024
+                          ? `${(file.size / 1024).toFixed(2)} KB`
+                          : `${(file.size / 1024 / 1024).toFixed(2)} MB`}
+                    </span>
+                  </div>
+                  {uploadType === 'file' && (
+                    <div className='flex justify-center'>
+                      {hasFiles && (
+                        <Button
+                          onPress={handleUpload}
+                          isDisabled={!hasFiles || uploading || disabled}
+                          isLoading={uploading}
+                          variant='ghost'
+                          color='primary'
+                        >
+                          {uploading ? 'Subiendo…' : uploadLabel}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </footer>
                 {uploading && (
                   <div className='mt-1 w-full bg-gray-200 h-2 rounded overflow-hidden'>
                     <div className='h-2 rounded' style={{ width: `${anyPct ?? 0}%`, transition: 'width .2s' }} />
@@ -274,25 +335,40 @@ const RHF_R2Uploader: React.FC<Props> = ({
       {fieldError && <p className='text-sm text-red-600'>{fieldError}</p>}
       {errorMsg && <p className='text-sm text-red-600'>{errorMsg}</p>}
 
-      {/* Botón subir */}
-      <div className='flex justify-center'>
-        {hasFiles && (
-          <Button
-            onPress={handleUpload}
-            isDisabled={!hasFiles || uploading || disabled}
-            isLoading={uploading}
-            variant='ghost'
-            color='primary'
-          >
-            {uploading ? 'Subiendo…' : uploadLabel}
-          </Button>
-        )}
-      </div>
+      {uploadType === 'gallery' && (
+        <div className='flex justify-center'>
+          {hasFiles && (
+            <Button
+              onPress={handleUpload}
+              isDisabled={!hasFiles || uploading || disabled}
+              isLoading={uploading}
+              variant='ghost'
+              color='primary'
+            >
+              {uploading ? 'Subiendo…' : uploadLabel}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {fileUploaded && uploadType === 'file' && (
+        <div className='text-sm text-gray-500 w-full flex justify-center '>
+          <PresignedImage keyPath={currentField[0]} aspect='free' expires={previewExpiresIn} />
+        </div>
+      )}
+
+      {fileUploaded && uploadType === 'file' && (
+        <div className='text-sm text-gray-500 w-full flex justify-center '>
+          <Spinner label='Registrando...' size='lg' />
+        </div>
+      )}
 
       {/* Galería - lee del mismo form (campo `name`) */}
-      {currentField.length > 0 && <Gallery mode={mode} publicBaseUrl={publicBaseUrl} expires={previewExpiresIn} />}
+      {currentField.length > 0 && uploadType === 'gallery' && (
+        <Gallery mode={mode} publicBaseUrl={publicBaseUrl} expires={previewExpiresIn} />
+      )}
     </div>
   )
 }
 
-export default RHF_R2Uploader
+export default UploaderR2

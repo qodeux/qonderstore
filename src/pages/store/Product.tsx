@@ -1,23 +1,24 @@
-import { Button, Chip, Progress } from '@heroui/react'
+import { Button, Chip, Progress, Tooltip } from '@heroui/react'
 import { Rating } from '@smastrom/react-rating'
 import '@smastrom/react-rating/style.css'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronRight, HeartPlus } from 'lucide-react'
+import { ChevronRight, HeartMinus, HeartPlus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useParams } from 'react-router'
-
 import { SwiperSlide } from 'swiper/react'
+
 import ProductLightboxGallery from '../../components/common/light-box/ProductLightbox'
 import SwipperSlider from '../../components/common/swiper/SwipperSlider'
 import ProductItem from '../../components/store/ProductItem'
 import QuantitySelector from '../../components/store/QuantitySelector'
 import UnitSelector from '../../components/store/UnitSelector'
+import { userService } from '../../services/userService'
 import { makeSelectProductWithPromoBySlug, selectProductsWithBestPromo } from '../../store/selectors/productsWithPromo'
 import { addItem } from '../../store/slices/cartSlice'
 import { setCartOpen } from '../../store/slices/uiSlice'
 import type { RootState } from '../../store/store'
-import { saleUnitsAvailable } from '../../types/products'
+import { bulkUnitsAvailable, saleUnitsAvailable, type BulkUnit } from '../../types/products'
 import { formatMoney } from '../../utils/money'
 
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,6 +26,7 @@ type AnyRecord = Record<string, any>
 
 const Product = () => {
   const { slug } = useParams()
+  const { user, favs } = useSelector((state: RootState) => state.auth)
   const dispatch = useDispatch()
 
   const categories = useSelector((state: RootState) => state.categories.items)
@@ -33,6 +35,8 @@ const Product = () => {
   const product = useSelector(selectBySlug)
   const products = useSelector(selectProductsWithBestPromo).filter((p) => p.is_active)
   const cartItems = useSelector((s: RootState) => s.cart.items)
+
+  const isFav = favs.some((fav) => fav.product_id === product?.id)
 
   const rating = 4
   const [quantity, setQuantity] = useState(product?.min_sale ? product.min_sale : 1)
@@ -75,55 +79,86 @@ const Product = () => {
   const hasPromo = Boolean(product?.hasPromotion) && unitOriginalPrice > unitPrice
   const total = useMemo(() => unitPrice * quantity, [unitPrice, quantity])
 
-  // ---------- DISPONIBILIDAD ----------
-  const getUnitFactor = (unitKey: string | null, prod: AnyRecord) => {
-    if (!unitKey || !prod?.units) return 1
-    const u = prod.units[unitKey]
-    if (!u) return 1
-    if (typeof u === 'number') return 1
-    const f = Number(u?.factor)
-    return Number.isFinite(f) && f > 0 ? f : 1
+  // ---------- HELPERS INVENTARIO (BULK) ----------
+  // bulkUnitsAvailable:
+  // { label: 'Gramo', key: 'gr', value: 1 }
+  // { label: 'Onza',  key: 'oz', value: 28.3495 }
+  // { label: 'Libra', key: 'lb', value: 453.592 }
+  const getBulkUnitFactorInGrams = (unitKey: BulkUnit | null): number => {
+    if (!unitKey) return 1
+    const found = bulkUnitsAvailable.find((u) => u.key === unitKey)
+    return found?.value ?? 1
   }
 
-  const stockTotal = Number(product?.stock ?? 0)
-  const currentFactor = useMemo(
-    () => getUnitFactor(unitSelected ?? product?.base_unit ?? null, product as AnyRecord),
-    [unitSelected, product]
-  )
+  // ---------- DISPONIBILIDAD / STOCK ----------
+  // stockTotalBase:
+  // - unit  → interpretamos como unidades
+  // - bulk  → interpretamos como gramos
+  const stockTotalBase = Number(product?.stock ?? 0)
 
-  // 🔸 Solo descontamos lo YA agregado al carrito
   const reservedInCartBase = useMemo(() => {
     if (!product) return 0
+
+    // Productos por pieza: stock en unidades
+    if (product.sale_type === 'unit') {
+      return cartItems.filter((it) => it.id === product.id).reduce((sum, it) => sum + (it.quantity || 0), 0)
+    }
+
+    // Productos a granel: stock en gramos
     return cartItems
-      .filter((it) => it.id === product.id && (it.unitSelected ?? it.base_unit ?? null) === (unitSelected ?? product.base_unit ?? null))
-      .reduce((sum, it) => sum + (it.quantity || 0) * currentFactor, 0)
-  }, [cartItems, product, unitSelected, currentFactor])
+      .filter((it) => it.id === product.id)
+      .reduce((sum, it) => {
+        const unitKey = (it.unitSelected ?? it.base_unit ?? null) as BulkUnit | null
+        const gramsPerUnit = getBulkUnitFactorInGrams(unitKey)
+        return sum + (it.quantity || 0) * gramsPerUnit
+      }, 0)
+  }, [cartItems, product])
 
-  const remainingNow = Math.max(0, stockTotal - reservedInCartBase)
+  const remainingNowBase = Math.max(0, stockTotalBase - reservedInCartBase)
 
-  // ✅ Evita NaN o 0 erróneo
-  const safeFactor = Number.isFinite(currentFactor) && currentFactor > 0 ? currentFactor : 1
-  const maxSelectableQty = Math.max(0, Math.floor(remainingNow / safeFactor))
+  // factor de la unidad actual (solo importa para bulk)
+  const currentFactorGrams = useMemo(() => {
+    if (!product || product.sale_type !== 'bulk') return 1
+    const unitKey = (unitSelected ?? product.base_unit ?? null) as BulkUnit | null
+    return getBulkUnitFactorInGrams(unitKey)
+  }, [product, unitSelected])
+
+  const maxSelectableQty = useMemo(() => {
+    if (!product) return 0
+
+    if (product.sale_type === 'unit') {
+      // stock y reservado en unidades
+      return remainingNowBase
+    }
+
+    // bulk → stock/ reservado en gramos → convertimos a la unidad actual
+    const safeFactor = Number.isFinite(currentFactorGrams) && currentFactorGrams > 0 ? currentFactorGrams : 1
+    return Math.max(0, Math.floor(remainingNowBase / safeFactor))
+  }, [product, remainingNowBase, currentFactorGrams])
+
+  // Para no tocar demasiado el resto del componente
+  const remainingNow = remainingNowBase
 
   useEffect(() => {
     if (product?.stock == null) {
       setStockLeftPercent(null)
       return
     }
-    const percent = stockTotal > 0 ? Math.round((remainingNow / stockTotal) * 100) : 0
+    const percent = stockTotalBase > 0 ? Math.round((remainingNowBase / stockTotalBase) * 100) : 0
     setStockLeftPercent(percent)
-  }, [product?.stock, stockTotal, remainingNow])
+  }, [product?.stock, stockTotalBase, remainingNowBase])
 
-  // ✅ Mantén quantity dentro de [0/1, maxSelectableQty] al cambiar stock/unidad/carrito
+  // Mantener quantity dentro del rango válido cuando cambian stock / unidad / carrito
   useEffect(() => {
     const safeMax = Number.isFinite(maxSelectableQty) ? maxSelectableQty : 0
     setQuantity((q) => {
       if (safeMax === 0) return 0
-      if (q < 1) return 1
+      const min = product?.min_sale && product.min_sale > 0 ? product.min_sale : 1
+      if (q < min) return min
       if (q > safeMax) return safeMax
       return q
     })
-  }, [maxSelectableQty])
+  }, [maxSelectableQty, product?.min_sale])
 
   // ---------- RELACIONADOS ----------
   const relatedProducts = useMemo(() => {
@@ -163,6 +198,29 @@ const Product = () => {
     dispatch(setCartOpen(true))
   }
 
+  // ---------- FAVORITOS ----------
+  const handleAddtoFavs = async () => {
+    if (!product) return
+    try {
+      await userService.addProductFav({
+        product_id: product.id
+      })
+    } catch (error) {
+      console.error('Error adding product to favorites:', error)
+    }
+  }
+  const handleRemovefromFavs = async () => {
+    if (!user || !product) return
+    try {
+      await userService.removeProductFav({
+        product_id: product.id,
+        user_id: user.id
+      })
+    } catch (error) {
+      console.error('Error removing product from favorites:', error)
+    }
+  }
+
   useEffect(() => {
     if (!QuantityError) return
     const timer = setTimeout(() => setQuantityError(null), 2000)
@@ -177,6 +235,10 @@ const Product = () => {
   if (!product) return <div>Producto no encontrado</div>
 
   const canAdd = maxSelectableQty > 0 && quantity >= 1 && quantity <= maxSelectableQty
+
+  const progressColor = (stockLeftPercent ?? 0) <= 10 ? 'danger' : (stockLeftPercent ?? 0) <= 50 ? 'warning' : 'success'
+
+  const saleUnitsAvailableLabel = saleUnitsAvailable.find((u) => u.key === product.unit)?.label ?? ''
 
   return (
     <>
@@ -205,9 +267,39 @@ const Product = () => {
 
             <div className='flex items-center justify-between'>
               <h2 className='text-3xl md:text-4xl font-bold'>{product.name}</h2>
-              <Button isIconOnly radius='full' size='md'>
-                <HeartPlus size={36} className='m-2' />
-              </Button>
+              {isFav ? (
+                <motion.div
+                  key={product.id + 'fav'}
+                  initial={{ scale: 0 }}
+                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.1 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <Tooltip content='Quitar de favoritos' placement='left'>
+                    <Button isIconOnly className='' variant='solid' color='danger' size='sm' onPress={handleRemovefromFavs}>
+                      <HeartMinus />
+                    </Button>
+                  </Tooltip>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={product.id + 'Notfav'}
+                  initial={{ scale: 1 }}
+                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.1 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <Tooltip content='Agregar a favoritos' placement='left'>
+                    <Button isIconOnly className='' variant='ghost' color='danger' size='sm' onPress={handleAddtoFavs}>
+                      <HeartPlus />
+                    </Button>
+                  </Tooltip>
+                </motion.div>
+              )}
             </div>
 
             {product.brand && (
@@ -228,13 +320,21 @@ const Product = () => {
             {(product.stock ?? 0) > 0 ? (
               <Progress
                 aria-label='Disponibilidad'
-                label='Quedan'
+                label={Number(remainingNow.toFixed(0)) === 0 ? '' : `Queda${Number(remainingNow.toFixed(0)) > 1 ? 'n' : ''}`}
                 size='md'
                 value={stockLeftPercent ?? 0}
                 showValueLabel
                 className='w-full max-w-1/2 md:max-w-2/3 lg:max-w-1/2 xl:max-w-1/3'
-                valueLabel={`${remainingNow}  unidades`}
-                color={remainingNow > 5 ? 'success' : 'danger'}
+                valueLabel={
+                  Number(remainingNow.toFixed(0)) === 0
+                    ? 'Agotado'
+                    : product.sale_type === 'unit'
+                      ? `${remainingNow} ${saleUnitsAvailableLabel}${remainingNow > 1 ? 's' : ''}`
+                      : remainingNow > 999
+                        ? `${(remainingNow / 1000).toFixed(2)} kg`
+                        : `${remainingNow.toFixed(0)} gr${Number(remainingNow.toFixed(0)) > 1 ? 's' : ''}`
+                }
+                color={progressColor}
               />
             ) : (
               <span className='text-danger font-semibold'>Producto agotado</span>
@@ -251,14 +351,12 @@ const Product = () => {
                 {hasPromo && <span className='text-lg line-through text-neutral-500'>{formatMoney(unitOriginalPrice)}</span>}
               </div>
               {hasPromo ? (
-                <>
-                  <div>
-                    Precio con descuento{' '}
-                    <Chip color='success' variant='flat' size='sm' className='font-medium'>
-                      <span>{product.discountPercent ? `-${product.discountPercent.toFixed(0)}%` : `$${product.discountAmount}`}</span>
-                    </Chip>
-                  </div>
-                </>
+                <div>
+                  Precio con descuento{' '}
+                  <Chip color='success' variant='flat' size='sm' className='font-medium'>
+                    <span>{product.discountPercent ? `-${product.discountPercent.toFixed(0)}%` : `$${product.discountAmount}`}</span>
+                  </Chip>
+                </div>
               ) : (
                 <span>Precio normal</span>
               )}
@@ -279,7 +377,7 @@ const Product = () => {
                   <AnimatePresence>
                     {remainingNow > 0 && (
                       <motion.div
-                        key={`qty-selector`}
+                        key='qty-selector'
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, type: 'spring' }}
@@ -289,7 +387,7 @@ const Product = () => {
                           quantity={quantity}
                           setQuantity={(q) => {
                             const safeMax = Number.isFinite(maxSelectableQty) ? maxSelectableQty : 0
-                            const minAllowed = safeMax > 0 ? 1 : 0
+                            const minAllowed = product.min_sale && product.min_sale > 0 ? product.min_sale : safeMax > 0 ? 1 : 0
                             const next = Math.max(minAllowed, Math.min(q, safeMax))
                             setQuantity(next)
                             if (q > safeMax) setQuantityError('No hay existencias suficientes')
@@ -303,7 +401,7 @@ const Product = () => {
 
                     {product.sale_type === 'unit' && remainingNow > 0 && (
                       <motion.div
-                        key={`unit-label`}
+                        key='unit-label'
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, type: 'spring' }}
@@ -318,7 +416,7 @@ const Product = () => {
 
                     {product.sale_type === 'bulk' && remainingNow > 0 && (
                       <motion.div
-                        key={`unit-selector`}
+                        key='unit-selector'
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}

@@ -14,7 +14,9 @@ import Promos from '../pages/admin/Promos'
 import Providers from '../pages/admin/Providers'
 import Requests from '../pages/admin/Requests'
 import OrderDetails from '../pages/admin/store-orders/OrderDetails'
+import PrintOrder from '../pages/admin/store-orders/PrintOrder'
 import PedidosTienda from '../pages/admin/StoreOrders'
+import EnviosTienda from '../pages/admin/StoreShipments'
 import SupplyOrders from '../pages/admin/SupplyOrders'
 import Users from '../pages/admin/Users'
 import Login from '../pages/auth/Login'
@@ -25,6 +27,7 @@ import FAQ from '../pages/public/FAQ'
 import MailVerify from '../pages/public/MailVerify'
 import Privacidad from '../pages/public/Privacidad'
 import Terminos from '../pages/public/Terminos'
+import ScannedQR from '../pages/ScannedQR'
 import Catalog from '../pages/store/Catalog'
 import Category from '../pages/store/Category'
 import Checkout from '../pages/store/Checkout'
@@ -43,6 +46,7 @@ const AppRoutes: React.FC = () => (
       <Route path='/verificacion-email' element={<MailVerify />} />
       <Route path='/crear-cuenta' element={<CreateAccount />} />
       <Route path='*' element={<NotFound />} />
+      <Route path='/pedido-qr/:id' element={<ScannedQR />} />
     </Route>
 
     <Route
@@ -90,6 +94,7 @@ const AppRoutes: React.FC = () => (
       <Route path='promociones' element={<Promos />} />
       <Route path='ordenes' element={<PedidosTienda />} />
       <Route path='orden/:id' element={<OrderDetails />} />
+      <Route path='envios' element={<EnviosTienda />} />
 
       <Route
         path='proveedores'
@@ -118,6 +123,9 @@ const AppRoutes: React.FC = () => (
       />
       <Route path='*' element={<NotFound />} />
     </Route>
+
+    {/* Proteger esta ruta  */}
+    <Route path='admin/orden/imprimir' element={<PrintOrder />} />
 
     <Route
       path='/mi-cuenta'

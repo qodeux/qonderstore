@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { Promotion } from '../../schemas/promotions.schema'
 
-interface promotionState {
+export type PromotionState = {
   isEditing: boolean
   loading: boolean
   error: string | null
@@ -9,7 +9,7 @@ interface promotionState {
   items: Promotion[]
 }
 
-const initialState: promotionState = {
+const initialState: PromotionState = {
   isEditing: false,
   loading: false,
   error: null,

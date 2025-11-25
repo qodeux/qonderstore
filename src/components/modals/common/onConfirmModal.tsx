@@ -4,7 +4,7 @@ type onConfirmModalProps = {
   isOpen: boolean
   onOpenChange: () => void
   title: string
-  action: 'delete' | 'archive'
+  action: 'delete' | 'archive' | 'cancel'
   message: string
   onConfirm: () => void
 }
@@ -26,14 +26,37 @@ const OnConfirmModal = ({ isOpen, onOpenChange, title, action, message, onConfir
                   className='mt-4'
                   classNames={{ title: 'font-bold', description: 'text-xs' }}
                   title='Advertencia'
-                  description={`Esto no se puede deshacer. La imagen sera eliminada de forma permanente.`}
+                  description={`Esto no se puede deshacer. `}
+                />
+              )}
+              {action === 'cancel' && (
+                <Alert
+                  color='danger'
+                  hideIconWrapper
+                  className='mt-4'
+                  classNames={{ title: 'font-bold', description: 'text-xs' }}
+                  title='Advertencia'
+                  description={`Esto no se puede deshacer.`}
                 />
               )}
             </ModalBody>
             <ModalFooter>
-              <Button color='primary' variant='light' onPress={onClose}>
-                Cancelar
-              </Button>
+              {['delete', 'archive'].includes(action) && (
+                <Button color='primary' variant='light' onPress={onClose}>
+                  Cancelar
+                </Button>
+              )}
+              {action === 'cancel' && (
+                <>
+                  <Button color='primary' variant='light' onPress={onClose}>
+                    Cerrar
+                  </Button>
+                  <Button color='danger' onPress={() => onConfirm()}>
+                    Cancelar
+                  </Button>
+                </>
+              )}
+
               {action === 'delete' && (
                 <Button color='danger' onPress={() => onConfirm()}>
                   Eliminar

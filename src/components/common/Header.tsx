@@ -15,22 +15,22 @@ import {
   NavbarMenuItem,
   NavbarMenuToggle
 } from '@heroui/react'
-import { HelpCircle, HomeIcon, Power, Settings, ShoppingCart, Truck, User } from 'lucide-react'
-import { useState } from 'react'
+import { Heart, HelpCircle, HomeIcon, Power, Settings, ShoppingCart, Truck, User } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router'
 import Logo from '../../assets/logo-full-Q.svg?react'
 import { logoutUser } from '../../store/slices/authSlice'
-import { openModal, setCartOpen, setEditMode, setModal } from '../../store/slices/uiSlice'
+import { setCartOpen } from '../../store/slices/uiSlice'
 import type { AppDispatch, RootState } from '../../store/store'
 
 const Header = () => {
-  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth)
+  const { isAuthenticated, user, favs } = useSelector((state: RootState) => state.auth)
   const dispatch = useDispatch<AppDispatch>()
   const navigate = useNavigate()
   const location = useLocation()
 
-  const { totalQuantity } = useSelector((state: RootState) => state.cart)
+  const { items } = useSelector((state: RootState) => state.cart)
 
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
@@ -45,17 +45,22 @@ const Header = () => {
     navigate('/login')
   }
 
-  const handleAccountModalOpen = () => {
-    console.log('Abriendo modal de cuenta...')
-    dispatch(setModal('account'))
-    dispatch(setEditMode(true))
-    dispatch(openModal())
-  }
+  // const handleAccountModalOpen = () => {
+  //   console.log('Abriendo modal de cuenta...')
+  //   dispatch(setModal('account'))
+  //   dispatch(setEditMode(true))
+  //   dispatch(openModal())
+  // }
 
   const handleToggleCart = () => {
     console.log('Abriendo carrito...')
     dispatch(setCartOpen(!isOpenCart))
     // Lógica para abrir el carrito
+  }
+
+  const handleGoToFavs = () => {
+    navigate('/mi-cuenta?tab=favoritos')
+    // Lógica para navegar a la página de favoritos
   }
 
   const menuItems = [
@@ -68,10 +73,15 @@ const Header = () => {
     { icon: <Power />, label: 'Cerrar sesión', link: '/logout' }
   ]
 
+  useEffect(() => {
+    //dispatch(setIsMenuOpen(false))
+    dispatch(setCartOpen(false))
+  }, [location, dispatch])
+
   return (
     <Navbar
       onMenuOpenChange={setIsMenuOpen}
-      className='bg-black text-white fixed top-0 z-60 h-16'
+      className='bg-black text-white fixed top-0 z-40 h-16'
       maxWidth={isAuthenticated ? 'full' : '2xl'}
     >
       <NavbarMenuToggle aria-label={isMenuOpen ? 'Close menu' : 'Open menu'} className='sm:hidden' />
@@ -81,10 +91,10 @@ const Header = () => {
         </Link>
       </NavbarBrand>
 
-      <NavbarContent justify='end'>
+      <NavbarContent justify='end' className='gap-1'>
         {isAuthenticated ? (
           <>
-            <div className='hidden md:flex gap-4'>
+            <div className='hidden md:flex gap-4 mr-4'>
               <NavbarItem>
                 <Link href='/tienda' className='text-white'>
                   Tienda
@@ -106,11 +116,11 @@ const Header = () => {
                 <Badge
                   className='dark'
                   color='danger'
-                  content={totalQuantity}
+                  content={items.length}
                   shape='circle'
                   classNames={{ badge: 'absolute bottom-3' }}
                   placement='bottom-right'
-                  isInvisible={totalQuantity === 0}
+                  isInvisible={items.length === 0}
                 >
                   <Button isIconOnly variant='light' onPress={handleToggleCart} className='text-white' radius='full'>
                     <ShoppingCart />
@@ -118,8 +128,40 @@ const Header = () => {
                 </Badge>
               </NavbarItem>
             )}
-            <NavbarItem>
-              <Dropdown placement='bottom-start'>
+            {favs.length > 0 && (
+              <NavbarItem>
+                <Badge
+                  className='dark'
+                  color='danger'
+                  content={favs.length}
+                  shape='circle'
+                  classNames={{ badge: 'absolute bottom-3' }}
+                  placement='bottom-right'
+                  isInvisible={favs.length === 0}
+                >
+                  <Button isIconOnly variant='light' onPress={handleGoToFavs} className='text-white' radius='full'>
+                    <Heart />
+                  </Button>
+                </Badge>
+              </NavbarItem>
+            )}
+            {/* <NavbarItem>
+              <Badge
+                className='dark'
+                color='danger'
+                content={items.length}
+                shape='circle'
+                classNames={{ badge: 'absolute bottom-3' }}
+                placement='bottom-right'
+                isInvisible={items.length === 0}
+              >
+                <Button isIconOnly variant='light' onPress={handleToggleCart} className='text-white' radius='full'>
+                  <Bell />
+                </Button>
+              </Badge>
+            </NavbarItem> */}
+            <NavbarItem className='hidden md:block ml-4'>
+              <Dropdown placement='bottom-start' classNames={{ content: 'mt-5 ' }}>
                 <DropdownTrigger>
                   <Avatar
                     isBordered
@@ -130,14 +172,11 @@ const Header = () => {
                   />
                 </DropdownTrigger>
                 <DropdownMenu aria-label='User Actions' variant='flat'>
-                  <DropdownItem key='profile' className='h-14 gap-2'>
-                    <p>{user?.full_name || user?.email}</p>
-                    <p className='font-bold'>{user?.email}</p>
-                    <p className='font-bold'>{user?.role}</p>
-                  </DropdownItem>
-                  <DropdownItem key='account' onPress={handleAccountModalOpen}>
+                  {/* <DropdownItem key='account' onPress={handleAccountModalOpen}>
                     Mi perfil
-                  </DropdownItem>
+                  </DropdownItem> */}
+                  <DropdownItem key='orders'>Mis pedidos</DropdownItem>
+                  <DropdownItem key='settings'>Ajustes</DropdownItem>
                   <DropdownItem key='help_and_feedback'>Ayuda y soporte</DropdownItem>
                   <DropdownItem key='logout' color='danger' onPress={handleLogout}>
                     <div className='flex items-center gap-2'>
@@ -161,7 +200,7 @@ const Header = () => {
       </NavbarContent>
       <NavbarMenu className='dark bg-black/90 h-auto max-h-fit z-70'>
         {menuItems.map((item, index) => (
-          <NavbarMenuItem key={`${item}-${index}`}>
+          <NavbarMenuItem key={`${item.label}-${index}`}>
             <Link
               className='w-full gap-2'
               color={index === 2 ? 'primary' : index === menuItems.length - 1 ? 'danger' : 'foreground'}

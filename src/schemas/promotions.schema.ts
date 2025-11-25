@@ -30,28 +30,62 @@ const FrequencyMonthly = z.object({ day: z.number().int().min(1).max(31) })
 export const promotionsInputSchema = z
   .object({
     name: z.string('Dato requerido.').min(1, 'Dato requerido.'),
-    promo_type: z.enum(['category', 'product'], { error: 'Dato requerido.' }),
+    promo_type: z
+      .enum(['category', 'product'])
+      .nullable()
+      .optional()
+      .refine((v) => v !== null, {
+        message: 'Dato requerido.'
+      }),
     category: z.coerce.number().optional(),
     subcategory: z.coerce.number().optional(),
     product: z.number().optional(),
-    discount_type: z.enum(['season', 'code'], { error: 'Dato requerido.' }),
-    frequency: z.enum(['once', 'weekly', 'monthly', 'select']).optional(),
+    discount_type: z
+      .enum(['season', 'code', 'fixed'])
+      .nullable()
+      .refine((v) => v !== null, {
+        message: 'Dato requerido.'
+      }),
+
+    frequency: z.nullable(z.enum(['once', 'weekly', 'monthly', 'select']).refine((v) => !!v, { message: 'Dato requerido.' })).optional(),
+
     frequency_value: z.union([FrequencyOnce, FrequencyWeekly, FrequencyMonthly]).nullable().optional(),
 
     // date: z.array(z.string()).optional(),
     // week_days: z.array(z.string()).optional(),
     // day_month: z.array(z.string()).optional(),
 
-    code: z.string().min(2, 'El código debe tener al menos 4 caracteres.').optional(),
-    mode: z.enum(['fixed', 'percentage', 'free'], { error: 'Dato requerido.' }),
-    mode_value: z.number('Dato requerido.'),
+    code: z
+      .string()
+      .transform((v) => (v === '' ? undefined : v))
+      .optional()
+      .refine((v) => v === undefined || v.length >= 4, {
+        message: 'El código debe tener al menos 4 caracteres.'
+      }),
+    mode: z
+      .enum(['fixed', 'percentage', 'free'])
+      .nullable()
+      .refine((v) => v !== null, {
+        message: 'Dato requerido.'
+      }),
+    mode_value: z
+      .number('Dato requerido.')
+      .nullable()
+      .refine((v) => v !== null, {
+        message: 'Dato requerido.'
+      }),
 
-    valid_until: z
-      .custom<DateValue>((v) => !!toJSDate(v), {
-        message: 'Selecciona una fecha válida'
-      })
-      .transform((v) => toJSDate(v) as Date) // ahora es Date nativo
-      .refine((d) => d >= new Date(), { message: 'La fecha debe ser futura.' }),
+    valid_until: z.nullable(
+      z
+        .custom<DateValue>((v) => !!toJSDate(v), {
+          message: 'Selecciona una fecha válida'
+        })
+        .transform((v) => toJSDate(v) as Date) // convierte a Date nativo
+        .refine((d) => d >= new Date(), {
+          message: 'La fecha debe ser futura.'
+        })
+        .optional()
+    ),
 
     is_active: z.boolean().optional(),
     is_limited: z.boolean().optional(),

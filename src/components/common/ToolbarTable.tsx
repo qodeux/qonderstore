@@ -1,11 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-import { Button, Input, Select, SelectItem } from '@heroui/react'
-import { CopyPlus, SquareMousePointer } from 'lucide-react'
+import { Button, Input, Select, SelectItem, Tooltip, useDisclosure } from '@heroui/react'
+import { CopyCheck, CopyPlus, SquareMousePointer } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
+import MobileFiltersModal from '../modals/admin/MobileFiltersModal'
 
 export type SelectionBehavior = 'replace' | 'toggle'
+
+type OptionLike = {
+  key: string | number
+  label: string
+}
 
 export type ToolbarButton = {
   label: string
@@ -21,6 +26,7 @@ export type ToolbarFilter<T> = {
   column: keyof T // Columna a filtrar (ej. "category")
   multiple?: boolean // true por defecto
   formatOption?: (v: unknown) => string // opcional: cómo mostrar cada opción
+  optionsMap?: Record<string, string> | ReadonlyArray<OptionLike>
 }
 
 export type ToolbarCriteria<T> = {
@@ -59,6 +65,29 @@ type Props<T extends Record<string, any>> = {
 // Helper interno para serializar valores a string
 const toKey = (v: unknown) => (v == null ? '' : String(v))
 
+const resolveLabel = <T extends Record<string, any>>(f: ToolbarFilter<T>, rawValue: unknown): string => {
+  const v = toKey(rawValue)
+
+  // 1) formatOption manda primero si existe
+  if (f.formatOption) return f.formatOption(v)
+
+  // 2) optionsMap como Record<string, string>
+  if (f.optionsMap) {
+    if (Array.isArray(f.optionsMap)) {
+      // 2a) optionsMap como array [{ key, label }]
+      const found = f.optionsMap.find((opt) => toKey(opt.key) === v)
+      if (found) return found.label
+    } else {
+      // 2b) optionsMap como objeto { [key]: label }
+      const label = (f.optionsMap as Record<string, string>)[v]
+      if (label) return label
+    }
+  }
+
+  // 3) fallback: el valor crudo
+  return v
+}
+
 export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
   const {
     rows,
@@ -76,6 +105,9 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
   const [searchText, setSearchText] = useState('')
   // estado local de selección por filtro
   const [selected, setSelected] = useState<Partial<Record<string, Set<string>>>>({})
+  const [selectionMode, setSelectionMode] = useState<'single' | 'multiple'>('multiple')
+
+  const { isOpen, onOpen, onOpenChange } = useDisclosure()
 
   // Deriva opciones únicas por filtro a partir de las filas actuales
   const filterOptions = useMemo(() => {
@@ -98,11 +130,15 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
       const arr = Array.from(set).sort((a, b) => a.localeCompare(b))
       result[f.column as string] = arr.map((v) => ({
         value: v,
-        label: f.formatOption ? f.formatOption(v) : v
+        label: resolveLabel(f, v)
       }))
     }
     return result
   }, [rows, filters])
+
+  const toggleSelectionMode = () => {
+    setSelectionMode((prev) => (prev === 'multiple' ? 'single' : 'multiple'))
+  }
 
   // Notifica criterios al padre
   useEffect(() => {
@@ -112,10 +148,26 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
     })
   }, [searchText, selected, onCriteriaChange])
 
+  useEffect(() => {
+    //Si cambiamos de multiple a single, limpiamos todas las selecciones excepto la primera de cada filtro
+    if (selectionMode === 'single') {
+      setSelected((prev) => {
+        const newSelected: Partial<Record<string, Set<string>>> = {}
+        for (const [key, setVals] of Object.entries(prev)) {
+          if (setVals && setVals.size > 0) {
+            const first = Array.from(setVals)[0]
+            newSelected[key] = new Set([first])
+          }
+        }
+        return newSelected
+      })
+    }
+  }, [selectionMode])
+
   return (
     <div className={`flex justify-between items-center gap-4 ${className ?? ''}`}>
       {/* IZQUIERDA: búsqueda + filtros derivados + extras */}
-      <section className='flex-grow flex items-center gap-4 md:max-w-xl'>
+      <section className='hidden md:flex flex-grow  items-center gap-2 '>
         {searchFilter?.length ? (
           <Input
             label='Buscar...'
@@ -143,7 +195,7 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
               key={key}
               className='max-w-60'
               label={f.label}
-              selectionMode={f.multiple === false ? 'single' : 'multiple'}
+              selectionMode={f.multiple === false ? 'single' : selectionMode}
               isClearable
               size='sm'
               selectedKeys={current}
@@ -163,7 +215,19 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
           )
         })}
 
+        {filters && filters?.length > 0 && (
+          <Tooltip content={selectionMode === 'multiple' ? 'Cambiar a selección simple' : 'Cambiar a selección multiple'} placement='right'>
+            <Button isIconOnly variant='ghost' color='secondary' onPress={toggleSelectionMode}>
+              {selectionMode === 'multiple' ? <SquareMousePointer className='w-5 h-5' /> : <CopyCheck className='w-5 h-5' />}
+            </Button>
+          </Tooltip>
+        )}
+
         {leftExtra}
+      </section>
+
+      <section className='flex-grow md:hidden'>
+        <Button onPress={onOpen}>Filtrar resultados</Button>
       </section>
 
       {/* DERECHA: toggle behavior + botones globales */}
@@ -195,6 +259,74 @@ export function ToolbarTable<T extends Record<string, any>>(props: Props<T>) {
           </Button>
         ))}
       </section>
+      <MobileFiltersModal isOpen={isOpen} onOpenChange={onOpenChange}>
+        {searchFilter?.length ? (
+          <Input
+            label='Buscar...'
+            type='text'
+            size='sm'
+            variant='bordered'
+            className='max-w-full'
+            classNames={{ inputWrapper: 'bg-white' }}
+            value={searchText}
+            onClear={() => setSearchText('')}
+            onValueChange={(v) => setSearchText(v ?? '')}
+          />
+        ) : null}
+
+        {filters?.map((f) => {
+          const key = f.column as string
+          const options = filterOptions[key] ?? []
+          // no muestres el filtro si no hay opciones
+          if (!options.length) return null
+
+          const current = selected[key] ?? new Set<string>()
+
+          return (
+            <Select
+              key={key}
+              className='max-w-full'
+              label={f.label}
+              selectionMode={f.multiple === false ? 'single' : selectionMode}
+              isClearable
+              size='sm'
+              selectedKeys={current}
+              variant='bordered'
+              classNames={{ trigger: 'bg-white' }}
+              onSelectionChange={(keys) => {
+                // keys puede ser Set<Key> o string cuando es single
+                const setVals = typeof keys === 'string' ? new Set([keys]) : new Set(Array.from(keys).map((k) => String(k)))
+
+                setSelected((prev) => ({ ...prev, [key]: setVals }))
+              }}
+            >
+              {options.map((opt) => (
+                <SelectItem key={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </Select>
+          )
+        })}
+
+        {filters && filters?.length > 0 && (
+          <Tooltip content={selectionMode === 'multiple' ? 'Cambiar a selección simple' : 'Cambiar a selección multiple'} placement='right'>
+            <Button variant='ghost' color='secondary' onPress={toggleSelectionMode}>
+              {selectionMode === 'multiple' ? (
+                <>
+                  <SquareMousePointer className='w-5 h-5' />
+                  Cambiar a selección simple
+                </>
+              ) : (
+                <>
+                  <CopyCheck className='w-5 h-5' />
+                  Cambiar a selección multiple
+                </>
+              )}
+            </Button>
+          </Tooltip>
+        )}
+
+        {leftExtra}
+      </MobileFiltersModal>
     </div>
   )
 }

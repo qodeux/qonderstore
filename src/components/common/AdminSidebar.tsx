@@ -11,8 +11,10 @@ import {
   Layers,
   LayoutDashboard,
   Package,
+  ScanBarcode,
   SendToBack,
-  ShoppingBag,
+  Store,
+  Truck,
   Users
 } from 'lucide-react'
 import { useSelector } from 'react-redux'
@@ -21,6 +23,7 @@ import type { RootState } from '../../store/store'
 
 interface AdminSidebarProps {
   isOpen: boolean
+  onToggle?: () => void
 }
 
 interface MenuItem {
@@ -46,7 +49,7 @@ const menuItems: MenuItem[] = [
     icon: <Combine className='w-5 h-5' />,
     submenu: [
       { label: 'Categorías', href: '/admin/categorias', icon: <Layers className='w-4 h-4' /> },
-      { label: 'Marcas', href: '/admin/marcas', icon: <Layers className='w-4 h-4' /> },
+      { label: 'Marcas', href: '/admin/marcas', icon: <ScanBarcode className='w-4 h-4' /> },
       { label: 'Productos', href: '/admin/productos', icon: <Package className='w-4 h-4' /> },
       { label: 'Promociones', href: '/admin/promociones', icon: <CirclePercent className='w-4 h-4' /> }
     ]
@@ -66,9 +69,14 @@ const menuItems: MenuItem[] = [
     href: '/admin/solicitudes-acceso'
   },
   {
-    label: 'Órdenes',
-    icon: <ShoppingBag className='w-5 h-5' />,
+    label: 'Ordenes',
+    icon: <Store className='w-5 h-5' />,
     href: '/admin/ordenes'
+  },
+  {
+    label: 'Envíos',
+    icon: <Truck className='w-5 h-5' />,
+    href: '/admin/envios'
   },
   {
     label: 'Usuarios',
@@ -130,9 +138,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
   return (
     <aside
       className={`
-        sticky top-0 bg-white shadow-sm w-64  h-[calc(100vh-4rem)]
-        transition-transform duration-300 z-30
-        ${isOpen ? 'translate-x-0' : '-translate-x-64'}
+          bg-white shadow-sm   h-[calc(100vh-4rem)]
+        transition-all duration-300 z-30
+        ${isOpen ? ' w-64 opacity-100' : 'w-0 opacity-0'}
       `}
     >
       <nav className='p-4'>
@@ -197,7 +205,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
                   `}
                   >
                     {item.icon}
-                    <span>{item.label}</span>
+                    {<span>{item.label}</span>}
                   </button>
                 )}
               </li>

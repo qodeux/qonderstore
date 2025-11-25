@@ -2,7 +2,7 @@ import { createSlice } from '@reduxjs/toolkit'
 import type { Provider } from '../../schemas/providers.schema'
 import type { SupplyOrder } from '../../types/providers'
 
-interface providersState {
+export type ProvidersState = {
   selectedProvider?: Provider | null
   items: Provider[]
   supplyOrders: SupplyOrder[]
@@ -11,7 +11,7 @@ interface providersState {
   isEditing: boolean
 }
 
-const initialState: providersState = {
+const initialState: ProvidersState = {
   selectedProvider: null,
   items: [],
   supplyOrders: [],
