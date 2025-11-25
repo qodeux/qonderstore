@@ -49,7 +49,7 @@ export const checkoutSchema = z
         ctx.addIssue({
           code: 'custom',
           path: ['shipping_price'],
-          message: 'Costo inválido (mínimo 100)'
+          message: 'Costo inválido'
         })
       }
     }

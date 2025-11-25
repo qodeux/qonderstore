@@ -27,8 +27,10 @@ const normalize = (s?: string) =>
 
 type AddressFinderProps = {
   finderModule?: 'checkout' | 'manageAddress'
+  isValidAddress?: (valid: boolean) => void
+  onChangeAddress?: (address: { postalCode: string; sublocality: number }) => void
 }
-const AddressFinder = ({ finderModule }: AddressFinderProps) => {
+const AddressFinder = ({ finderModule, isValidAddress, onChangeAddress }: AddressFinderProps) => {
   const { control, setValue, clearErrors, getValues, setError, trigger } = useFormContext()
 
   const [canShipToCP, setCanShipToCP] = useState<boolean>(false)
@@ -92,13 +94,17 @@ const AddressFinder = ({ finderModule }: AddressFinderProps) => {
     }
 
     if (cpData[0]?.is_banned) {
+      // Código postal no permitido
       setNeighborhoodsOptions([])
       setCanShipToCP(false)
       setValue('postal_code_lookup', '', { shouldValidate: true, shouldDirty: true })
 
       setHasMarker(false)
-
       setIsBannedCP(true)
+      // Notifica dirección inválida hacia afuera si aplica
+      if (isValidAddress) {
+        isValidAddress(false)
+      }
       return
     }
 
@@ -171,15 +177,27 @@ const AddressFinder = ({ finderModule }: AddressFinderProps) => {
     }
 
     clearErrors(['street_address', 'street_number', 'postal_code', 'locality', 'state', 'sublocality'])
+
+    // Notifica cambio de dirección hacia afuera mandando el nuevo CP
+    if (onChangeAddress) {
+      onChangeAddress({ postalCode: newCP, sublocality: Number(getValues('sublocality')) })
+    }
   }
 
   const handleMarkerChange = (hasMarker: boolean) => {
-    if (!hasMarker) {
-      setHasMarker(false)
-    } else {
-      setHasMarker(true)
+    setHasMarker(hasMarker)
+    if (isValidAddress) {
+      isValidAddress(hasMarker)
     }
   }
+
+  // const isAddressComplete = useAddressComplete({
+  //   control,
+  //   neighborhoods: neighborhoodsOptions,
+  //   canShipToCP,
+  //   isLoadingCP,
+  //   errors: formState.errors // opcional
+  // })
 
   /** Buscar por CP inicial (postal_code_lookup) */
   useEffect(() => {

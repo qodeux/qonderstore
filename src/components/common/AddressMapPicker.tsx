@@ -113,6 +113,8 @@ export default function AddressMapPicker({
   showMarkerOnPostalCenter = false,
   onMarkerChange
 }: Props) {
+  //const {user} = useAppSelector((state) => state.auth)
+
   const { isLoaded } = useGoogleMaps(language, region)
   const { isMobile } = useDeviceScreen()
 
@@ -416,7 +418,7 @@ export default function AddressMapPicker({
   if (!shouldShowMap) {
     return (
       <div className='w-full flex items-center justify-center' style={{ height: mapHeight }}>
-        <Spinner size='sm' label='Localizando tu código postal…' />
+        <Spinner size='sm' label='Localizando  código postal…' />
       </div>
     )
   }
