@@ -13,15 +13,17 @@ import CartItemBox from '../../components/store/CartItemBox'
 import { useDeviceScreen } from '../../hooks/useDeviceScreen'
 import { checkoutSchema, type CheckoutFormInput } from '../../schemas/checkout.schema'
 import { storeOrderService } from '../../services/storeOrderService'
-import { clearCart, selectCartTotals } from '../../store/slices/cartSlice'
+import { selectCartWithPromos } from '../../store/selectors/productsWithPromo'
+import { clearCart } from '../../store/slices/cartSlice'
 import type { RootState } from '../../store/store'
 import { deliveryRoutesMap } from '../../types/storeOrders'
 import { formatMoney } from '../../utils/money'
 
 const Checkout = () => {
   const { user } = useSelector((state: RootState) => state.auth)
-  const cartTotals = useSelector(selectCartTotals)
-  const { items: cartItems, totalPrice } = useSelector((state: RootState) => state.cart)
+
+  // carrito con promos aplicadas
+  const { lines: cartItems, cartTotal } = useSelector(selectCartWithPromos)
   const [shippingPrice, setShippingPrice] = useState(null as number | null)
   const [hasMarker, setHasMarker] = useState(false)
 
@@ -148,7 +150,13 @@ const Checkout = () => {
         const orderTransmission = await storeOrderService.createOrder({
           orderData: data,
           items: cartItems,
-          cartTotals: { ...cartTotals, shippingPrice: watchShippingPrice ?? 0 },
+          cartTotals: {
+            totalPrice: cartTotal,
+            totalQuantity: cartItems.length,
+            //discount: cartDiscount, // suma de descuentos por promos
+            shippingPrice: watchShippingPrice ?? 0 // envío
+            //subtotal: cartSubtotal, // total productos sin promo (o base)
+          },
           metadata: {
             ip: await getIP(),
             user_agent: navigator.userAgent
@@ -539,7 +547,7 @@ const Checkout = () => {
                   </div>
                 )}
                 <div className='text-2xl text-right w-full'>
-                  Total : <span className='font-bold'>{formatMoney(totalPrice)}</span>
+                  Total : <span className='font-bold'>{formatMoney(cartTotal + (watchShippingPrice ?? 0))}</span>
                 </div>
               </div>
 

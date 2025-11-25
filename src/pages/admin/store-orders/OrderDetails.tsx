@@ -54,12 +54,47 @@ const OrderDetails = () => {
     ? selectedOrder.items.map((item: OrderItem) => {
         const product = products.find((p) => p.id === item.id)
 
+        const quantity = item.quantity ?? 1
+
+        // total FINAL que se cobró por la línea (con promo)
+        const finalSubtotal = item.price
+
+        // descuento TOTAL de la línea (viene del JSON)
+        const lineDiscount = item.discount ?? 0
+
+        // subtotal base sin promo = final + descuento
+        const subtotalBase = finalSubtotal + lineDiscount
+
+        // precio unitario base (sin promo)
+        const unitBasePrice = quantity > 0 ? subtotalBase / quantity : subtotalBase
+
         return {
-          ...item,
-          price: item.price,
+          // === campos mínimos que CartItemBox espera ===
+          id: item.id,
+          quantity,
+          price: unitBasePrice, // mostramos unitario base
+          basePrice: unitBasePrice,
+          discount: lineDiscount, // por si CartItemBox aún usa this.discount
+          stock: product?.stock ?? undefined,
+          saleType: product?.sale_type ?? item.saleType ?? 'unit',
+          units: product?.units,
+          base_unit: product?.base_unit,
+          unitSelected: item.unitSelected ?? product?.base_unit,
+
+          // === extras para la versión nueva de CartItemBox ===
+          subtotalBase, // sin promo
+          finalSubtotal, // con promo
+          totalDiscount: lineDiscount,
+          discountPercent: subtotalBase > 0 ? (lineDiscount / subtotalBase) * 100 : 0,
+
+          // === datos de UI ===
           title: product?.name,
-          image: product?.main_image,
-          product
+          image: product?.main_image
+        } as CartItem & {
+          subtotalBase: number
+          finalSubtotal: number
+          totalDiscount: number
+          discountPercent: number
         }
       })
     : []
@@ -190,12 +225,12 @@ const OrderDetails = () => {
               <p>Código postal: {selectedOrder?.postal_code}</p>
             </div>
             <div className='text-right'>
-              <p>
+              <div>
                 Tipo de envío:{' '}
                 <Chip variant='bordered' color={deliveryType?.color}>
                   {deliveryType?.label}
                 </Chip>
-              </p>
+              </div>
               <p>
                 Entrega solicitada:{' '}
                 <span className='font-semibold'>{formatDate(selectedOrder?.delivery_date, 'short', 'es-MX', 'utc')}</span>

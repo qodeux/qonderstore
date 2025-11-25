@@ -5,9 +5,9 @@ import { CircleCheck, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
+import { selectCartWithPromos } from '../../store/selectors/productsWithPromo'
 import { clearCart } from '../../store/slices/cartSlice'
 import { setCartOpen } from '../../store/slices/uiSlice'
-import type { RootState } from '../../store/store'
 import { formatMoney } from '../../utils/money'
 import CartItemBox from './CartItemBox'
 
@@ -16,11 +16,11 @@ type Props = { isOpen: boolean }
 const CartSidebar = ({ isOpen }: Props) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const { items: cartItems, totalPrice } = useSelector((state: RootState) => state.cart)
+  const { lines: cartItems, cartTotal } = useSelector(selectCartWithPromos)
 
   const [showApplyCoupon, setShowApplyCoupon] = useState(false)
 
-  const [cartHasDiscount, setCartHasDiscount] = useState(false)
+  const [cartHasDiscount] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
   const prevCount = useRef(0)
 
@@ -161,7 +161,7 @@ const CartSidebar = ({ isOpen }: Props) => {
                 )}
               </div>
               <div className='text-2xl text-right'>
-                Total : <span className='font-bold'>{formatMoney(totalPrice)}</span>
+                Total : <span className='font-bold'>{formatMoney(cartTotal)}</span>
               </div>
             </div>
 

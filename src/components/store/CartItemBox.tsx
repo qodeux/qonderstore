@@ -27,7 +27,24 @@ const getBulkUnitFactorInGrams = (unitKey: BulkUnit | null): number => {
 
 const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
   const dispatch = useDispatch()
-  const subtotal = readOnly ? item.price - (item.discount ?? 0) : item.price * item.quantity - (item.discount ?? 0)
+
+  // --- PRECIOS / DESCUENTOS CONSISTENTES ---
+
+  const quantity = item.quantity ?? 0
+  const unitBasePrice = Number(item.basePrice ?? item.price ?? 0)
+
+  // subtotal “base” sin descuento
+  const subtotalBase = 'subtotalBase' in item && typeof item.subtotalBase === 'number' ? item.subtotalBase : unitBasePrice * quantity
+
+  // descuento total de la línea
+  const lineDiscount = 'totalDiscount' in item && typeof item.totalDiscount === 'number' ? item.totalDiscount : Number(item.discount ?? 0)
+
+  // subtotal final con promo aplicada
+  const finalSubtotal =
+    'finalSubtotal' in item && typeof item.finalSubtotal === 'number' ? item.finalSubtotal : Math.max(0, subtotalBase - lineDiscount)
+
+  // precio unitario mostrado (base)
+  const unitDisplayPrice = unitBasePrice
 
   // error local para cosas como "Cantidad máxima alcanzada"
   const [localError, setLocalError] = useState<string | null>(null)
@@ -118,9 +135,11 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
                   : all_units.find((u) => u.key === item.unitSelected)?.plural || ''}
               </p>
             )}
-            <p>Precio: {formatMoney(item.price)}</p>
-            {(item.discount ?? 0) > 0 && <div className='text-green-600'>Descuento: -{formatMoney(item.discount ?? 0)}</div>}
-            <p className='text-lg '>Subtotal: {formatMoney(subtotal)}</p>
+            <p>Precio: {formatMoney(unitDisplayPrice)}</p>
+
+            {lineDiscount > 0 && <div className='text-green-600'>Descuento: -{formatMoney(lineDiscount)}</div>}
+
+            <p className='text-lg '>Subtotal: {formatMoney(finalSubtotal)}</p>
           </div>
         </section>
       </div>
