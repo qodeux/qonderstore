@@ -46,24 +46,34 @@ export const storeOrderService = {
           : toYYYYMMDD(new Date(Date.now() + 24 * 60 * 60 * 1000)) // mañana en YYYY-MM-DD
     }
 
-    const mappedItems = items.map((item) =>
-      item.saleType === 'bulk'
+    const mappedItems = items.map((item) => {
+      const quantity = item.quantity ?? 1
+
+      // 1) Subtotal base sin promo
+      const subtotalBase = (item.basePrice ?? item.price) * quantity
+
+      // 2) Descuento total de la línea
+      const lineDiscount = (item.discount ?? 0) * quantity
+
+      // 3) Total final de la línea (con promo)
+      const finalSubtotal = Math.max(0, subtotalBase - lineDiscount)
+
+      const common = {
+        id: item.id,
+        quantity,
+        // esto es lo que se guarda en el JSON:
+        price: finalSubtotal, // total de la línea
+        discount: lineDiscount, // descuento total de la línea
+        saleType: item.saleType
+      }
+
+      return item.saleType === 'bulk'
         ? {
-            id: item.id,
-            quantity: item.quantity,
-            price: item.price * item.quantity,
-            discount: (item.discount ?? 0) * item.quantity,
-            saleType: item.saleType,
+            ...common,
             unitSelected: item.unitSelected ?? null
           }
-        : {
-            id: item.id,
-            quantity: item.quantity,
-            price: item.price * item.quantity,
-            discount: (item.discount ?? 0) * item.quantity,
-            saleType: item.saleType
-          }
-    )
+        : common
+    })
 
     const mappedCartTotals = cartTotals
       ? {
