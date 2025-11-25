@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { Request, RequestDraftPartial } from '../../schemas/request.schema'
 
-interface RequestAccessState {
+export type RequestAccessState = {
   requestData: RequestDraftPartial | null
   loading: boolean
   error: string | null

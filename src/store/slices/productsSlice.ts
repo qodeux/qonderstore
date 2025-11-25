@@ -4,7 +4,7 @@ import type { Product } from '../../schemas/products.schema'
 import type { ProductRating } from '../../schemas/storeOrders.schema'
 import type { SaleType } from '../../types/products'
 
-interface ProductsState {
+export type ProductsState = {
   items: Product[]
   selectedProduct: Product | null
   selectedBrand?: Brand | null

@@ -6,7 +6,7 @@ import { authService } from '../../services/authService'
 
 type AuthStatus = 'idle' | 'checking' | 'authenticated' | 'unauthenticated'
 
-interface AuthState {
+export type AuthState = {
   user: User | null
   status: AuthStatus
   token: string | null

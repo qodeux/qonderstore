@@ -2,7 +2,7 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { ProductRating } from '../../schemas/storeOrders.schema'
 import type { User } from '../../schemas/users.schema'
 
-interface UsersState {
+export type UsersState = {
   isEditing: boolean
   selectedUser?: User | null
   items: User[]
