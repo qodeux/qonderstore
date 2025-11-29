@@ -12,7 +12,13 @@ import QuantitySelector from './QuantitySelector'
 import UnitSelector from './UnitSelector'
 
 type CartItemBoxProps = {
-  item: CartItem
+  item: CartItem & {
+    // estos campos pueden venir del selector selectCartWithPromos
+    subtotalBase?: number
+    finalSubtotal?: number
+    totalDiscount?: number
+    discountPercent?: number
+  }
   listRef?: React.RefObject<HTMLDivElement | null>
   isLast?: boolean
   readOnly?: boolean
@@ -28,33 +34,22 @@ const getBulkUnitFactorInGrams = (unitKey: BulkUnit | null): number => {
 const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
   const dispatch = useDispatch()
 
-  // ========= PRECIOS / DESCUENTOS =========
+  // ========= CÁLCULOS DE PRECIO / DESCUENTO / SUBTOTAL =========
+  const quantity = item.quantity ?? 0
 
-  const quantity = item.quantity ?? 1
+  const hasPromoTotals = typeof item.subtotalBase === 'number' && typeof item.finalSubtotal === 'number' && quantity > 0
 
-  // Campos "enriquecidos" que SOLO existen en OrderDetails
-  const enriched = item as CartItem & {
-    subtotalBase?: number
-    finalSubtotal?: number
-    totalDiscount?: number
-    discountPercent?: number
-  }
+  // Precio unitario a mostrar (base sin promo)
+  const unitBasePrice = hasPromoTotals ? (item.subtotalBase ?? 0) / quantity : (item.basePrice ?? item.price)
 
-  // MODO READONLY (OrderDetails): usamos lo que viene de la orden
-  const hasEnriched = readOnly && enriched.finalSubtotal != null
+  // Descuento total de la línea
+  const lineDiscount = hasPromoTotals ? (item.totalDiscount ?? 0) : (item.discount ?? 0) * quantity
 
-  // Precio unitario a mostrar
-  const effectiveUnitPrice = hasEnriched ? (enriched.subtotalBase ?? enriched.finalSubtotal!) / (quantity || 1) : item.price
+  // Subtotal final de la línea (ya con descuento)
+  const lineSubtotal = hasPromoTotals ? item.finalSubtotal : unitBasePrice * quantity - lineDiscount
 
-  // Descuento total de la línea (solo en readOnly si viene)
-  const effectiveLineDiscount = hasEnriched ? (enriched.totalDiscount ?? 0) : (item.discount ?? 0) * quantity
-
-  // Subtotal final de la línea
-  const effectiveSubtotal = hasEnriched ? enriched.finalSubtotal! : Math.max(0, item.price * quantity - (item.discount ?? 0) * quantity)
-
-  // ========= ERROR LOCAL =========
+  // error local para cosas como "Cantidad máxima alcanzada"
   const [localError, setLocalError] = useState<string | null>(null)
-  const errorMessage = localError ?? item.error ?? null
 
   const handleDeleteItem = () =>
     dispatch(
@@ -68,13 +63,12 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
     dispatch(
       updateQuantity({
         id: item.id,
-        unitSelected: item.unitSelected ?? item.base_unit,
+        unitSelected: item.unitSelected ?? item.base_unit, // importantísimo
         quantity: q
       })
     )
 
   const handleChangeUnit = (u: string) => {
-    // 👇 En el carrito real, esto sigue igual; updateUnit recalcule item.price según unitsMap
     dispatch(updateUnit({ id: item.id, unit: u, unitsMap: item.units }))
   }
 
@@ -88,6 +82,10 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
     })
   }, [listRef])
 
+  // error combinado: preferimos el local si existe
+  const errorMessage = localError ?? item.error ?? null
+
+  // Limpia el error 2s después de aparecer (tanto Redux como local)
   useEffect(() => {
     if (!errorMessage) return
 
@@ -112,11 +110,13 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
   let maxQuantity: number
 
   if (item.saleType === 'bulk') {
+    // stock en gramos → convertir a la unidad del item (gr/oz/lb)
     const unitKey = (item.unitSelected ?? item.base_unit ?? null) as BulkUnit | null
     const gramsPerUnit = getBulkUnitFactorInGrams(unitKey)
     if (rawStock <= 0 || gramsPerUnit <= 0) maxQuantity = 0
     else maxQuantity = Math.floor(rawStock / gramsPerUnit)
   } else {
+    // unit: stock interpretado como número de piezas
     maxQuantity = rawStock > 0 ? rawStock : item.quantity || 1
   }
 
@@ -131,32 +131,29 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
           <div className='text-gray-600 text-right text-sm'>
             {readOnly && (
               <p>
-                {quantity}{' '}
-                {quantity === 1
+                {item.quantity}{' '}
+                {item.quantity === 1
                   ? all_units.find((u) => u.key === item.unitSelected)?.label || ''
                   : all_units.find((u) => u.key === item.unitSelected)?.plural || ''}
               </p>
             )}
+            {/* 👇 ahora mostramos el precio base unitario */}
+            <p>Precio: {formatMoney(unitBasePrice)}</p>
 
-            {/* 👇 Precio unitario mostrado */}
-            <p>Precio: {formatMoney(effectiveUnitPrice)}</p>
+            {lineDiscount > 0 && <div className='text-green-600'>Descuento: -{formatMoney(lineDiscount)}</div>}
 
-            {/* 👇 Descuento total de la línea (si existe) */}
-            {effectiveLineDiscount > 0 && <div className='text-green-600'>Descuento: -{formatMoney(effectiveLineDiscount)}</div>}
-
-            {/* 👇 Subtotal final de la línea */}
-            <p className='text-lg '>Subtotal: {formatMoney(effectiveSubtotal)}</p>
+            <p className='text-lg '>Subtotal: {formatMoney(lineSubtotal ?? 0)}</p>
           </div>
         </section>
       </div>
 
       {!readOnly && (
         <section className='flex gap-2 justify-between'>
-          <QuantitySelector quantity={quantity} setQuantity={handleChangeQty} maxQuantity={maxQuantity} onError={setLocalError} />
+          <QuantitySelector quantity={item.quantity} setQuantity={handleChangeQty} maxQuantity={maxQuantity} onError={setLocalError} />
 
           {item.saleType === 'bulk' && (
             <UnitSelector
-              quantity={quantity}
+              quantity={item.quantity}
               baseUnit={item.base_unit ?? ''}
               units={item.units}
               value={item.unitSelected ?? item.base_unit}

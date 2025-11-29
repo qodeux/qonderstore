@@ -26,21 +26,23 @@ const ProductItem = ({ item, isRelated }: ProductItemProps) => {
   const isFav = favs.some((fav) => fav.product_id === item.id)
 
   const handleAddToCart = () => {
-    // Lógica para agregar el producto al carrito
+    // precio base por unidad (sin promo)
+    const baseUnitPrice = item.price ?? 0
 
     dispatch(
       addItem({
         id: item.id,
         title: item.name,
         quantity: 1,
-        price: item.price,
+        // el carrito siempre trabaja con precio base
+        price: baseUnitPrice,
+        basePrice: baseUnitPrice,
+        discount: 0, // promos ya no se guardan aquí
         stock: item.stock,
-        discount: item.hasPromotion ? item.discountAmount : 0,
         image: item.main_image,
         saleType: item.sale_type,
         units: item.units,
-        base_unit: item.base_unit,
-        basePrice: item.price
+        base_unit: item.base_unit
       })
     )
     dispatch(setCartOpen(true))

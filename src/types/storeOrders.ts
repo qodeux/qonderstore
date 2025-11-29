@@ -49,12 +49,12 @@ export type DeliveryRoutes = (typeof delivery_routes)[number]['key']
 export const deliveryRoutesMap = toRecord(delivery_routes)
 
 export const all_units = [
-  { key: 'gr', label: 'Gramo', plural: 'Gramos' },
-  { key: 'oz', label: 'Onza', plural: 'Onzas' },
-  { key: 'lb', label: 'Libra', plural: 'Libras' },
-  { key: 'pz', label: 'Pieza', plural: 'Piezas' },
-  { key: 'pk', label: 'Paquete', plural: 'Paquetes' },
-  { key: 'box', label: 'Caja', plural: 'Cajas' }
+  { key: 'gr', label: 'Gramo', plural: 'Gramos', saleType: 'bulk' },
+  { key: 'oz', label: 'Onza', plural: 'Onzas', saleType: 'bulk' },
+  { key: 'lb', label: 'Libra', plural: 'Libras', saleType: 'bulk' },
+  { key: 'pz', label: 'Pieza', plural: 'Piezas', saleType: 'unit' },
+  { key: 'pk', label: 'Paquete', plural: 'Paquetes', saleType: 'unit' },
+  { key: 'box', label: 'Caja', plural: 'Cajas', saleType: 'unit' }
 ] as const
 
 export type IPGeolocation = {
