@@ -28,6 +28,7 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
         name: '',
         promo_type: null,
         promo_type_target_id: null,
+        product_unit: null,
         category: null,
         subcategory: null,
         products: null,
@@ -38,7 +39,7 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
         day_month: null,
         code: '',
         mode: null,
-        mode_value: '',
+        mode_value: null,
         valid_until: null,
         is_limited: false,
         limit: null,
@@ -70,6 +71,7 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
       name: selectedPromotion.name,
       promo_type: selectedPromotion.promo_type,
       promo_type_target_id: selectedPromotion.promo_type_target_id,
+      product_unit: selectedPromotion.product_unit,
       category: selectedPromotion.promo_type === 'category' && hasParentCat ? categoryTarget.parent : categoryTarget?.id,
       subcategory: selectedPromotion.promo_type === 'category' && hasParentCat ? categoryTarget.id : undefined,
       product: selectedPromotion.promo_type === 'product' ? selectedPromotion.promo_type_target_id : undefined,
@@ -121,6 +123,9 @@ const PromotionModal = ({ isOpen, onOpenChange }: Props) => {
     if (!isValid) return
 
     const payload = promotionForm.getValues()
+
+    console.log(payload)
+
     let transaction
 
     if (isEditing && selectedPromotion) {

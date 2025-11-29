@@ -7,16 +7,10 @@ import { useSelector } from 'react-redux'
 import type { RootState } from '../../../store/store'
 import { week_days } from '../../../types/dates'
 import { discount_types, isDiscountType, promo_frequencies, promo_mode, promo_types } from '../../../types/promos'
+import { all_units } from '../../../types/storeOrders'
 
 const PromotionForm = () => {
-  const {
-    register,
-    control,
-    formState: { errors },
-    setValue,
-    getValues,
-    getFieldState
-  } = useFormContext()
+  const { control, setValue, getFieldState } = useFormContext()
 
   const discountType = useWatch({ control, name: 'discount_type' })
   const isLimited = useWatch({ control, name: 'is_limited' })
@@ -56,6 +50,12 @@ const PromotionForm = () => {
   })
 
   const targetError = getFieldState('promo_type_target_id')
+
+  const unit_type = useMemo(() => {
+    if (promoType !== 'product') return []
+    const saleType = products.find((p) => p.id === selectedProduct)?.sale_type
+    return all_units.filter((u) => u.saleType === saleType)
+  }, [promoType, products, selectedProduct])
 
   //const subcategories = useMemo(() => categories.filter((c) => c.parent === (selectedCategory ?? -1)), [categories, selectedCategory])
 
@@ -200,17 +200,16 @@ const PromotionForm = () => {
           </>
         )}
         {promoType === 'product' && (
-          <div className='col-span-2'>
+          <>
             <Controller
               name='product'
               control={control}
               render={({ field, fieldState }) => (
                 <Autocomplete
                   size='sm'
-                  label='Selecciona un producto'
+                  label='Producto'
                   selectedKey={String(field.value) || ''}
                   onSelectionChange={(sel) => {
-                    console.log(sel)
                     field.onChange(Number(sel))
                   }}
                   isInvalid={!!fieldState.error}
@@ -223,7 +222,33 @@ const PromotionForm = () => {
                 </Autocomplete>
               )}
             />
-          </div>
+
+            <Controller
+              name='product_unit'
+              control={control}
+              render={({ field, fieldState }) => (
+                <Select
+                  label='Tipo de unidad'
+                  size='sm'
+                  selectedKeys={field.value ? [String(field.value)] : []}
+                  onSelectionChange={(keys) => {
+                    const rawValue = Array.from(keys)[0]
+                    field.onChange(rawValue)
+                  }}
+                  value={discountType}
+                  isInvalid={!!fieldState.error}
+                  errorMessage={fieldState.error?.message as string}
+                  disallowEmptySelection
+                  variant='bordered'
+                  classNames={{ trigger: 'bg-white' }}
+                >
+                  {unit_type.map((type) => (
+                    <SelectItem key={type.key}>{type.label}</SelectItem>
+                  ))}
+                </Select>
+              )}
+            />
+          </>
         )}
       </div>
       {targetError.error && <p className='text-danger text-xs pl-1'>Debes seleccionar un elemento </p>}
