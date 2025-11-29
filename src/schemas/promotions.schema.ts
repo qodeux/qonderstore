@@ -37,9 +37,9 @@ export const promotionsInputSchema = z
       .refine((v) => v !== null, {
         message: 'Dato requerido.'
       }),
-    category: z.coerce.number().optional(),
-    subcategory: z.coerce.number().optional(),
-    product: z.number().optional(),
+    category: z.coerce.number().optional().nullable(),
+    subcategory: z.coerce.number().optional().nullable(),
+    product: z.number().optional().nullable(),
     discount_type: z
       .enum(['season', 'code', 'fixed'])
       .nullable()
@@ -92,9 +92,10 @@ export const promotionsInputSchema = z
     limit_type: z.enum(['user', 'global']).optional().nullable(),
     limit: z.coerce.number().optional(),
     is_conditioned: z.boolean().optional(),
-    condition_type: z.enum(['min_sale', 'quantity']).optional(),
+    condition_type: z.enum(['min_sale', 'quantity']).optional().nullable(),
     condition: z.coerce.number().optional(),
-    promo_type_target_id: z.coerce.number('Debes seleccionar un elemento')
+    promo_type_target_id: z.coerce.number('Debes seleccionar un elemento'),
+    product_unit: z.union([z.string().min(1, 'Requerido'), z.null()]).optional()
   })
   .superRefine((val, ctx) => {
     // Reglas solo si el descuento es por temporada
@@ -124,6 +125,11 @@ export const promotionsInputSchema = z
         ctx.addIssue({ code: 'custom', message: 'frequency_value debe estar vacío si no es por temporada', path: ['frequency_value'] })
       }
     }
+
+    //Reglas si el decuento es por producto debe seleccionar unidad
+    if (val.promo_type === 'product' && !val.product_unit) {
+      ctx.addIssue({ code: 'custom', message: 'Requerido', path: ['product_unit'] })
+    }
   })
 
 export type PromotionsFormValues = z.input<typeof promotionsInputSchema> // valid_until: DateValue
@@ -134,6 +140,7 @@ export const promotionSchema = z.object({
   name: z.string(),
   promo_type: z.enum(['category', 'product']),
   promo_type_target_id: z.coerce.number(),
+  product_unit: z.string().optional(),
   discount_type: z.enum(['season', 'code']),
   code: z.string().optional(),
   frequency: z.enum(['once', 'weekly', 'monthly', 'select']),

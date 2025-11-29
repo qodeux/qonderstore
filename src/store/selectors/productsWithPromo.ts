@@ -52,9 +52,6 @@ const eqLooseId = (a: unknown, b: unknown) => {
   return String(a) === String(b)
 }
 
-// Nota: en tus datos reales, subcategory viene numérica (ej. 69)
-// y category es string (ej. "Comestibles").
-// Este helper normaliza claves para buscar en mapas.
 const getCategoryKey = (prod: Product): string => {
   // si en el futuro agregas category_id numérico, úsalo aquí:
   // return String((prod as any).category_id ?? prod.category)
@@ -113,11 +110,24 @@ export type PromotionLineResult = {
  * Evalúa una promo para una línea (precio unitario + cantidad).
  * Devuelve null si la promo NO aplica (no se cumple condición, etc.).
  */
-export const evaluatePromotionForLine = (promo: Promotion, unitPrice: number, quantity: number): PromotionLineResult | null => {
+export const evaluatePromotionForLine = (
+  promo: Promotion,
+  unitPrice: number,
+  quantity: number,
+  unitKey?: string | null // nueva: unidad actual de la línea
+): PromotionLineResult | null => {
   const subtotal = unitPrice * quantity
 
   if (quantity <= 0 || subtotal <= 0) return null
   if (!promo.is_active) return null // seguridad extra
+
+  // 🔹 Filtro por unidad: si la promo tiene product_unit, solo aplica si coincide
+
+  if (promo.product_unit) {
+    if (unitKey && promo.product_unit !== unitKey) {
+      return null
+    }
+  }
 
   // 1) Condiciones
   const isConditioned = promo.is_conditioned
@@ -128,8 +138,6 @@ export const evaluatePromotionForLine = (promo: Promotion, unitPrice: number, qu
 
   if (isConditioned && conditionType) {
     if (conditionType === 'min_sale') {
-      // Interpretación sencilla: "min_sale" = cantidad mínima para activar la promo
-      // (aplica solo una vez aunque superes esa cantidad)
       if (quantity < conditionValue) return null
       timesApplied = 1
     }
@@ -138,12 +146,9 @@ export const evaluatePromotionForLine = (promo: Promotion, unitPrice: number, qu
       if (conditionValue <= 0) return null
 
       if (promo.mode === 'percentage') {
-        // porcentaje NO acumulativo: sólo se activa si cumples la cantidad mínima
         if (quantity < conditionValue) return null
         timesApplied = 1
       } else {
-        // fixed / free: descuento acumulativo por múltiplos de la cantidad
-        // Ej: conditionValue = 2, quantity = 4 => 2 veces; quantity = 5 => 2; quantity = 6 => 3
         timesApplied = Math.floor(quantity / conditionValue)
         if (timesApplied <= 0) return null
       }
@@ -155,7 +160,6 @@ export const evaluatePromotionForLine = (promo: Promotion, unitPrice: number, qu
   let discountPercent = 0
 
   if (promo.mode === 'free') {
-    // Línea completa gratis cuando aplica
     totalDiscount = subtotal
     discountPercent = 100
   } else if (promo.mode === 'percentage') {
@@ -191,11 +195,14 @@ export const evaluatePromotionForLine = (promo: Promotion, unitPrice: number, qu
 export const pickBestPromotionForLine = (
   unitPrice: number,
   quantity: number,
-  promos: Promotion[] | undefined
+  promos: Promotion[] | undefined,
+  unitKey?: string | null // nueva
 ): PromotionLineResult | null => {
   if (!promos || promos.length === 0) return null
 
-  const evaluated = promos.map((p) => evaluatePromotionForLine(p, unitPrice, quantity)).filter((r): r is PromotionLineResult => r !== null)
+  const evaluated = promos
+    .map((p) => evaluatePromotionForLine(p, unitPrice, quantity, unitKey))
+    .filter((r): r is PromotionLineResult => r !== null)
 
   if (evaluated.length === 0) return null
 
@@ -205,7 +212,6 @@ export const pickBestPromotionForLine = (
     if (aIsFree && !bIsFree) return -1
     if (!aIsFree && bIsFree) return 1
 
-    // luego mayor descuento total
     return b.totalDiscount - a.totalDiscount || Number(a.promo.id) - Number(b.promo.id)
   })
 
@@ -259,8 +265,12 @@ export const selectProductsWithBestPromo = createSelector(
       const price = prod.price ?? 0
 
       const candidates = getCandidatePromotionsForProduct(prod, byProduct, byCatOrSub)
+
+      // asumimos la unidad base del producto (para catálogo)
+      const unitKey = prod.base_unit ?? null
+
       // Para la vista de catálogo asumimos qty = 1
-      const best = pickBestPromotionForLine(price, 1, candidates)
+      const best = pickBestPromotionForLine(price, 1, candidates, unitKey)
 
       const subtotal = price
       const finalPrice = best ? best.finalSubtotal : subtotal
@@ -368,12 +378,13 @@ export const selectCartWithPromos = createSelector(
 
     for (const item of items) {
       const quantity = item.quantity ?? 0
-      const unitBasePrice = item.basePrice ?? item.price // base sin promo
+
+      // siempre usamos el price actual de la línea
+      const unitBasePrice = item.price
 
       const subtotalBase = unitBasePrice * quantity
       cartSubtotal += subtotalBase
 
-      // buscamos el producto para poder sacar categoría/subcategoría
       const product = products.find((p) => p.id === item.id)
 
       if (!product || quantity <= 0 || unitBasePrice <= 0) {
@@ -390,7 +401,10 @@ export const selectCartWithPromos = createSelector(
       }
 
       const candidates = getCandidatePromotionsForProduct(product, byProduct, byCatOrSub)
-      const best = pickBestPromotionForLine(unitBasePrice, quantity, candidates)
+
+      const unitKey = item.unitSelected ?? item.base_unit ?? null
+
+      const best = pickBestPromotionForLine(unitBasePrice, quantity, candidates, unitKey)
 
       if (!best) {
         cartTotal += subtotalBase

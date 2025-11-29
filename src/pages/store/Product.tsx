@@ -205,6 +205,9 @@ const Product = () => {
 
     const unitKey = unitSelected ?? product.base_unit
 
+    //  precio BASE de la unidad seleccionada (sin descuento)
+    const unitBasePrice = unitOriginalPrice // ya lo tienes calculado arriba
+
     dispatch(
       addItem({
         id: product.id,
@@ -214,16 +217,17 @@ const Product = () => {
         units: product.units,
         base_unit: product.base_unit,
         unitSelected: unitKey ?? undefined,
-        basePrice: Number(product.price ?? 0), // base sin descuento
-        price: unitPrice, // unitario ya con promo
-        discount:
-          hasPromotion && quantity > 0
-            ? totalDiscount / quantity // descuento unitario
-            : 0,
+
+        // 💡 carrito siempre en base a precio sin promo
+        basePrice: unitBasePrice,
+        price: unitBasePrice,
+        discount: 0,
+
         quantity,
         stock: Number(product.stock ?? Number.POSITIVE_INFINITY)
       })
     )
+
     dispatch(setCartOpen(true))
   }
 
