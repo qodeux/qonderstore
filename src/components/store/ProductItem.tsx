@@ -78,10 +78,8 @@ const ProductItem = ({ item, isRelated }: ProductItemProps) => {
           </div>
         </Link>
       </CardHeader>
-
       <CardBody className='px-3 py-3 text-neutral-900 text-sm '>
         <p className='font-medium text-lg mb-2 truncate'>{item.name}</p>
-
         <div className='flex justify-between items-center'>
           {isFav ? (
             <motion.div
@@ -116,7 +114,6 @@ const ProductItem = ({ item, isRelated }: ProductItemProps) => {
               </Tooltip>
             </motion.div>
           )}
-
           {item.hasPromotion ? (
             <div className='flex items-center justify-end gap-2'>
               <div className='text-right'>
@@ -130,12 +127,15 @@ const ProductItem = ({ item, isRelated }: ProductItemProps) => {
           )}
         </div>
       </CardBody>
-
       <CardFooter className='flex items-center justify-end gap-2 px-3 pb-4 pt-0'>
-        <div>
-          <Rating className='max-w-2/3' value={rating} />
-          <span className='text-sm ml-1'>95 Opiniones</span>
-        </div>
+        {item.total_ratings > 0 && (
+          <div>
+            <Rating className='max-w-2/3' value={rating} readOnly />
+            <a className='text-sm ml-1 cursor-pointer '>
+              {item.total_ratings} {item.total_ratings === 1 ? 'Opinión' : 'Opiniones'}
+            </a>
+          </div>
+        )}
         <Button
           radius='sm'
           className='bg-black text-white leading-none hover:bg-neutral-800'
