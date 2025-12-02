@@ -1,4 +1,4 @@
-import { Button, Chip, Progress, Tooltip } from '@heroui/react'
+import { Button, Chip, Progress, Tooltip, useDisclosure } from '@heroui/react'
 import { Rating } from '@smastrom/react-rating'
 import '@smastrom/react-rating/style.css'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -10,6 +10,7 @@ import { SwiperSlide } from 'swiper/react'
 
 import ProductLightboxGallery from '../../components/common/light-box/ProductLightbox'
 import SwipperSlider from '../../components/common/swiper/SwipperSlider'
+import ViewRatingsModal from '../../components/modals/customer/ViewRatingsModal'
 import ProductItem from '../../components/store/ProductItem'
 import QuantitySelector from '../../components/store/QuantitySelector'
 import UnitSelector from '../../components/store/UnitSelector'
@@ -44,10 +45,11 @@ const Product = () => {
 
   const isFav = favs.some((fav) => fav.product_id === product?.id)
 
-  const rating = 4
   const [quantity, setQuantity] = useState(product?.min_sale ? product.min_sale : 1)
   const [stockLeftPercent, setStockLeftPercent] = useState<number | null>(null)
   const [QuantityError, setQuantityError] = useState<string | null>(null)
+
+  const { isOpen: ratingsModalOpen, onOpenChange: setRatingsModalOpen, onOpen: openRatingsModal } = useDisclosure()
 
   // ---------- IMÁGENES ----------
   const images = useMemo(() => product?.images ?? [], [product?.images])
@@ -186,13 +188,53 @@ const Product = () => {
   }, [maxSelectableQty, product?.min_sale])
 
   // ---------- RELACIONADOS ----------
+
+  const MAX_RELATED = 8
+  const MAX_FEATURED = 4
+
+  // Helper para tomar N elementos aleatorios de un array (sin mutar el original)
+  const getRandomItems = <T,>(arr: T[], max: number): T[] => {
+    if (arr.length <= max) return [...arr]
+
+    const copy = [...arr]
+    // Fisher–Yates shuffle
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[copy[i], copy[j]] = [copy[j], copy[i]]
+    }
+    return copy.slice(0, max)
+  }
+
   const relatedProducts = useMemo(() => {
     if (!product) return []
-    return products
-      .filter((p) => p.id !== product.id)
-      .slice()
-      .sort((a, b) => a.id - b.id)
-      .slice(0, 8)
+
+    // 0) Excluir el producto actual
+    const others = products.filter((p) => p.id !== product.id)
+
+    // 1) Separar por categoría
+    const sameCategory = others.filter((p) => p.category === product.category)
+    const sameCatFeatured = sameCategory.filter((p) => p.featured)
+    const sameCatNonFeatured = sameCategory.filter((p) => !p.featured)
+
+    const result: typeof products = []
+
+    // 2) Hasta 4 destacados de la misma categoría (random)
+    result.push(...getRandomItems(sameCatFeatured, MAX_FEATURED))
+
+    // 3) Completar con productos de la misma categoría no destacados
+    let remaining = MAX_RELATED - result.length
+    if (remaining > 0) {
+      result.push(...getRandomItems(sameCatNonFeatured, remaining))
+    }
+
+    // 4) Si aún faltan, rellenar con productos de otras categorías (cualquier featured o no)
+    remaining = MAX_RELATED - result.length
+    if (remaining > 0) {
+      const otherCategories = others.filter((p) => !result.some((r) => r.id === p.id))
+      result.push(...getRandomItems(otherCategories, remaining))
+    }
+
+    return result
   }, [products, product])
 
   // ---------- CARRITO ----------
@@ -343,12 +385,16 @@ const Product = () => {
             )}
           </header>
 
-          {/* === STOCK === */}
+          {/* === STOCK Y OPINIONES  === */}
           <div className='flex items-center gap-8 justify-between'>
-            <div className='flex flex-col max-w-1/2 md:max-w-1/3'>
-              <Rating className='pr-5' value={rating} />
-              <span>Opiniones (999)</span>
-            </div>
+            {product.total_ratings > 0 && (
+              <div className='flex flex-col max-w-1/2 md:max-w-1/3'>
+                <Rating className='pr-5' value={product.average_rating} readOnly />
+                <a onClick={openRatingsModal} className='hover:underline cursor-pointer'>
+                  Ver opiniones ({product.total_ratings})
+                </a>
+              </div>
+            )}
 
             {(product.stock ?? 0) > 0 ? (
               <Progress
@@ -491,13 +537,13 @@ const Product = () => {
       </section>
 
       {/* === RELACIONADOS === */}
-      <section className='my-8 container mx-auto px-8 max-w-full'>
+      <section className='my-8 container mx-auto px-8 w-full  max-w-screen'>
         <header className='mb-4'>
           <h3 className='text-2xl font-semibold'>Productos relacionados</h3>
         </header>
         <SwipperSlider showProgress showNavigation showPagination autoplay={10000}>
           {relatedProducts
-            .filter((p) => p.featured === true)
+            //.filter((p) => p.featured === true)
             .map((item) => (
               <SwiperSlide key={`related-${item.id}`}>
                 <ProductItem key={item.id} item={item} isRelated />
@@ -505,6 +551,14 @@ const Product = () => {
             ))}
         </SwipperSlider>
       </section>
+
+      <ViewRatingsModal
+        isOpen={ratingsModalOpen}
+        onOpenChange={setRatingsModalOpen}
+        productId={product?.id}
+        totalRatings={product?.total_ratings ?? 0}
+        averageRating={product?.average_rating ?? 0}
+      />
     </>
   )
 }
