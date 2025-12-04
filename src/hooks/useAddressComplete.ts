@@ -1,17 +1,19 @@
 // hooks/useAddressComplete.ts
+
+//TODO: Revisar si aun se necesita usar este hook
 import { useMemo } from 'react'
 import { useWatch, type Control, type FieldErrors } from 'react-hook-form'
-import type { CheckoutFormInput } from '../schemas/checkout.schema'
+import type { AddressInput } from '../schemas/address.schema'
 import type { Neighborhood } from '../types/location'
 
 const isFiveDigits = (s?: string) => /^\d{5}$/.test((s ?? '').trim())
 
 type UseAddressCompleteArgs = {
-  control: Control<CheckoutFormInput>
+  control: Control<AddressInput>
   neighborhoods: Neighborhood[]
   canShipToCP: boolean
   isLoadingCP: boolean
-  errors?: FieldErrors<CheckoutFormInput> // opcional
+  errors?: FieldErrors<AddressInput>
 }
 
 export function useAddressComplete({ control, neighborhoods, canShipToCP, isLoadingCP, errors }: UseAddressCompleteArgs) {

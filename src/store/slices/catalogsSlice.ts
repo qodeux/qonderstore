@@ -7,7 +7,7 @@ interface Bank {
   full_name: string
 }
 
-interface CatalogsState {
+export type CatalogsState = {
   banks: Bank[]
 }
 

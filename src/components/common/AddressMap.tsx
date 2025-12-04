@@ -6,7 +6,7 @@ import { useGoogleMaps } from '../../hooks/useGoogleMaps'
 
 type LatLng = { lat: number; lng: number }
 
-type SingleLocationMapProps = {
+type Props = {
   /** Coordenadas obligatorias */
   coords: LatLng
   /** Altura del mapa */
@@ -17,6 +17,7 @@ type SingleLocationMapProps = {
   language?: string
   /** Región del mapa */
   region?: string
+  customerView?: boolean
 }
 
 /** Estilo del contenedor del mapa */
@@ -33,7 +34,7 @@ const REFERENCE_POINT: LatLng = {
   lng: -99.1252809
 }
 
-const AddressMap = ({ coords, mapHeight = 300, zoom = 17, language = 'es', region = 'MX' }: SingleLocationMapProps) => {
+const AddressMap = ({ coords, mapHeight = 300, zoom = 17, language = 'es', region = 'MX', customerView = false }: Props) => {
   const { isLoaded } = useGoogleMaps(language, region)
 
   const [distanceMeters, setDistanceMeters] = useState<number | null>(null)
@@ -117,30 +118,32 @@ const AddressMap = ({ coords, mapHeight = 300, zoom = 17, language = 'es', regio
         >
           <MarkerF position={center} />
         </GoogleMap>
-        <div className='mt-3 text-sm space-y-1 grid grid-cols-2 absolute bottom-0 w-full bg-white/80 p-2 z-0 backdrop-blur rounded-xl rounded-t-none shadow'>
-          {distanceKm != null && (
-            <div>
-              <b>Distancia:</b> {distanceKm.toFixed(2)} km
-            </div>
-          )}
+        {customerView ? null : (
+          <div className='mt-3 text-sm space-y-1 grid grid-cols-2 absolute bottom-0 w-full bg-white/80 p-2 z-0 backdrop-blur rounded-xl rounded-t-none shadow'>
+            {distanceKm != null && (
+              <div>
+                <b>Distancia:</b> {distanceKm.toFixed(2)} km
+              </div>
+            )}
 
-          {elevRef != null && elevDest != null && (
-            <>
-              <div>
-                <b>Diferencia de elevación:</b>{' '}
-                {elevationDiff! >= 0 ? `+${elevationDiff!.toFixed(1)} m ` : `${elevationDiff!.toFixed(1)} m `}
-              </div>
-              <div>
-                <b>Altitud de referencia:</b> {elevRef.toFixed(1)} m
-              </div>
-              <div>
-                <b>Altitud del destino:</b> {elevDest.toFixed(1)} m
-              </div>
-            </>
-          )}
+            {elevRef != null && elevDest != null && (
+              <>
+                <div>
+                  <b>Diferencia de elevación:</b>{' '}
+                  {elevationDiff! >= 0 ? `+${elevationDiff!.toFixed(1)} m ` : `${elevationDiff!.toFixed(1)} m `}
+                </div>
+                <div>
+                  <b>Altitud de referencia:</b> {elevRef.toFixed(1)} m
+                </div>
+                <div>
+                  <b>Altitud del destino:</b> {elevDest.toFixed(1)} m
+                </div>
+              </>
+            )}
 
-          {elevationError && <div className='text-danger-500'>{elevationError}</div>}
-        </div>
+            {elevationError && <div className='text-danger-500'>{elevationError}</div>}
+          </div>
+        )}
       </div>
     </>
   )

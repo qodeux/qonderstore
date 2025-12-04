@@ -51,7 +51,7 @@ const ConfirmPaymentForm = () => {
       />
 
       <Controller
-        name='reference'
+        name='confirm_reference'
         control={control}
         render={({ field, fieldState }) => (
           <Input

@@ -8,10 +8,15 @@ import Header from '../components/common/Header'
 import ScrollToTopButton from '../components/common/ScrollToTopButton'
 import CartSidebar from '../components/store/CartSidebar'
 import CatalogSidebar from '../components/store/CatalogSidebar'
+import { useStoreOrders } from '../hooks/useStoreOrders'
+import { useUserFavs } from '../hooks/useUserFavs'
 import { setCartOpen } from '../store/slices/uiSlice'
 import type { RootState } from '../store/store'
 
 const SidebarLayout = () => {
+  useStoreOrders()
+  useUserFavs()
+
   // Footer solo se mide en mobile (underlay=true)
   const footerRef = useRef<HTMLDivElement | null>(null)
   const dispatch = useDispatch()

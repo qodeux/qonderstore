@@ -1,13 +1,13 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { Category } from '../../schemas/category.schema'
 
-interface categoriesState {
+export type CategoriesState = {
   isEditing: boolean
   selectedCategory?: Category | null
   items: Category[]
 }
 
-const initialState: categoriesState = {
+const initialState: CategoriesState = {
   isEditing: false,
   selectedCategory: null,
   items: []

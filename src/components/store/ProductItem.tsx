@@ -1,10 +1,14 @@
-import { Button, Card, CardBody, CardFooter, CardHeader } from '@heroui/react'
+import { Button, Card, CardBody, CardFooter, CardHeader, Tooltip } from '@heroui/react'
 import { Rating } from '@smastrom/react-rating'
+import { motion } from 'framer-motion'
+import { HeartMinus, HeartPlus } from 'lucide-react'
 import { useDispatch } from 'react-redux'
 import { Link } from 'react-router'
+import { userService } from '../../services/userService'
 import type { ProductWithPromo } from '../../store/selectors/productsWithPromo'
 import { addItem } from '../../store/slices/cartSlice'
 import { setCartOpen } from '../../store/slices/uiSlice'
+import { useAppSelector } from '../../store/store'
 import { formatMoney } from '../../utils/money'
 import PresignedImage from '../common/cloudflare-r2/PresignedImage'
 
@@ -15,27 +19,54 @@ type ProductItemProps = {
 
 const ProductItem = ({ item, isRelated }: ProductItemProps) => {
   const dispatch = useDispatch()
+  const { favs, user } = useAppSelector((state) => state.auth)
 
   const rating = 4
+
+  const isFav = favs.some((fav) => fav.product_id === item.id)
+
   const handleAddToCart = () => {
-    // Lógica para agregar el producto al carrito
+    // precio base por unidad (sin promo)
+    const baseUnitPrice = item.price ?? 0
 
     dispatch(
       addItem({
         id: item.id,
         title: item.name,
         quantity: 1,
-        price: item.price,
+        // el carrito siempre trabaja con precio base
+        price: baseUnitPrice,
+        basePrice: baseUnitPrice,
+        discount: 0, // promos ya no se guardan aquí
         stock: item.stock,
-        discount: item.hasPromotion ? item.discountAmount : 0,
         image: item.main_image,
         saleType: item.sale_type,
         units: item.units,
-        base_unit: item.base_unit,
-        basePrice: item.price
+        base_unit: item.base_unit
       })
     )
     dispatch(setCartOpen(true))
+  }
+
+  const handleAddtoFavs = async () => {
+    try {
+      await userService.addProductFav({
+        product_id: item.id
+      })
+    } catch (error) {
+      console.error('Error adding product to favorites:', error)
+    }
+  }
+  const handleRemovefromFavs = async () => {
+    if (!user) return
+    try {
+      await userService.removeProductFav({
+        product_id: item.id,
+        user_id: user.id
+      })
+    } catch (error) {
+      console.error('Error removing product from favorites:', error)
+    }
   }
 
   return (
@@ -47,11 +78,42 @@ const ProductItem = ({ item, isRelated }: ProductItemProps) => {
           </div>
         </Link>
       </CardHeader>
-
       <CardBody className='px-3 py-3 text-neutral-900 text-sm '>
         <p className='font-medium text-lg mb-2 truncate'>{item.name}</p>
-
-        <div>
+        <div className='flex justify-between items-center'>
+          {isFav ? (
+            <motion.div
+              key={item.id + 'fav'}
+              initial={{ scale: 0 }}
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.1 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              exit={{ opacity: 0 }}
+            >
+              <Tooltip content='Quitar de favoritos' placement='bottom-start'>
+                <Button isIconOnly className='' variant='solid' color='danger' size='sm' onPress={handleRemovefromFavs}>
+                  <HeartMinus />
+                </Button>
+              </Tooltip>
+            </motion.div>
+          ) : (
+            <motion.div
+              key={item.id + 'Notfav'}
+              initial={{ scale: 1 }}
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.1 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              exit={{ opacity: 0 }}
+            >
+              <Tooltip content='Agregar a favoritos' placement='bottom-start'>
+                <Button isIconOnly className='' variant='ghost' color='danger' size='sm' onPress={handleAddtoFavs}>
+                  <HeartPlus />
+                </Button>
+              </Tooltip>
+            </motion.div>
+          )}
           {item.hasPromotion ? (
             <div className='flex items-center justify-end gap-2'>
               <div className='text-right'>
@@ -65,12 +127,15 @@ const ProductItem = ({ item, isRelated }: ProductItemProps) => {
           )}
         </div>
       </CardBody>
-
       <CardFooter className='flex items-center justify-end gap-2 px-3 pb-4 pt-0'>
-        <div>
-          <Rating className='max-w-2/3' value={rating} />
-          <span className='text-sm ml-1'>95 Opiniones</span>
-        </div>
+        {item.total_ratings > 0 && (
+          <div>
+            <Rating className='max-w-2/3' value={rating} readOnly />
+            <a className='text-sm ml-1 cursor-pointer '>
+              {item.total_ratings} {item.total_ratings === 1 ? 'Opinión' : 'Opiniones'}
+            </a>
+          </div>
+        )}
         <Button
           radius='sm'
           className='bg-black text-white leading-none hover:bg-neutral-800'

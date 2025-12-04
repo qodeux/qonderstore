@@ -1,3 +1,4 @@
+// store/slices/cartSlice.ts
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { BulkUnits } from '../../schemas/products.schema'
 import type { SaleType } from '../../types/products'
@@ -26,7 +27,7 @@ type CartState = {
   totalDiscount: number // ahorro total
 }
 
-const STORAGE_KEY = 'qonderstore_cart_v1'
+export const STORAGE_KEY = 'qonderstore_cart_v1'
 
 // ====== Utils ======
 const toCents = (n: number) => Math.round((n ?? 0) * 100)
@@ -39,6 +40,7 @@ const unitFinalCents = (item: CartItem) => {
   return Math.max(0, base - Math.max(0, disc))
 }
 
+// Calcula todos los totales a partir de items
 export const computeTotals = (items: CartItem[]): CartState => {
   let qty = 0
   let subtotalCents = 0
@@ -117,7 +119,7 @@ const cartSlice = createSlice({
         } else {
           item.quantity = nextQ
           item.error = undefined
-          // Opcional: actualizar precio a la promo/unidad más reciente
+          // Si quisieras refrescar promo/unit price podrías actualizar aquí
           // item.price = ceilPrice(incoming.price)
           // item.basePrice = incoming.basePrice ?? incoming.price
         }
@@ -138,6 +140,8 @@ const cartSlice = createSlice({
       state.items = updated.items
       state.totalQuantity = updated.totalQuantity
       state.totalPrice = updated.totalPrice
+      state.subtotal = updated.subtotal
+      state.totalDiscount = updated.totalDiscount
       saveState(state.items)
     },
 
@@ -147,8 +151,11 @@ const cartSlice = createSlice({
         (item) => !(item.id === id && (item.unitSelected ?? item.base_unit ?? null) === (unitSelected ?? item.base_unit ?? null))
       )
       const updated = computeTotals(state.items)
+      state.items = updated.items
       state.totalQuantity = updated.totalQuantity
       state.totalPrice = updated.totalPrice
+      state.subtotal = updated.subtotal
+      state.totalDiscount = updated.totalDiscount
       saveState(state.items)
     },
 
@@ -171,6 +178,8 @@ const cartSlice = createSlice({
       state.items = updated.items
       state.totalQuantity = updated.totalQuantity
       state.totalPrice = updated.totalPrice
+      state.subtotal = updated.subtotal
+      state.totalDiscount = updated.totalDiscount
       saveState(state.items)
     },
 
@@ -183,16 +192,33 @@ const cartSlice = createSlice({
       const source = unitsMap ?? item.units ?? {}
       const baseUnit = item.base_unit
 
+      // Config de la unidad seleccionada
+      const unitConfig: any = unit ? (source as any)[unit] : undefined
+
+      // Precio base en la unidad base (ya con promo aplicada si la hubo)
+      const baseUnitPrice = item.basePrice ?? item.price
+
       let nextPrice: number | undefined
 
       if (unit === baseUnit) {
-        const fromMap = baseUnit ? source[baseUnit]?.price : undefined
-        nextPrice = Number.isFinite(fromMap as number) ? (fromMap as number) : item.basePrice
+        // Volvemos a la unidad base
+        const p = unitConfig && Number(unitConfig.price)
+        nextPrice = Number.isFinite(p) ? p : baseUnitPrice
       } else {
-        nextPrice = source?.[unit]?.price
+        const p = unitConfig && Number(unitConfig.price)
+        const f = unitConfig && Number(unitConfig.factor)
+
+        if (Number.isFinite(p)) {
+          nextPrice = p
+        } else if (Number.isFinite(f)) {
+          nextPrice = baseUnitPrice * f
+        } else {
+          // No sabemos cómo calcular el precio para esta unidad
+          return
+        }
       }
 
-      if (!Number.isFinite(nextPrice as number)) return
+      if (!Number.isFinite(nextPrice)) return
 
       item.price = ceilPrice(nextPrice as number)
       item.unitSelected = unit
@@ -202,6 +228,8 @@ const cartSlice = createSlice({
       state.items = updated.items
       state.totalQuantity = updated.totalQuantity
       state.totalPrice = updated.totalPrice
+      state.subtotal = updated.subtotal
+      state.totalDiscount = updated.totalDiscount
       saveState(state.items)
     },
 
@@ -214,6 +242,8 @@ const cartSlice = createSlice({
       state.items = []
       state.totalPrice = 0
       state.totalQuantity = 0
+      state.subtotal = 0
+      state.totalDiscount = 0
       saveState(state.items)
     },
 
@@ -223,6 +253,8 @@ const cartSlice = createSlice({
       state.items = updated.items
       state.totalPrice = updated.totalPrice
       state.totalQuantity = updated.totalQuantity
+      state.subtotal = updated.subtotal
+      state.totalDiscount = updated.totalDiscount
       saveState(state.items)
     }
   }
@@ -234,7 +266,9 @@ export const selectCart = (state: { cart: CartState }) => state.cart
 export const selectCartItems = (state: { cart: CartState }) => state.cart.items
 export const selectCartTotals = (state: { cart: CartState }) => ({
   totalQuantity: state.cart.totalQuantity,
-  totalPrice: state.cart.totalPrice
+  totalPrice: state.cart.totalPrice,
+  subtotal: state.cart.subtotal,
+  totalDiscount: state.cart.totalDiscount
 })
 
 export default cartSlice.reducer

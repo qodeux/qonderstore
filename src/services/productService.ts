@@ -182,5 +182,18 @@ export const productService = {
       throw error
     }
     return data
+  },
+  fetchProductRatings: async (productId: number) => {
+    //console.log(productId)
+    const { data, error } = await supabase
+      .from('product_ratings')
+      .select('*')
+      .eq('product_id', productId)
+      .order('created_at', { ascending: false })
+    if (error) {
+      console.error('Error fetching product ratings:', error)
+      return { error }
+    }
+    return { data }
   }
 }

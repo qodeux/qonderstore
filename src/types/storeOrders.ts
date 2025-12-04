@@ -1,4 +1,5 @@
 import { toRecord } from './helpers'
+import type { SaleType } from './products'
 
 export const storeOrder_status = [
   { key: 'pending', label: 'Pago pendiente', color: 'warning' },
@@ -12,7 +13,7 @@ export type StoreOrderStatus = (typeof storeOrder_status)[number]['key']
 export const storeOrdersStatusMap = toRecord(storeOrder_status)
 
 export const storeShipment_status = [
-  { key: 'pending', label: 'Pendiente', color: 'warning' },
+  { key: 'pending', label: 'Envío pendiente', color: 'warning' },
   { key: 'processing', label: 'En proceso', color: 'primary' },
   { key: 'ready_for_pickup', label: 'Listo para recolección', color: 'success' },
   { key: 'picked_up', label: 'Recolectado', color: 'success' },
@@ -30,7 +31,8 @@ export const delivery_types = [
   { key: 'standard', label: 'Estándar', color: 'primary' },
   { key: 'express', label: 'Urgente', color: 'danger' },
   { key: 'custom', label: 'Personalizado', color: 'secondary' },
-  { key: 'foreign', label: 'Foráneo', color: 'success' }
+  { key: 'foreign', label: 'Foráneo', color: 'success' },
+  { key: 'pickup', label: 'Pickup', color: 'secondary' }
 ] as const
 
 export type DeliveryTypes = (typeof delivery_types)[number]['key']
@@ -47,12 +49,12 @@ export type DeliveryRoutes = (typeof delivery_routes)[number]['key']
 export const deliveryRoutesMap = toRecord(delivery_routes)
 
 export const all_units = [
-  { key: 'gr', label: 'Gramo', plural: 'Gramos' },
-  { key: 'oz', label: 'Onza', plural: 'Onzas' },
-  { key: 'lb', label: 'Libra', plural: 'Libras' },
-  { key: 'pz', label: 'Pieza', plural: 'Piezas' },
-  { key: 'pk', label: 'Paquete', plural: 'Paquetes' },
-  { key: 'box', label: 'Caja', plural: 'Cajas' }
+  { key: 'gr', label: 'Gramo', plural: 'Gramos', saleType: 'bulk' },
+  { key: 'oz', label: 'Onza', plural: 'Onzas', saleType: 'bulk' },
+  { key: 'lb', label: 'Libra', plural: 'Libras', saleType: 'bulk' },
+  { key: 'pz', label: 'Pieza', plural: 'Piezas', saleType: 'unit' },
+  { key: 'pk', label: 'Paquete', plural: 'Paquetes', saleType: 'unit' },
+  { key: 'box', label: 'Caja', plural: 'Cajas', saleType: 'unit' }
 ] as const
 
 export type IPGeolocation = {
@@ -80,4 +82,13 @@ export type SublocalityData = {
   D_mnpio: string
   d_estado: string
   d_ciudad: string
+}
+
+export type OrderItem = {
+  id: number
+  price: number
+  discount: number
+  quantity: number
+  saleType: SaleType
+  unitSelected: string
 }

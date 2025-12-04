@@ -343,7 +343,9 @@ export const productSchema = z.object({
   brand: z.number().optional(),
   created_at: z.string(),
   images: z.array(z.string()).optional(),
-  main_image: z.string().optional()
+  main_image: z.string().optional(),
+  total_ratings: z.number().int().nonnegative(),
+  average_rating: z.number().min(0).max(5)
 })
 
 export type Product = z.infer<typeof productSchema>

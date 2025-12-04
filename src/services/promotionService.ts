@@ -56,29 +56,30 @@ export const promotionService = {
 
     return promotionInserted
   },
-  updatePromotion: async (id: number, promotionData: PromotionsInput) => {
+  updatePromotion: async (id: number, payload: PromotionsInput) => {
     if (!id) return
 
     const { data: promoUpdated, error: promotionError } = await supabase
       .from('promos')
       .update({
-        name: promotionData.name,
-        promo_type: promotionData.promo_type,
-        promo_type_target_id: promotionData.promo_type_target_id,
-        discount_type: promotionData.discount_type,
-        code: promotionData.code,
-        frequency: promotionData.frequency,
-        frequency_value: promotionData.frequency_value,
-        mode: promotionData.mode,
-        mode_value: promotionData.mode_value,
-        valid_until: promotionData.valid_until,
-        is_active: promotionData.is_active,
-        is_limited: promotionData.is_limited,
-        limit_type: promotionData.limit_type,
-        limit: promotionData.limit,
-        is_conditioned: promotionData.is_conditioned,
-        condition_type: promotionData.condition_type,
-        condition: promotionData.condition,
+        name: payload.name,
+        promo_type: payload.promo_type,
+        promo_type_target_id: payload.promo_type_target_id,
+        product_unit: payload.product_unit,
+        discount_type: payload.discount_type,
+        code: payload.code,
+        frequency: payload.frequency,
+        frequency_value: payload.frequency_value,
+        mode: payload.mode,
+        mode_value: payload.mode_value,
+        valid_until: payload.valid_until,
+        is_active: payload.is_active,
+        is_limited: payload.is_limited,
+        limit_type: payload.limit_type,
+        limit: payload.limit,
+        is_conditioned: payload.is_conditioned,
+        condition_type: payload.condition_type,
+        condition: payload.condition,
         condition_product: null
       })
       .eq('id', id)

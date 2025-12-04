@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 
-interface UIState {
+export type UIState = {
   sidebarOpen: boolean
   isEditing: boolean
   loading: boolean

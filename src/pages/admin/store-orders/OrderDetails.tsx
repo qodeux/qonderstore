@@ -15,26 +15,17 @@ import { selectProductsWithBestPromo } from '../../../store/selectors/productsWi
 import type { CartItem } from '../../../store/slices/cartSlice'
 import { setSelectedOrder } from '../../../store/slices/storeOrdersSlice'
 import { useAppSelector } from '../../../store/store'
-import type { SaleType } from '../../../types/products'
 import {
   delivery_types,
   deliveryRoutesMap,
   storeOrder_status,
   storeShipment_status,
   type IPGeolocation,
+  type OrderItem,
   type SublocalityData
 } from '../../../types/storeOrders'
 import { formatDate } from '../../../utils/date'
 import { formatMoney } from '../../../utils/money'
-
-type OrderItem = {
-  id: number
-  price: number
-  discount: number
-  quantity: number
-  saleType: SaleType
-  unitSelected: string
-}
 
 const OrderDetails = () => {
   const navigate = useNavigate()
@@ -63,12 +54,47 @@ const OrderDetails = () => {
     ? selectedOrder.items.map((item: OrderItem) => {
         const product = products.find((p) => p.id === item.id)
 
+        const quantity = item.quantity ?? 1
+
+        // total FINAL que se cobró por la línea (con promo)
+        const finalSubtotal = item.price
+
+        // descuento TOTAL de la línea (viene del JSON)
+        const lineDiscount = item.discount ?? 0
+
+        // subtotal base sin promo = final + descuento
+        const subtotalBase = finalSubtotal + lineDiscount
+
+        // precio unitario base (sin promo)
+        const unitBasePrice = quantity > 0 ? subtotalBase / quantity : subtotalBase
+
         return {
-          ...item,
-          price: item.price,
+          // === campos mínimos que CartItemBox espera ===
+          id: item.id,
+          quantity,
+          price: unitBasePrice, // mostramos unitario base
+          basePrice: unitBasePrice,
+          discount: lineDiscount, // por si CartItemBox aún usa this.discount
+          stock: product?.stock ?? undefined,
+          saleType: product?.sale_type ?? item.saleType ?? 'unit',
+          units: product?.units,
+          base_unit: product?.base_unit,
+          unitSelected: item.unitSelected ?? product?.base_unit,
+
+          // === extras para la versión nueva de CartItemBox ===
+          subtotalBase, // sin promo
+          finalSubtotal, // con promo
+          totalDiscount: lineDiscount,
+          discountPercent: subtotalBase > 0 ? (lineDiscount / subtotalBase) * 100 : 0,
+
+          // === datos de UI ===
           title: product?.name,
-          image: product?.main_image,
-          product
+          image: product?.main_image
+        } as CartItem & {
+          subtotalBase: number
+          finalSubtotal: number
+          totalDiscount: number
+          discountPercent: number
         }
       })
     : []
@@ -199,12 +225,12 @@ const OrderDetails = () => {
               <p>Código postal: {selectedOrder?.postal_code}</p>
             </div>
             <div className='text-right'>
-              <p>
+              <div>
                 Tipo de envío:{' '}
                 <Chip variant='bordered' color={deliveryType?.color}>
                   {deliveryType?.label}
                 </Chip>
-              </p>
+              </div>
               <p>
                 Entrega solicitada:{' '}
                 <span className='font-semibold'>{formatDate(selectedOrder?.delivery_date, 'short', 'es-MX', 'utc')}</span>
@@ -250,7 +276,7 @@ const OrderDetails = () => {
           </div>
         )}
       </Card>
-      <section className='w-[380px] md:sticky md:top-0 h-fit '>
+      <section className='w-full md:w-[380px] md:sticky md:top-0 h-fit '>
         <div className='flex flex-col w-full border border-foreground-400 rounded-md  bg-white shadow-md overflow-hidden'>
           {cartItems.length !== 0 && (
             <motion.header
@@ -298,9 +324,11 @@ const OrderDetails = () => {
                 <div className='text-xl text-right w-full'>
                   Productos: <span className='font-bold'>{formatMoney(selectedOrder?.total_price ?? 0)}</span>
                 </div>
-                <div className='text-xl text-right w-full'>
-                  Envío: <span className='font-bold'>{formatMoney(selectedOrder?.shipping_price ?? 0)}</span>
-                </div>
+                {selectedOrder?.shipping_price !== 0 && (
+                  <div className='text-xl text-right w-full'>
+                    Envío: <span className='font-bold'>{formatMoney(selectedOrder?.shipping_price ?? 0)}</span>
+                  </div>
+                )}
 
                 {/* {cartHasDiscount && (
                       <div className='text-right text-2xl w-full'>
