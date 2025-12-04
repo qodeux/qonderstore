@@ -1,6 +1,20 @@
-import { Button, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip } from '@heroui/react'
-import { Building2, CreditCard, Pencil, Trash2 } from 'lucide-react'
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+  Switch,
+  Table,
+  TableBody,
+  TableCell,
+  TableColumn,
+  TableHeader,
+  TableRow
+} from '@heroui/react'
+import { Building2, CreditCard, EllipsisVertical } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import type { ColumnDef } from '../../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../../components/common/ToolbarTable'
 import type { PaymentMethod } from '../../../schemas/config.schema'
 import { useAppSelector } from '../../../store/store'
@@ -38,10 +52,26 @@ const getMethodIcon = (type: string, className: string) => {
 }
 
 const PaymentMethods = () => {
-  const paymentMethods = useAppSelector((s) => s.config.paymentMethods) ?? []
-  const banks = useAppSelector((state) => state.catalogs.banks) ?? []
+  type Row = {
+    payment_method: string
+    details: { bank: number; account: string; holder_name: string }
+    status: boolean
+  }
 
-  const [criteria, setCriteria] = useState<ToolbarCriteria<PaymentMethod>>({
+  const columns: ColumnDef<Row>[] = [
+    { key: 'payment_method', label: 'Medio de pago', allowsSorting: false },
+    { key: 'details', label: 'Detalles', allowsSorting: false },
+    { key: 'status', label: 'Estado', allowsSorting: false },
+    { key: 'actions', label: 'Acciones', allowsSorting: false }
+  ]
+
+  const paymentMethods = useAppSelector((state) => state.config.paymentMethods)
+
+  console.log(paymentMethods)
+
+  const banks = useAppSelector((state) => state.catalogs.banks)
+
+  const [criteria, setCriteria] = useState<ToolbarCriteria<Row>>({
     searchText: '',
     //holder_name: '',
     selected: {}
@@ -49,15 +79,14 @@ const PaymentMethods = () => {
 
   const [activeMap, setActiveMap] = useState<Record<number, boolean>>({})
 
-  const rows: PaymentMethod[] = useMemo(() => {
+  const rows: Row[] = useMemo(() => {
     if (!paymentMethods) return []
     return paymentMethods.map((pm, index) => {
       const id = index // si luego mapeas config.id, aquí usas ese id
-      const details = `Banco: ${pm.bank} | Cuenta: ${pm.account} | Titular: ${pm.holder_name}`
       return {
-        ...pm,
-        id,
-        details
+        payment_method: pm.type,
+        details: { bank: pm.bank, account: pm.account, holder_name: pm.holder_name },
+        status: activeMap[id] ?? true
       }
     })
   }, [paymentMethods])
@@ -72,13 +101,9 @@ const PaymentMethods = () => {
     })
   }, [rows])
 
-  const filteredRows = useMemo(
-    () =>
-      applyToolbarFilters<PaymentMethod>(rows, criteria, {
-        searchKeys: ['details']
-      }),
-    [rows, criteria]
-  )
+  const filteredRows = useMemo(() => {
+    return applyToolbarFilters(rows, ['details'], criteria)
+  }, [rows, criteria])
 
   const handleAddMethod = () => console.log('Agregar método')
   const handleEditMethod = (m: PaymentMethod) => console.log('Editar método', m)
@@ -88,36 +113,39 @@ const PaymentMethods = () => {
   return (
     <section className='flex h-full flex-col gap-4'>
       <section className='space-y-4'>
-        <ToolbarTable<PaymentMethod>
+        <ToolbarTable<Row>
           rows={rows}
-          searchFilter={['type']}
+          searchFilter={['details']}
+          filters={[{ label: 'Tipo de pago', column: 'payment_method', multiple: true }]}
           buttons={[{ label: 'Agregar método', onPress: handleAddMethod, color: 'primary' }]}
           onCriteriaChange={setCriteria}
         />
       </section>
 
       <Table aria-label='Tabla de métodos de pago' className='bg-white shadow-sm rounded-lg overflow-hidden' selectionMode='single'>
-        <TableHeader>
-          <TableColumn>Método</TableColumn>
-          <TableColumn>Detalles</TableColumn>
-          <TableColumn className='text-center'>Estado</TableColumn>
-          <TableColumn className='text-center'>Acciones</TableColumn>
+        <TableHeader columns={columns}>
+          {(column) => (
+            <TableColumn key={String(column.key)} allowsSorting={!!column.allowsSorting} align={column.align ?? 'start'}>
+              {column.label}
+            </TableColumn>
+          )}
         </TableHeader>
 
-        <TableBody emptyContent={'No hay métodos de pago configurados.'} items={filteredRows}>
-          {(method: PaymentMethod) => {
-            const { type, bank, account, holder_name } = method
-            const { wrapper, icon } = getMethodIconStyles(type)
+        <TableBody emptyContent={'Sin resultados'} items={filteredRows}>
+          {(item: Row) => {
+            const { payment_method, details } = item
+            const { wrapper, icon } = getMethodIconStyles(payment_method)
 
             return (
-              <TableRow key={`${type}-${account}`}>
+              <TableRow key={`${payment_method}-${details.account}`}>
                 {/* MÉTODO */}
                 <TableCell>
                   <div className='flex items-center gap-3'>
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${wrapper}`}>{getMethodIcon(type, icon)}</div>
-
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${wrapper}`}>
+                      {getMethodIcon(payment_method, icon)}
+                    </div>
                     <div>
-                      <p className='font-medium text-gray-800'>{getMethodLabel(type)}</p>
+                      <p className='font-medium text-gray-800'>{getMethodLabel(payment_method)}</p>
                       {/* <p className='text-xs text-gray-500'>({type})</p> */}
                     </div>
                   </div>
@@ -127,13 +155,13 @@ const PaymentMethods = () => {
                 <TableCell>
                   <div className='text-xs text-gray-600 space-y-1'>
                     <p>
-                      <span className='font-semibold'>Banco:</span> {banks.find((b) => b.id === bank)?.full_name}
+                      <span className='font-semibold'>Banco:</span> {banks.find((b) => b.id === details.bank)?.full_name}
                     </p>
                     <p>
-                      <span className='font-semibold'>Cuenta:</span> {account}
+                      <span className='font-semibold'>Cuenta:</span> {details.account}
                     </p>
                     <p>
-                      <span className='font-semibold'>Titular:</span> {holder_name}
+                      <span className='font-semibold'>Titular:</span> {details.holder_name}
                     </p>
                   </div>
                 </TableCell>
@@ -144,31 +172,28 @@ const PaymentMethods = () => {
                     <Switch
                       size='sm'
                       // isSelected={!!active} // más adelante vendrá de la BD
-                      onValueChange={(v) => handleToggle(method, v)}
+                      onValueChange={(v) => handleToggle(item, v)}
                     />
                   </div>
                 </TableCell>
 
                 {/* ACCIONES */}
                 <TableCell>
-                  <div className='flex items-center justify-center gap-2'>
-                    <Tooltip content='Editar'>
-                      <Button isIconOnly variant='light' size='sm' onPress={() => handleEditMethod(method)}>
-                        <Pencil className='h-4 w-4 text-gray-600' />
+                  <Dropdown>
+                    <DropdownTrigger>
+                      <Button variant='bordered' isIconOnly size='sm'>
+                        <EllipsisVertical />
                       </Button>
-                    </Tooltip>
-
-                    <Tooltip content='Eliminar'>
-                      <Button isIconOnly variant='light' color='danger' size='sm' onPress={() => handleDelete(method)}>
-                        <Trash2 className='h-4 w-4' />
-                      </Button>
-                    </Tooltip>
-                    <Tooltip content='Eliminar'>
-                      <Button isIconOnly variant='light' color='danger' size='sm' onPress={() => handleDelete(method)}>
-                        <Trash2 className='h-4 w-4' />
-                      </Button>
-                    </Tooltip>
-                  </div>
+                    </DropdownTrigger>
+                    <DropdownMenu aria-label='Acciones'>
+                      <DropdownItem key='__edit' onPress={() => handleEditMethod(item)}>
+                        Editar
+                      </DropdownItem>
+                      <DropdownItem key='__delete_req' className='text-danger' color='danger' onPress={() => handleDelete(item)}>
+                        Eliminar
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </Dropdown>
                 </TableCell>
               </TableRow>
             )
