@@ -10,7 +10,6 @@ import ProviderModal from '../../components/modals/admin/ProviderModal'
 import ProviderOrderNewModal from '../../components/modals/admin/ProviderOrderNewModal'
 import ProviderOrderSupplyModal from '../../components/modals/admin/ProviderOrderSupplyModal'
 import OnDeleteModal from '../../components/modals/common/OnDeleteModal'
-import { useCatalog } from '../../hooks/useCatalog'
 import { setEditMode, setSelectedProvider } from '../../store/slices/providersSlice'
 import type { RootState } from '../../store/store'
 import { applyToolbarFilters } from '../../utils/toolbarFilters'
@@ -18,7 +17,6 @@ import { applyToolbarFilters } from '../../utils/toolbarFilters'
 const Providers = () => {
   const dispatch = useDispatch()
   const providers = useSelector((state: RootState) => state.providers.items)
-  useCatalog('banks')
 
   type Row = {
     id: number

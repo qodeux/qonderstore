@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 
 interface Bank {
-  id: string
+  id: number
   code: string
   short_name: string
   full_name: string
