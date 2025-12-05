@@ -14,7 +14,7 @@ export const useConfig = () => {
       const { data, error } = await supabase.from('config').select('*')
 
       if (data) dispatch(setConfig(data as ConfigDB[]))
-      if (error) console.error('Error al cargar categorías:', error.message)
+      if (error) console.error('Error al cargar configuración:', error.message)
     }
 
     fetchConfig()

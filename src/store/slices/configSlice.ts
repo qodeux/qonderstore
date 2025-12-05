@@ -18,7 +18,9 @@ const configSlice = createSlice({
   initialState,
   reducers: {
     setConfig(state, action: PayloadAction<ConfigDB[]>) {
-      state.paymentMethods = action.payload.filter((item) => item.module === 'payment_methods').map((item) => item.data as PaymentMethod)
+      state.paymentMethods = action.payload
+        .filter((item) => item.module === 'payment_methods')
+        .map((item) => ({ id: item.id, ...item.data }) as PaymentMethod)
       state.faq = action.payload.filter((item) => item.module === 'faq').map((item) => item.data as FAQ)
       state.contact_data = action.payload.filter((item) => item.module === 'contact_data').map((item) => item.data as ContactValue)
     }

@@ -13,10 +13,9 @@ import {
   TableRow
 } from '@heroui/react'
 import { Building2, CreditCard, EllipsisVertical } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ColumnDef } from '../../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../../components/common/ToolbarTable'
-import type { PaymentMethod } from '../../../schemas/config.schema'
 import { useAppSelector } from '../../../store/store'
 import { applyToolbarFilters } from '../../../utils/toolbarFilters'
 
@@ -53,6 +52,7 @@ const getMethodIcon = (type: string, className: string) => {
 
 const PaymentMethods = () => {
   type Row = {
+    id: number
     payment_method: string
     details: { bank: number; account: string; holder_name: string }
     status: boolean
@@ -67,8 +67,6 @@ const PaymentMethods = () => {
 
   const paymentMethods = useAppSelector((state) => state.config.paymentMethods)
 
-  console.log(paymentMethods)
-
   const banks = useAppSelector((state) => state.catalogs.banks)
 
   const [criteria, setCriteria] = useState<ToolbarCriteria<Row>>({
@@ -79,44 +77,56 @@ const PaymentMethods = () => {
 
   const [activeMap, setActiveMap] = useState<Record<number, boolean>>({})
 
-  const rows: Row[] = useMemo(() => {
-    if (!paymentMethods) return []
-    return paymentMethods.map((pm, index) => {
-      const id = index // si luego mapeas config.id, aquí usas ese id
-      return {
-        payment_method: pm.type,
-        details: { bank: pm.bank, account: pm.account, holder_name: pm.holder_name },
-        status: activeMap[id] ?? true
-      }
-    })
-  }, [paymentMethods])
-
-  useMemo(() => {
-    setActiveMap((prev) => {
-      const next = { ...prev }
-      for (const r of rows) {
-        if (next[r.id] === undefined) next[r.id] = true
-      }
-      return next
-    })
-  }, [rows])
+  const rows: Row[] = useMemo(
+    () =>
+      paymentMethods?.map(({ id, type, bank, account, holder_name }) => ({
+        payment_method: type,
+        details: { bank, account, holder_name },
+        status: activeMap[id] ?? true,
+        id
+      })) ?? [],
+    [paymentMethods, activeMap]
+  )
 
   const filteredRows = useMemo(() => {
     return applyToolbarFilters(rows, ['details'], criteria)
   }, [rows, criteria])
 
   const handleAddMethod = () => console.log('Agregar método')
-  const handleEditMethod = (m: PaymentMethod) => console.log('Editar método', m)
-  const handleDelete = (m: PaymentMethod) => console.log('Eliminar método', m)
-  const handleToggle = (m: PaymentMethod, v: boolean) => console.log('Cambiar estado:', m, v)
+  const handleEditMethod = (row: Row) => console.log('Editar método', row)
+  const handleDelete = (row: Row) => console.log('Eliminar método', row)
+  const handleToggle = (row: Row, v: boolean) => console.log('Cambiar estado:', row, v)
+
+  useEffect(() => {
+    setActiveMap((prev) => {
+      const next = { ...prev }
+      let changed = false
+
+      for (const r of rows) {
+        if (next[r.id] === undefined) {
+          next[r.id] = true
+          changed = true
+        }
+      }
+
+      // Si no hubo cambios, regresamos el mismo objeto
+      return changed ? next : prev
+    })
+  }, [rows])
 
   return (
     <section className='flex h-full flex-col gap-4'>
       <section className='space-y-4'>
         <ToolbarTable<Row>
           rows={rows}
-          searchFilter={['details']}
-          filters={[{ label: 'Tipo de pago', column: 'payment_method', multiple: true }]}
+          filters={[
+            {
+              label: 'Tipo de pago',
+              column: 'payment_method',
+              multiple: true,
+              optionsMap: { card: 'Tarjeta', bank_transfer: 'Transferencia bancaria' }
+            }
+          ]}
           buttons={[{ label: 'Agregar método', onPress: handleAddMethod, color: 'primary' }]}
           onCriteriaChange={setCriteria}
         />
