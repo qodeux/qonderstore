@@ -3,11 +3,17 @@ import { Route, Routes } from 'react-router'
 
 import ProtectedRoute from '../components/ProtectedRoute'
 import AdminLayout from '../layouts/AdminLayout'
+import ConfigLayout from '../layouts/ConfigLayout'
 import FrontwebLayout from '../layouts/FrontwebLayout'
 import SidebarLayout from '../layouts/SidebarLayout'
 import NotFound from '../pages/404'
 import Brands from '../pages/admin/Brands'
 import Categories from '../pages/admin/Categories'
+import AdminFAQ from '../pages/admin/config/AdminFAQ'
+import ContactData from '../pages/admin/config/ContactData'
+import PaymentMethods from '../pages/admin/config/PaymentMethods'
+import ShippingZones from '../pages/admin/config/ShippingZones'
+import UsefulLinks from '../pages/admin/config/UsefulLinks'
 import Dashboard from '../pages/admin/Dashboard'
 import Products from '../pages/admin/Products'
 import Promos from '../pages/admin/Promos'
@@ -112,6 +118,24 @@ const AppRoutes: React.FC = () => (
           </ProtectedRoute>
         }
       />
+      <Route
+        path='configuracion'
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <ConfigLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Store />} />
+        <Route path='medios-pago' element={<PaymentMethods />} />
+        <Route path='zonas-envio' element={<ShippingZones />} />
+        <Route path='preguntas-frecuentes' element={<AdminFAQ />} />
+        <Route path='datos-contacto' element={<ContactData />} />
+        <Route path='enlaces' element={<UsefulLinks />} />
+
+        <Route path='*' element={<NotFound />} />
+      </Route>
+
       <Route path='solicitudes-acceso' element={<Requests />} />
       <Route
         path='usuarios'

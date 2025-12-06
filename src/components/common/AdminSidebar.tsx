@@ -8,11 +8,17 @@ import {
   CirclePercent,
   ClipboardList,
   Combine,
+  CreditCard,
+  HelpCircle,
   Layers,
   LayoutDashboard,
+  LinkIcon,
+  MapPinned,
   Package,
+  Phone,
   ScanBarcode,
   SendToBack,
+  Settings,
   Store,
   Truck,
   Users
@@ -83,7 +89,7 @@ const menuItems: MenuItem[] = [
     icon: <Users className='w-5 h-5' />,
     href: '/admin/usuarios',
     allowedRoles: ['admin']
-  }
+  },
   //   {
   //     label: 'Mensajes',
   //     icon: <MessageSquare className='w-5 h-5' />,
@@ -94,17 +100,17 @@ const menuItems: MenuItem[] = [
   //     icon: <MessageCircle className='w-5 h-5' />,
   //     href: '/admin/chat'
   //   },
-  //   {
-  //     label: 'Configuración',
-  //     icon: <Settings className='w-5 h-5' />,
-  //     submenu: [
-  //       { label: 'Medios de Pago', href: '/admin/configuracion/pagos', icon: <CreditCard className='w-4 h-4' /> },
-  //       { label: 'Zonas de Envío', href: '/admin/configuracion/envios', icon: <Truck className='w-4 h-4' /> },
-  //       { label: 'Preguntas Frecuentes', href: '/admin/configuracion/faq', icon: <HelpCircle className='w-4 h-4' /> },
-  //       { label: 'Datos de Contacto', href: '/admin/configuracion/contacto', icon: <Phone className='w-4 h-4' /> },
-  //       { label: 'Enlaces Útiles', href: '/admin/configuracion/enlaces', icon: <LinkIcon className='w-4 h-4' /> }
-  //     ]
-  //   }
+  {
+    label: 'Configuración',
+    icon: <Settings className='w-5 h-5' />,
+    submenu: [
+      { label: 'Medios de Pago', href: '/admin/configuracion/medios-pago', icon: <CreditCard className='w-4 h-4' /> },
+      { label: 'Zonas de Envío', href: '/admin/configuracion/zonas-envio', icon: <MapPinned className='w-4 h-4' /> },
+      { label: 'Preguntas Frecuentes', href: '/admin/configuracion/preguntas-frecuentes', icon: <HelpCircle className='w-4 h-4' /> },
+      { label: 'Datos de Contacto', href: '/admin/configuracion/datos-contacto', icon: <Phone className='w-4 h-4' /> },
+      { label: 'Enlaces Útiles', href: '/admin/configuracion/enlaces', icon: <LinkIcon className='w-4 h-4' /> }
+    ]
+  }
 ]
 
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {

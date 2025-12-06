@@ -95,7 +95,7 @@ const BrandModal = ({ isOpen, onOpenChange }: Props) => {
       <ModalContent>
         {(onClose) => (
           <>
-            <ModalHeader className='flex flex-col gap-1'>{isEditing ? 'Editar' : 'Agregar'} categoría</ModalHeader>
+            <ModalHeader className='flex flex-col gap-1'>{isEditing ? 'Editar' : 'Agregar'} marca</ModalHeader>
             <ModalBody>
               <FormProvider {...brandForm}>
                 <BrandForm />

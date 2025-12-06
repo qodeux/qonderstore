@@ -18,6 +18,8 @@ import { useDispatch, useSelector, type TypedUseSelectorHook } from 'react-redux
 import storeOrdersReducer from './slices/storeOrdersSlice'
 import supplyOrdersReducer from './slices/supplyOrdersSlice'
 
+import configReducer from './slices/configSlice'
+
 const store = configureStore({
   reducer: {
     ui: uiReducer,
@@ -32,7 +34,8 @@ const store = configureStore({
     productFilters: productFiltersReducer,
     cart: cartReducer,
     supplyOrders: supplyOrdersReducer,
-    storeOrders: storeOrdersReducer
+    storeOrders: storeOrdersReducer,
+    config: configReducer
   }
 })
 
