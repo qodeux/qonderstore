@@ -5,12 +5,17 @@ export type ConfigState = {
   paymentMethods: PaymentMethod[] | null
   faq?: FAQ[] | null
   contact_data?: ContactValue[] | null
+  isEditing: boolean
+  selectedPaymentMethod?: ConfigDB | null
+  config: ConfigDB[]
 }
 
 const initialState: ConfigState = {
   paymentMethods: null,
   faq: null,
-  contact_data: null
+  contact_data: null,
+  isEditing: false,
+  config: []
 }
 
 const configSlice = createSlice({
@@ -23,6 +28,12 @@ const configSlice = createSlice({
         .map((item) => ({ id: item.id, ...item.data }) as PaymentMethod)
       state.faq = action.payload.filter((item) => item.module === 'faq').map((item) => item.data as FAQ)
       state.contact_data = action.payload.filter((item) => item.module === 'contact_data').map((item) => item.data as ContactValue)
+    },
+    setEditMode(state, action: PayloadAction<boolean>) {
+      state.isEditing = action.payload
+    },
+    setSelectedPaymentMethod(state, action: PayloadAction<number | null>) {
+      state.selectedPaymentMethod = state.config?.find((config) => config.id === action.payload) || null
     }
   }
 })

@@ -12,7 +12,7 @@ const PaymentMethodsForm = () => {
 
   const banksOptions = useSelector((state: RootState) => state.catalogs.banks)
 
-  const accountType = useWatch({ control, name: 'account_type' })
+  const accountType = useWatch({ control, name: 'type' })
 
   return (
     <form className='space-y-2'>
@@ -40,7 +40,7 @@ const PaymentMethodsForm = () => {
       />
 
       <Controller
-        name='account_type'
+        name='type'
         control={control}
         render={({ field }) => (
           <RadioGroup orientation='horizontal' size='sm' {...field}>

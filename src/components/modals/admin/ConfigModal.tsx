@@ -2,8 +2,8 @@ import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
-import { brandInputSchema } from '../../../schemas/brand.schema'
-import { productService } from '../../../services/productService'
+import { paymentMethodSchema } from '../../../schemas/config.schema'
+import { configService } from '../../../services/configService'
 import { useAppSelector } from '../../../store/store'
 import PaymentMethodsForm from '../../forms/admin/PaymentMethodsForm'
 
@@ -13,19 +13,20 @@ type Props = {
 }
 
 const PaymentMethodsModal = ({ isOpen, onOpenChange }: Props) => {
-  const { isEditing } = useAppSelector((state) => state.ui)
-  const { selectedBrand } = useAppSelector((state) => state.products)
+  const { isEditing } = useAppSelector((state) => state.config)
+  const { selectedPaymentMethod: selectedPaymentMethod } = useAppSelector((state) => state.config)
 
   const paymentMethodForm = useForm({
-    resolver: zodResolver(brandInputSchema),
+    resolver: zodResolver(paymentMethodSchema),
     shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange',
 
     defaultValues: {
-      name: '',
-      slug: '',
-      color: undefined
+      type: '',
+      bank: undefined,
+      account: '',
+      holder_name: ''
     }
   })
 
@@ -36,37 +37,39 @@ const PaymentMethodsModal = ({ isOpen, onOpenChange }: Props) => {
   const buildFormValues = () => {
     if (isEditing) {
       return {
-        name: selectedBrand?.name ?? '',
-        color: selectedBrand?.color ?? null,
-        slug: selectedBrand?.slug ?? ''
+        type: selectedPaymentMethod?.data.type ?? '',
+        banck: selectedPaymentMethod?.data.bank ?? undefined,
+        account: selectedPaymentMethod?.data.account ?? '',
+        holder_name: selectedPaymentMethod?.data.holder_name ?? ''
       }
     } else {
       return {
-        name: '',
-        color: null,
-        slug: ''
+        type: '',
+        bank: undefined,
+        account: '',
+        holder_name: ''
       }
     }
   }
 
-  const handleSubmitBrand = async () => {
+  const handleSubmitPaymentMethod = async () => {
     const isValid = await paymentMethodForm.trigger()
     if (!isValid) return
     let formData = paymentMethodForm.getValues()
     let transaction
 
-    if (isEditing && selectedBrand?.id) {
-      formData = { ...formData, id: selectedBrand.id }
-      transaction = await productService.updateBrand(formData)
+    if (isEditing && selectedPaymentMethod?.id) {
+      formData = { ...formData, id: selectedPaymentMethod.id }
+      transaction = await configService.createPaymentMethod(formData)
     } else {
-      transaction = await productService.createBrand(formData)
+      transaction = await configService.updatePaymentMethod(formData)
     }
 
     if (!transaction.error && transaction) {
       onOpenChange()
       paymentMethodForm.reset()
     } else {
-      console.error('Error al guardar categoría')
+      console.error('Error al guardar método de pago')
       console.error(transaction.error)
 
       if (transaction.error.code === '23505') {
@@ -88,7 +91,7 @@ const PaymentMethodsModal = ({ isOpen, onOpenChange }: Props) => {
       // Al abrir, setea valores actuales
       paymentMethodForm.reset(buildFormValues())
     }
-  }, [isOpen, selectedBrand, paymentMethodForm]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, selectedPaymentMethod, paymentMethodForm]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='sm' backdrop='blur'>
@@ -106,7 +109,7 @@ const PaymentMethodsModal = ({ isOpen, onOpenChange }: Props) => {
                 Cerrar
               </Button>
               {(!isEditing || isDirty) && (
-                <Button color='primary' onPress={handleSubmitBrand} isDisabled={Object.keys(errors).length > 0}>
+                <Button color='primary' onPress={handleSubmitPaymentMethod} isDisabled={Object.keys(errors).length > 0}>
                   Aceptar
                 </Button>
               )}

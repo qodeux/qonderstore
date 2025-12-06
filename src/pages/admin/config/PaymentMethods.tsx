@@ -14,13 +14,15 @@ import {
   useDisclosure
 } from '@heroui/react'
 import { Building2, CreditCard, EllipsisVertical } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ColumnDef } from '../../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../../components/common/ToolbarTable'
 import { useAppSelector } from '../../../store/store'
 import { applyToolbarFilters } from '../../../utils/toolbarFilters'
 
+import { useDispatch } from 'react-redux'
 import ConfigModal from '../../../components/modals/admin/ConfigModal'
+import { setEditMode } from '../../../store/slices/categoriesSlice'
 
 const getMethodLabel = (type: string) => {
   switch (type) {
@@ -54,6 +56,8 @@ const getMethodIcon = (type: string, className: string) => {
 }
 
 const PaymentMethods = () => {
+  const dispatch = useDispatch()
+
   type Row = {
     id: number
     payment_method: string
@@ -98,29 +102,13 @@ const PaymentMethods = () => {
   const { isOpen: isOpenConfig, onOpenChange: onOpenChangeConfig } = useDisclosure()
 
   const handleAddMethod = () => {
+    dispatch(setEditMode(false))
     onOpenChangeConfig()
     console.log('Agregar método')
   }
   const handleEditMethod = (row: Row) => console.log('Editar método', row)
   const handleDelete = (row: Row) => console.log('Eliminar método', row)
   const handleToggle = (row: Row, v: boolean) => console.log('Cambiar estado:', row, v)
-
-  useEffect(() => {
-    setActiveMap((prev) => {
-      const next = { ...prev }
-      let changed = false
-
-      for (const r of rows) {
-        if (next[r.id] === undefined) {
-          next[r.id] = true
-          changed = true
-        }
-      }
-
-      // Si no hubo cambios, regresamos el mismo objeto
-      return changed ? next : prev
-    })
-  }, [rows])
 
   return (
     <>
