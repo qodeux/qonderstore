@@ -220,7 +220,7 @@ const PaymentMethods = () => {
           </TableBody>
         </Table>
       </section>
-      <ConfigModal isOpen={isOpenConfig} on onOpenChange={onOpenChangeConfig} />
+      <ConfigModal isOpen={isOpenConfig} onOpenChange={onOpenChangeConfig} />
     </>
   )
 }

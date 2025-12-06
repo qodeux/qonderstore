@@ -1,36 +1,18 @@
-import { Autocomplete, AutocompleteItem, Input, Select, SelectItem } from '@heroui/react'
-import { useRef } from 'react'
-import { Controller, useFormContext } from 'react-hook-form'
+import { Autocomplete, AutocompleteItem, Input, Radio, RadioGroup } from '@heroui/react'
+import { Controller, useFormContext, useWatch } from 'react-hook-form'
+import { PatternFormat } from 'react-number-format'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../../store/store'
 
-function slugify(text: string) {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w-]+/g, '')
-}
-
-const colorsOptions = [
-  { label: 'Rojo', key: 'red' },
-  { label: 'Azul', key: 'blue' },
-  { label: 'Verde', key: 'green' },
-  { label: 'Amarillo', key: 'yellow' },
-  { label: 'Negro', key: 'black' }
-]
-
 const PaymentMethodsForm = () => {
-  const userTouchedSlug = useRef(false)
-  const { setValue } = useFormContext()
-
   const {
     control,
     formState: { errors }
   } = useFormContext()
 
   const banksOptions = useSelector((state: RootState) => state.catalogs.banks)
+
+  const accountType = useWatch({ control, name: 'account_type' })
 
   return (
     <form className='space-y-2'>
@@ -58,47 +40,50 @@ const PaymentMethodsForm = () => {
       />
 
       <Controller
-        name='slug'
+        name='account_type'
         control={control}
-        render={({ field, fieldState }) => (
-          <Input
-            label='Slug'
-            type='text'
-            size='sm'
-            variant='bordered'
-            value={field.value ?? ''}
-            onValueChange={(v) => {
-              userTouchedSlug.current = true
-              field.onChange(v)
-            }}
-            isInvalid={!!fieldState.error}
-            errorMessage={fieldState.error?.message as string}
-          />
+        render={({ field }) => (
+          <RadioGroup orientation='horizontal' size='sm' {...field}>
+            <Radio value='clabe'>CLABE</Radio>
+            <Radio value='account'>Cuenta</Radio>
+            <Radio value='card'>Tarjeta</Radio>
+          </RadioGroup>
         )}
       />
 
       <Controller
-        name='color'
+        name='account'
         control={control}
-        render={({ field }) => (
-          <Select
-            label='Color'
+        render={({ field, fieldState }) => (
+          <PatternFormat
+            customInput={Input}
+            label={accountType === 'clabe' ? 'Cuenta CLABE' : accountType === 'account' ? 'Número de cuenta' : 'Número de tarjeta'}
+            format={accountType === 'clabe' ? '### ### ########### #' : accountType === 'account' ? '############' : '#### #### #### ####'}
+            type='text'
+            classNames={{ inputWrapper: 'bg-white' }}
             size='sm'
             variant='bordered'
-            selectedKeys={field.value ? [String(field.value)] : []}
-            onSelectionChange={(keys) => {
-              const value = Array.from(keys)[0] ?? null
-              field.onChange(value)
-            }}
-            isInvalid={!!errors.brand}
-            errorMessage={errors.brand?.message as string}
-            isClearable
-            onClear={() => field.onChange(null)}
-          >
-            {colorsOptions.map((color) => (
-              <SelectItem key={color.key}>{color.label}</SelectItem>
-            ))}
-          </Select>
+            isInvalid={!!fieldState.error}
+            errorMessage={fieldState.error?.message as string}
+            {...field}
+          />
+        )}
+      />
+      <Controller
+        name='holder_name'
+        control={control}
+        render={({ field, fieldState }) => (
+          <Input
+            label='Nombre del titular'
+            type='text'
+            size='sm'
+            variant='bordered'
+            maxLength={50}
+            isInvalid={!!fieldState.error}
+            errorMessage={fieldState.error?.message as string}
+            {...field}
+            classNames={{ inputWrapper: 'bg-white' }}
+          />
         )}
       />
     </form>
