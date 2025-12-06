@@ -3,7 +3,7 @@ import z from 'zod'
 export const paymentMethodSchema = z.object({
   id: z.number(),
   type: z.string(),
-  bank: z.number(),
+  bank: z.string(),
   account: z.string(),
   holder_name: z.string()
 })
@@ -36,3 +36,12 @@ export const configSchema = z.object({
   last_update: z.string().optional()
 })
 export type ConfigDB = z.infer<typeof configSchema>
+
+export const inputPaymentMethodSchema = z.object({
+  id: z.number().optional(),
+  type: z.string(),
+  bank: z.string(),
+  account: z.string(),
+  holder_name: z.string()
+})
+export type InputPaymentMethod = z.infer<typeof inputPaymentMethodSchema>

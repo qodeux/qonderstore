@@ -22,7 +22,10 @@ import { applyToolbarFilters } from '../../../utils/toolbarFilters'
 
 import { useDispatch } from 'react-redux'
 import ConfigModal from '../../../components/modals/admin/ConfigModal'
-import { setEditMode } from '../../../store/slices/categoriesSlice'
+import OnConfirmModal from '../../../components/modals/common/onConfirmModal'
+import { configService } from '../../../services/configService'
+import { setSelectedPaymentMethod } from '../../../store/slices/configSlice'
+import { setEditMode } from '../../../store/slices/uiSlice'
 
 const getMethodLabel = (type: string) => {
   switch (type) {
@@ -57,6 +60,7 @@ const getMethodIcon = (type: string, className: string) => {
 
 const PaymentMethods = () => {
   const dispatch = useDispatch()
+  const { selectedPaymentMethod } = useAppSelector((state) => state.config)
 
   type Row = {
     id: number
@@ -87,10 +91,10 @@ const PaymentMethods = () => {
   const rows: Row[] = useMemo(
     () =>
       paymentMethods?.map(({ id, type, bank, account, holder_name }) => ({
+        id,
         payment_method: type,
         details: { bank, account, holder_name },
-        status: activeMap[id] ?? true,
-        id
+        status: activeMap[id] ?? true
       })) ?? [],
     [paymentMethods, activeMap]
   )
@@ -100,14 +104,31 @@ const PaymentMethods = () => {
   }, [rows, criteria])
 
   const { isOpen: isOpenConfig, onOpenChange: onOpenChangeConfig } = useDisclosure()
+  const { isOpen: isOpenDelete, onOpenChange: onOpenChangeDelete } = useDisclosure()
 
   const handleAddMethod = () => {
     dispatch(setEditMode(false))
     onOpenChangeConfig()
     console.log('Agregar método')
   }
-  const handleEditMethod = (row: Row) => console.log('Editar método', row)
-  const handleDelete = (row: Row) => console.log('Eliminar método', row)
+  const handleEditMethod = async (row: Row) => {
+    dispatch(setEditMode(true))
+    console.log('Editar método', row)
+    dispatch(setSelectedPaymentMethod(row.id))
+    onOpenChangeConfig()
+  }
+
+  const handleRequestDelete = async (row: Row) => {
+    console.log('Solicitar eliminación de método', row)
+    dispatch(setSelectedPaymentMethod(row.id))
+    onOpenChangeDelete()
+  }
+  const handleDelete = async () => {
+    if (!selectedPaymentMethod) return
+    await configService.deletePaymentMethod(selectedPaymentMethod.id)
+    onOpenChangeDelete()
+  }
+
   const handleToggle = (row: Row, v: boolean) => console.log('Cambiar estado:', row, v)
 
   return (
@@ -140,11 +161,11 @@ const PaymentMethods = () => {
 
           <TableBody emptyContent={'Sin resultados'} items={filteredRows}>
             {(item: Row) => {
-              const { payment_method, details } = item
+              const { payment_method, details, id } = item
               const { wrapper, icon } = getMethodIconStyles(payment_method)
 
               return (
-                <TableRow key={`${payment_method}-${details.account}`}>
+                <TableRow key={`${payment_method}-${id}`}>
                   {/* MÉTODO */}
                   <TableCell>
                     <div className='flex items-center gap-3'>
@@ -162,7 +183,7 @@ const PaymentMethods = () => {
                   <TableCell>
                     <div className='text-xs text-gray-600 space-y-1'>
                       <p>
-                        <span className='font-semibold'>Banco:</span> {banks.find((b) => b.id === details.bank)?.full_name}
+                        <span className='font-semibold'>Banco:</span> {banks.find((b) => b.id === Number(details.bank))?.full_name}
                       </p>
                       <p>
                         <span className='font-semibold'>Cuenta:</span> {details.account}
@@ -196,7 +217,7 @@ const PaymentMethods = () => {
                         <DropdownItem key='__edit' onPress={() => handleEditMethod(item)}>
                           Editar
                         </DropdownItem>
-                        <DropdownItem key='__delete_req' className='text-danger' color='danger' onPress={() => handleDelete(item)}>
+                        <DropdownItem key='__delete_req' className='text-danger' color='danger' onPress={() => handleRequestDelete(item)}>
                           Eliminar
                         </DropdownItem>
                       </DropdownMenu>
@@ -209,6 +230,14 @@ const PaymentMethods = () => {
         </Table>
       </section>
       <ConfigModal isOpen={isOpenConfig} onOpenChange={onOpenChangeConfig} />
+      <OnConfirmModal
+        isOpen={isOpenDelete}
+        onOpenChange={onOpenChangeDelete}
+        title='Eliminar método'
+        action='delete'
+        message='¿Estas seguro que deseas eliminar este método de pago?'
+        onConfirm={handleDelete}
+      />
     </>
   )
 }

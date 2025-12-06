@@ -2,7 +2,7 @@ import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
-import { paymentMethodSchema } from '../../../schemas/config.schema'
+import { inputPaymentMethodSchema } from '../../../schemas/config.schema'
 import { configService } from '../../../services/configService'
 import { useAppSelector } from '../../../store/store'
 import PaymentMethodsForm from '../../forms/admin/PaymentMethodsForm'
@@ -13,11 +13,11 @@ type Props = {
 }
 
 const PaymentMethodsModal = ({ isOpen, onOpenChange }: Props) => {
-  const { isEditing } = useAppSelector((state) => state.config)
+  const { isEditing } = useAppSelector((state) => state.ui)
   const { selectedPaymentMethod: selectedPaymentMethod } = useAppSelector((state) => state.config)
 
   const paymentMethodForm = useForm({
-    resolver: zodResolver(paymentMethodSchema),
+    resolver: zodResolver(inputPaymentMethodSchema),
     shouldUnregister: false,
     mode: 'all',
     reValidateMode: 'onChange',
@@ -37,10 +37,10 @@ const PaymentMethodsModal = ({ isOpen, onOpenChange }: Props) => {
   const buildFormValues = () => {
     if (isEditing) {
       return {
-        type: selectedPaymentMethod?.data.type ?? '',
-        banck: selectedPaymentMethod?.data.bank ?? undefined,
-        account: selectedPaymentMethod?.data.account ?? '',
-        holder_name: selectedPaymentMethod?.data.holder_name ?? ''
+        type: selectedPaymentMethod?.type ?? '',
+        bank: selectedPaymentMethod?.bank ?? undefined,
+        account: selectedPaymentMethod?.account ?? '',
+        holder_name: selectedPaymentMethod?.holder_name ?? ''
       }
     } else {
       return {
@@ -58,31 +58,19 @@ const PaymentMethodsModal = ({ isOpen, onOpenChange }: Props) => {
     let formData = paymentMethodForm.getValues()
     let transaction
 
+    console.log('Esta editando?', isEditing)
+    console.log(selectedPaymentMethod?.id)
+
     if (isEditing && selectedPaymentMethod?.id) {
       formData = { ...formData, id: selectedPaymentMethod.id }
-      transaction = await configService.createPaymentMethod(formData)
-    } else {
       transaction = await configService.updatePaymentMethod(formData)
+    } else {
+      transaction = await configService.createPaymentMethod(formData)
     }
 
-    if (!transaction.error && transaction) {
+    if (transaction) {
       onOpenChange()
       paymentMethodForm.reset()
-    } else {
-      console.error('Error al guardar método de pago')
-      console.error(transaction.error)
-
-      if (transaction.error.code === '23505') {
-        // Manejo de error: clave duplicada
-        const details = transaction.error?.details ?? ''
-        if (details.includes('Key (name)')) {
-          paymentMethodForm.setError('name', { message: 'El nombre ya existe' })
-        } else if (details.includes('Key (slug)')) {
-          paymentMethodForm.setError('slug', { message: 'El slug ya existe' })
-        } else {
-          console.error('Error desconocido:', details)
-        }
-      }
     }
   }
 

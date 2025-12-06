@@ -1,44 +1,74 @@
+import { addToast } from '@heroui/react'
 import supabase from '../lib/supabase'
-import type { ConfigDB } from '../schemas/config.schema'
+import type { InputPaymentMethod } from '../schemas/config.schema'
 
 export const configService = {
-  createPaymentMethod: async (paymentMethodData: ConfigDB) => {
-    const { data: paymentMethodInserted, error: paymentMethodError } = await supabase.from('config').insert([
-      {
-        type: paymentMethodData.data.type,
-        bank: paymentMethodData.data.bank,
-        account: paymentMethodData.data.account,
-        holder_name: paymentMethodData.data.holder_name
-      }
-    ])
+  createPaymentMethod: async (paymentMethodData: InputPaymentMethod) => {
+    try {
+      const { data, error } = await supabase
+        .from('config')
+        .insert([
+          {
+            module: 'payment_methods',
+            data: paymentMethodData
+          }
+        ])
+        .select()
+        .single()
 
-    if (paymentMethodError) {
-      console.error('Error inserting payment method:', paymentMethodError)
-      return { error: paymentMethodError }
+      if (error) {
+        throw error
+      }
+      return data
+    } catch (error) {
+      console.error('Error inserting payment method:', error)
+      //return null
     }
-    return paymentMethodInserted
   },
-  updatePaymentMethod: async (paymentMethodData: ConfigDB) => {
-    if (!paymentMethodData.id) {
+  deletePaymentMethod: async (id: number) => {
+    const { error } = await supabase.from('config').delete().eq('id', id)
+    if (error) {
+      console.error('Error deleting payment method:', error)
+      return
+    }
+
+    setTimeout(() => {
+      addToast({
+        title: 'Método de pago eliminado',
+        description: `El método de pago ha sido eliminado.`,
+        color: 'danger',
+        variant: 'bordered',
+        shouldShowTimeoutProgress: true,
+        timeout: 4000
+      })
+    }, 1000)
+  },
+  updatePaymentMethod: async (payload: InputPaymentMethod) => {
+    if (!payload.id) {
       console.error('El id del método de pago es obligatorio para actualizar')
       return
     }
-    const { data: paymentMethodUpdated, error: paymentMethodError } = await supabase
+
+    const omit = <T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> => {
+      return Object.fromEntries(Object.entries(obj).filter(([k]) => !keys.includes(k as K))) as Omit<T, K>
+    }
+
+    const accountData = omit(payload, ['id'])
+
+    const { data, error } = await supabase
       .from('config')
       .update({
-        type: paymentMethodData.data.type,
-        bank: paymentMethodData.data.bank,
-        account: paymentMethodData.data.account,
-        holder_name: paymentMethodData.data.holder_name,
+        data: accountData,
         last_update: new Date().toISOString()
       })
-      .eq('id', paymentMethodData.id)
+      .eq('id', payload.id)
       .select()
       .single()
-    if (paymentMethodError) {
-      console.error('Error updating payment method:', paymentMethodError)
+
+    if (error) {
+      console.error('Error updating payment method:', error)
       return
     }
-    return paymentMethodUpdated
+    return data
   }
 }
