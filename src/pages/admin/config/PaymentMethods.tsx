@@ -72,8 +72,8 @@ const PaymentMethods = () => {
   const columns: ColumnDef<Row>[] = [
     { key: 'payment_method', label: 'Medio de pago', allowsSorting: false },
     { key: 'details', label: 'Detalles', allowsSorting: false },
-    { key: 'status', label: 'Estado', allowsSorting: false },
-    { key: 'actions', label: 'Acciones', allowsSorting: false }
+    { key: 'status', label: 'Estado', allowsSorting: false, align: 'center' },
+    { key: 'actions', label: 'Acciones', allowsSorting: false, align: 'center' }
   ]
 
   const paymentMethods = useAppSelector((state) => state.config.paymentMethods)
