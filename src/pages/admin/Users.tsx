@@ -87,8 +87,6 @@ const Users = () => {
   }
 
   const handleEditUser = (row: Row) => {
-    console.log(row)
-
     dispatch(setEditMode(true))
     dispatch(setSelectedUser(row.id))
     setSelectedKeys(new Set([String(row.id)]))
