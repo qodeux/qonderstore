@@ -201,13 +201,11 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
 
         if (nilA || nilB) {
           if (nilA && nilB) {
-            // tie-breaker
             const kA = String(getRowKey(a))
             const kB = String(getRowKey(b))
             return kA < kB ? -1 : kA > kB ? 1 : 0
           }
-          const nullsLastAsc = nilA ? 1 : -1 // asc: nulos al final
-          return dir * nullsLastAsc
+          return nilA ? 1 : -1
         }
 
         const cmpNum = (ta as number) - (tb as number)

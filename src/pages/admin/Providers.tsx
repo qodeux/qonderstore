@@ -82,7 +82,7 @@ const Providers = () => {
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'last_order',
-    direction: 'ascending'
+    direction: 'descending'
   })
 
   const { isOpen: isOpenProvider, onOpen: onOpenProvider, onOpenChange: onOpenChangeProvider } = useDisclosure()
