@@ -14,10 +14,10 @@ export const userInputCreateSchema = baseUserInput.extend({
 })
 export type UserInputCreate = z.infer<typeof userInputCreateSchema>
 
-const passwordOptional = z.preprocess(
-  (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
-  z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional()
-)
+const passwordOptional = z
+  .union([z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'), z.literal('')])
+  .transform((v) => (v === '' ? undefined : v))
+  .optional()
 
 export const userInputUpdateSchema = baseUserInput.extend({
   password: passwordOptional
@@ -38,9 +38,9 @@ export const User = z.object({
 
 export type User = z.infer<typeof User>
 
-export const UserFavShcema = z.object({
+export const UserFavSchema = z.object({
   user_id: z.string().optional(),
   product_id: z.number()
 })
 
-export type UserFav = z.infer<typeof UserFavShcema>
+export type UserFav = z.infer<typeof UserFavSchema>

@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useCallback, useEffect } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useSelector } from 'react-redux'
-import { userInputCreateSchema, userInputUpdateSchema } from '../../../schemas/users.schema'
+import { userInputCreateSchema, userInputUpdateSchema, type UserInputUpdate } from '../../../schemas/users.schema'
 import { userService } from '../../../services/userService'
 import type { RootState } from '../../../store/store'
 import UserForm from '../../forms/admin/UserForm'
@@ -13,44 +13,39 @@ type Props = {
   onOpenChange: () => void
 }
 
+type FormValues = UserInputUpdate
+
 const UserModal = ({ isOpen, onOpenChange }: Props) => {
-  const isEditing = useSelector((state: RootState) => state.users.isEditing)
+  const isEditing = useSelector((state: RootState) => state.ui.isEditing)
   const selectedUser = useSelector((state: RootState) => state.users.selectedUser)
 
-  const buildFormValues = useCallback(async () => {
-    // sku estable por sesión de modal (nuevo). Si no existe, genera uno.
-
-    let defaultValues
-
+  const buildFormValues = useCallback(async (): Promise<Partial<FormValues>> => {
     if (isEditing) {
-      // Modo edición
-      defaultValues = {
-        role: selectedUser?.role ?? 'staff',
-        user_name: selectedUser?.user_name ?? '',
-        email: selectedUser?.email ?? '',
-        password: '',
-        full_name: selectedUser?.full_name ?? undefined,
-        phone: selectedUser?.phone ?? undefined,
-        is_active: selectedUser?.is_active ?? true
-      }
-    } else {
-      // Modo creación
-      defaultValues = {
-        role: 'staff',
-        user_name: '',
-        email: '',
-        password: '',
-        full_name: '',
-        phone: '',
-        is_active: true
+      if (!selectedUser) return {}
+      return {
+        role: selectedUser.role,
+        user_name: selectedUser.user_name,
+        email: selectedUser.email,
+        password: undefined, // ✅
+        full_name: selectedUser.full_name,
+        phone: selectedUser.phone,
+        is_active: selectedUser.is_active
       }
     }
 
-    return defaultValues
+    return {
+      role: 'staff',
+      user_name: '',
+      email: '',
+      password: '',
+      full_name: '',
+      phone: '',
+      is_active: true
+    }
   }, [isEditing, selectedUser])
 
-  const userForm = useForm({
-    resolver: zodResolver(isEditing ? userInputUpdateSchema : userInputCreateSchema),
+  const userForm = useForm<FormValues>({
+    resolver: zodResolver(userInputUpdateSchema),
     shouldUnregister: true,
     mode: 'all',
     reValidateMode: 'onChange'
@@ -64,12 +59,14 @@ const UserModal = ({ isOpen, onOpenChange }: Props) => {
     const isValid = await userForm.trigger()
     if (!isValid) return
 
-    const payload = userForm.getValues()
-    let transaction
+    const raw = userForm.getValues()
 
+    let transaction
     if (isEditing && selectedUser) {
+      const payload = userInputUpdateSchema.parse(raw)
       transaction = await userService.updateUser(selectedUser.id, payload)
     } else {
+      const payload = userInputCreateSchema.parse(raw)
       transaction = await userService.createUser(payload)
     }
 
@@ -92,13 +89,11 @@ const UserModal = ({ isOpen, onOpenChange }: Props) => {
     onOpenChange()
   }
 
-  // Manejo de apertura/cierre del modal
   useEffect(() => {
     const setDefaults = async () => {
       const defaults = await buildFormValues()
       userForm.reset(defaults, { keepDirty: false, keepErrors: false })
     }
-
     void setDefaults()
   }, [isOpen, isEditing, selectedUser, buildFormValues, userForm])
 
@@ -120,7 +115,6 @@ const UserModal = ({ isOpen, onOpenChange }: Props) => {
             <ModalHeader className='flex flex-col gap-1'>{isEditing ? 'Editar' : 'Agregar'} usuario</ModalHeader>
 
             <ModalBody>
-              {/* Si estás en edición pero aún no hay selectedUser, evita renderizar el form con valores en blanco */}
               {isEditing && !selectedUser ? (
                 <div className='py-6 text-center text-sm text-gray-500'>Cargando datos del usuario…</div>
               ) : (
