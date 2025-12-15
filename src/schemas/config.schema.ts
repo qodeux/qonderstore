@@ -10,13 +10,13 @@ export const paymentMethodSchema = z.object({
 export type PaymentMethod = z.infer<typeof paymentMethodSchema>
 
 export const FAQSchema = z.object({
+  id: z.number(),
   question: z.string(),
   answer: z.string(),
   is_active: z.boolean(),
   order: z.number(),
   type: z.string
 })
-
 export type FAQ = z.infer<typeof FAQSchema>
 
 export const ContactValueSchema = z.object({
