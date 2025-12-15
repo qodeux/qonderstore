@@ -62,7 +62,7 @@ const AdminFAQ = () => {
     return applyToolbarFilters(rows, ['question'], criteria)
   }, [rows, criteria])
 
-  const handleAddMethod = () => {}
+  const handleAddQuestion = () => {}
 
   const handleToggle = (row: Row, v: boolean) => {
     console.log('Cambiar state:', row, v)
@@ -88,7 +88,7 @@ const AdminFAQ = () => {
                 //: { card: 'Tarjeta', bank_transfer: 'Transferencia bancaria' }
               }
             ]}
-            buttons={[{ label: 'Agregar pregunta', onPress: handleAddMethod, color: 'primary' }]}
+            buttons={[{ label: 'Agregar pregunta', onPress: handleAddQuestion, color: 'primary' }]}
             onCriteriaChange={setCriteria}
           />
         </section>
