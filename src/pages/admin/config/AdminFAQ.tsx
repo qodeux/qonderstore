@@ -10,17 +10,21 @@ import {
   TableCell,
   TableColumn,
   TableHeader,
-  TableRow
+  TableRow,
+  useDisclosure
 } from '@heroui/react'
 import { EllipsisVertical, GripVertical } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useDispatch } from 'react-redux'
 import type { ColumnDef } from '../../../components/common/DataTable'
 import { ToolbarTable, type ToolbarCriteria } from '../../../components/common/ToolbarTable'
+import AdminFAQModal from '../../../components/modals/admin/AdminFAQModal'
+import { setEditMode } from '../../../store/slices/uiSlice'
 import { useAppSelector } from '../../../store/store'
 import { applyToolbarFilters } from '../../../utils/toolbarFilters'
 
 const AdminFAQ = () => {
-  // const dispatch = useDispatch()
+  const dispatch = useDispatch()
   // const { selectedFAQ } = useAppSelector((state) => state.config)
 
   type Row = {
@@ -62,7 +66,13 @@ const AdminFAQ = () => {
     return applyToolbarFilters(rows, ['question'], criteria)
   }, [rows, criteria])
 
-  const handleAddQuestion = () => {}
+  const { isOpen: isOpenAdminFAQ, onOpenChange: onOpenChangeAdminFAQ } = useDisclosure()
+
+  const handleAddQuestion = () => {
+    dispatch(setEditMode(false))
+    onOpenChangeAdminFAQ()
+    console.log('Agregar pregunta frecuente')
+  }
 
   const handleToggle = (row: Row, v: boolean) => {
     console.log('Cambiar state:', row, v)
@@ -177,6 +187,7 @@ const AdminFAQ = () => {
             </TableBody>
           </Table>
         </section>
+        <AdminFAQModal isOpen={isOpenAdminFAQ} onOpenChange={onOpenChangeAdminFAQ} />
       </section>
     </>
   )
