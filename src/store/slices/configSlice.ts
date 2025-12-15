@@ -26,7 +26,7 @@ const configSlice = createSlice({
       state.paymentMethods = action.payload
         .filter((item) => item.module === 'payment_methods')
         .map((item) => ({ id: item.id, ...item.data }) as PaymentMethod)
-      state.faq = action.payload.filter((item) => item.module === 'faq').map((item) => item.data as FAQ)
+      state.faq = action.payload.filter((item) => item.module === 'faq').map((item) => ({ id: item.id, ...item.data }) as FAQ)
       state.contact_data = action.payload.filter((item) => item.module === 'contact_data').map((item) => item.data as ContactValue)
     },
     setEditMode(state, action: PayloadAction<boolean>) {

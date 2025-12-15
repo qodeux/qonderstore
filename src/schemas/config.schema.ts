@@ -15,7 +15,7 @@ export const FAQSchema = z.object({
   answer: z.string(),
   is_active: z.boolean(),
   order: z.number(),
-  type: z.string
+  type: z.string()
 })
 export type FAQ = z.infer<typeof FAQSchema>
 
