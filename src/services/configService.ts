@@ -1,6 +1,6 @@
 import { addToast } from '@heroui/react'
 import supabase from '../lib/supabase'
-import type { InputPaymentMethod } from '../schemas/config.schema'
+import type { InputFAQ, InputPaymentMethod } from '../schemas/config.schema'
 
 export const configService = {
   createPaymentMethod: async (paymentMethodData: InputPaymentMethod) => {
@@ -67,6 +67,56 @@ export const configService = {
 
     if (error) {
       console.error('Error updating payment method:', error)
+      return
+    }
+    return data
+  },
+  createAdminFAQ: async (adminFAQData: InputFAQ) => {
+    try {
+      const { data, error } = await supabase
+        .from('config')
+        .insert([
+          {
+            module: 'faq',
+            data: adminFAQData
+          }
+        ])
+        .select()
+        .single()
+
+      if (error) {
+        throw error
+      }
+      return data
+    } catch (error) {
+      console.error('Error inserting faq:', error)
+      //return null
+    }
+  },
+  updateAdminFAQ: async (payload: InputFAQ) => {
+    if (!payload.id) {
+      console.error('El id de la pregunta es obligatorio para actualizar')
+      return
+    }
+
+    const omit = <T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> => {
+      return Object.fromEntries(Object.entries(obj).filter(([k]) => !keys.includes(k as K))) as Omit<T, K>
+    }
+
+    const faqData = omit(payload, ['id'])
+
+    const { data, error } = await supabase
+      .from('config')
+      .update({
+        data: faqData,
+        last_update: new Date().toISOString()
+      })
+      .eq('id', payload.id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating faq', error)
       return
     }
     return data

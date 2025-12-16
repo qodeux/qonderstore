@@ -47,13 +47,17 @@ const AdminFAQForm = () => {
         render={({ field, fieldState }) => (
           <Input
             label='Orden'
-            type=''
+            type='number'
             size='sm'
             variant='bordered'
-            maxLength={1}
+            value={field.value ?? ''} // si es undefined, muestra vacío
+            onValueChange={(v) => {
+              // guarda string vacío (para permitir borrar)
+              // o número cuando haya valor
+              field.onChange(v === '' ? '' : Number(v))
+            }}
             isInvalid={!!fieldState.error}
             errorMessage={fieldState.error?.message as string}
-            {...field}
             classNames={{ inputWrapper: 'bg-white' }}
           />
         )}
@@ -64,10 +68,10 @@ const AdminFAQForm = () => {
         render={({ field, fieldState }) => (
           <Input
             label='Tipo'
-            type=''
+            type='text'
             size='sm'
             variant='bordered'
-            maxLength={1}
+            maxLength={20}
             isInvalid={!!fieldState.error}
             errorMessage={fieldState.error?.message as string}
             {...field}

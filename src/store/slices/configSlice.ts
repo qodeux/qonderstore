@@ -8,6 +8,7 @@ export type ConfigState = {
   isEditing: boolean
   selectedPaymentMethod?: PaymentMethod | null
   config: PaymentMethod[]
+  selectedFAQ?: FAQ | null
 }
 
 const initialState: ConfigState = {
@@ -34,10 +35,13 @@ const configSlice = createSlice({
     },
     setSelectedPaymentMethod(state, action: PayloadAction<number | null>) {
       state.selectedPaymentMethod = state.paymentMethods?.find((pm) => pm.id === action.payload) || null
+    },
+    setSelectedFAQ(state, action: PayloadAction<number | null>) {
+      state.selectedFAQ = state.faq?.find((pm) => pm.id === action.payload) || null
     }
   }
 })
 
-export const { setConfig, setSelectedPaymentMethod } = configSlice.actions
+export const { setConfig, setSelectedPaymentMethod, setSelectedFAQ } = configSlice.actions
 
 export default configSlice.reducer

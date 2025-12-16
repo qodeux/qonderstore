@@ -149,7 +149,7 @@ const AdminFAQ = () => {
                     <TableCell>
                       <div className='text-xs text-gray-600 space-y-1'>
                         <p>
-                          <span className='font-semibold'>{type}</span>
+                          <span className='font'>{type}</span>
                         </p>
                       </div>
                     </TableCell>

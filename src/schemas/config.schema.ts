@@ -14,7 +14,7 @@ export const FAQSchema = z.object({
   question: z.string(),
   answer: z.string(),
   is_active: z.boolean(),
-  order: z.number(),
+  order: z.number().optional(),
   type: z.string()
 })
 export type FAQ = z.infer<typeof FAQSchema>
@@ -45,3 +45,16 @@ export const inputPaymentMethodSchema = z.object({
   holder_name: z.string()
 })
 export type InputPaymentMethod = z.infer<typeof inputPaymentMethodSchema>
+
+export const inputFAQSchema = z.object({
+  id: z.number(),
+  question: z.string(),
+  answer: z.string(),
+  is_active: z.boolean(),
+  order: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? undefined : Number(v)),
+    z.number().int().min(1, 'Orden debe ser >= 1').optional()
+  ),
+  type: z.string()
+})
+export type InputFAQ = z.infer<typeof inputFAQSchema>
