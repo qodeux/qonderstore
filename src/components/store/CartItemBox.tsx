@@ -2,8 +2,9 @@ import { Button } from '@heroui/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Trash } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { useDispatch } from 'react-redux'
-import { clearError, removeItem, updateQuantity, updateUnit, type CartItem } from '../../store/slices/cartSlice'
+import { clearError, removeItem, type CartItem } from '../../store/slices/cartSlice'
+import { useAppDispatch } from '../../store/store'
+import { repriceCartLine } from '../../store/thunks/cartThunks'
 import { bulkUnitsAvailable, type BulkUnit } from '../../types/products'
 import { all_units } from '../../types/storeOrders'
 import { formatMoney } from '../../utils/money'
@@ -32,21 +33,22 @@ const getBulkUnitFactorInGrams = (unitKey: BulkUnit | null): number => {
 }
 
 const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
 
   // ========= CÁLCULOS DE PRECIO / DESCUENTO / SUBTOTAL =========
   const quantity = item.quantity ?? 0
 
-  const hasPromoTotals = typeof item.subtotalBase === 'number' && typeof item.finalSubtotal === 'number' && quantity > 0
+  const unitRetailPrice = item.basePrice ?? item.price // referencia (normal)
+  const unitFinalPrice = item.price // lo que se cobra
 
-  // Precio unitario a mostrar (base sin promo)
-  const unitBasePrice = hasPromoTotals ? (item.subtotalBase ?? 0) / quantity : (item.basePrice ?? item.price)
+  const unitDiscount = Math.max(0, unitRetailPrice - unitFinalPrice)
+  const lineDiscount = unitDiscount * quantity
 
-  // Descuento total de la línea
-  const lineDiscount = hasPromoTotals ? (item.totalDiscount ?? 0) : (item.discount ?? 0) * quantity
+  const lineSubtotal = unitFinalPrice * quantity
 
-  // Subtotal final de la línea (ya con descuento)
-  const lineSubtotal = hasPromoTotals ? item.finalSubtotal : unitBasePrice * quantity - lineDiscount
+  const discountPercent = unitRetailPrice > 0 ? Math.round((unitDiscount / unitRetailPrice) * 100) : 0
+
+  const sourceLabel = item.pricingSource === 'wholesale' ? 'Mayoreo' : item.pricingSource === 'promo' ? 'Promo' : null
 
   // error local para cosas como "Cantidad máxima alcanzada"
   const [localError, setLocalError] = useState<string | null>(null)
@@ -59,17 +61,25 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
       })
     )
 
-  const handleChangeQty = (q: number) =>
+  const handleChangeQty = (q: number) => {
     dispatch(
-      updateQuantity({
+      repriceCartLine({
         id: item.id,
-        unitSelected: item.unitSelected ?? item.base_unit, // importantísimo
-        quantity: q
+        prevUnitSelected: item.unitSelected ?? item.base_unit ?? null,
+        nextUnit: (item.unitSelected ?? item.base_unit ?? '') as string,
+        nextQuantity: q
       })
     )
+  }
 
   const handleChangeUnit = (u: string) => {
-    dispatch(updateUnit({ id: item.id, unit: u, unitsMap: item.units }))
+    dispatch(
+      repriceCartLine({
+        id: item.id,
+        prevUnitSelected: item.unitSelected ?? item.base_unit ?? null,
+        nextUnit: u
+      })
+    )
   }
 
   const scrollToBottom = useCallback(() => {
@@ -137,12 +147,18 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
                   : all_units.find((u) => u.key === item.unitSelected)?.plural || ''}
               </p>
             )}
-            {/* 👇 ahora mostramos el precio base unitario */}
-            <p>Precio: {formatMoney(unitBasePrice)}</p>
 
-            {lineDiscount > 0 && <div className='text-green-600'>Descuento: -{formatMoney(lineDiscount)}</div>}
+            <p>Precio: {formatMoney(unitFinalPrice)}</p>
 
-            <p className='text-lg '>Subtotal: {formatMoney(lineSubtotal ?? 0)}</p>
+            {lineDiscount > 0 && (
+              <div className='text-green-600'>
+                Descuento: -{formatMoney(lineDiscount)}
+                {/* {discountPercent > 0 ? `(${discountPercent}%)` : ''}
+                {sourceLabel ? ` • ${sourceLabel}` : ''} */}
+              </div>
+            )}
+
+            <p className='text-lg'>Subtotal: {formatMoney(lineSubtotal ?? 0)}</p>
           </div>
         </section>
       </div>

@@ -2,31 +2,34 @@ import { Button, Input } from '@heroui/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { CircleCheck, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
-import { selectCartWithPromos } from '../../store/selectors/productsWithPromo'
-import { clearCart, type CartItem } from '../../store/slices/cartSlice'
+
+import { clearCart, selectCartItems, selectCartTotals, type CartItem } from '../../store/slices/cartSlice'
 import { setCartOpen } from '../../store/slices/uiSlice'
-import { useAppSelector } from '../../store/store'
+import { useAppDispatch, useAppSelector } from '../../store/store'
+import { repriceCartLine } from '../../store/thunks/cartThunks'
 import { formatMoney } from '../../utils/money'
 import CartItemBox from './CartItemBox'
 
 type Props = { isOpen: boolean }
 
 const CartSidebar = ({ isOpen }: Props) => {
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
 
   const { user } = useAppSelector((state) => state.auth)
 
-  // 👉 Aquí ya vienen líneas + totales con promos aplicadas
-  const { lines: cartItems, cartTotal } = useSelector(selectCartWithPromos)
+  // Usamos el carrito “real” (usando el repricing por reglas exclusivas)
+  const cartItems = useAppSelector(selectCartItems)
+  const { totalPrice: cartTotal } = useAppSelector(selectCartTotals)
+
+  // (Opcional) para refrescar cuando llegan cambios por realtime en productos/promos
+  const productsLen = useAppSelector((s) => s.products.items.length)
+  const promosLen = useAppSelector((s) => s.promotions.items.length)
 
   const [showApplyCoupon, setShowApplyCoupon] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
   const prevCount = useRef(0)
-
-  // const cartHasDiscount = cartDiscount > 0
 
   const toggleApplyCoupon = () => setShowApplyCoupon((v) => !v)
 
@@ -49,6 +52,28 @@ const CartSidebar = ({ isOpen }: Props) => {
     navigate('/tienda/checkout')
   }
 
+  // Firma estable (NO incluye price para evitar loops)
+  const cartSig = cartItems.map((it) => `${it.id}:${it.unitSelected ?? it.base_unit ?? ''}:${it.quantity ?? 0}`).join('|')
+
+  // Reprice masivo al abrir, al cambiar qty/unit, o al cambiar productos/promos
+  useEffect(() => {
+    if (!isOpen) return
+    if (cartItems.length === 0) return
+
+    for (const it of cartItems) {
+      const unitKey = (it.unitSelected ?? it.base_unit ?? '') as string
+      dispatch(
+        repriceCartLine({
+          id: it.id,
+          prevUnitSelected: it.unitSelected ?? it.base_unit ?? null,
+          nextUnit: unitKey,
+          nextQuantity: it.quantity ?? 1
+        })
+      )
+    }
+  }, [isOpen, cartSig, productsLen, promosLen, dispatch])
+
+  // scroll al agregar items
   useEffect(() => {
     if (!isOpen) return
     if (cartItems.length > prevCount.current) {
@@ -98,8 +123,7 @@ const CartSidebar = ({ isOpen }: Props) => {
 
           {cartItems.map((item: CartItem, index: number) => (
             <div key={`${item.id}-${item.unitSelected ?? item.base_unit}-${index}`}>
-              {/* item ya trae subtotalBase, finalSubtotal, totalDiscount, etc. */}
-              <CartItemBox item={item} isLast={index === cartItems.length - 1} listRef={listRef} />
+              <CartItemBox item={item as any} isLast={index === cartItems.length - 1} listRef={listRef} />
             </div>
           ))}
         </section>

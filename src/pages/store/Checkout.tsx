@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import type { Key } from '@react-types/shared'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, FormProvider, useForm } from 'react-hook-form'
 import { NumericFormat, PatternFormat } from 'react-number-format'
 import { useDispatch, useSelector } from 'react-redux'
@@ -13,7 +13,6 @@ import CartItemBox from '../../components/store/CartItemBox'
 import { useDeviceScreen } from '../../hooks/useDeviceScreen'
 import { checkoutSchema, type CheckoutFormInput } from '../../schemas/checkout.schema'
 import { storeOrderService } from '../../services/storeOrderService'
-import { selectCartWithPromos } from '../../store/selectors/productsWithPromo'
 import { clearCart } from '../../store/slices/cartSlice'
 import type { RootState } from '../../store/store'
 import { deliveryRoutesMap } from '../../types/storeOrders'
@@ -22,8 +21,11 @@ import { formatMoney } from '../../utils/money'
 const Checkout = () => {
   const { user } = useSelector((state: RootState) => state.auth)
 
-  // carrito con promos aplicadas
-  const { lines: cartItems, cartTotal } = useSelector(selectCartWithPromos)
+  const cartItems = useSelector((s: RootState) => s.cart.items)
+  const cartTotal = useMemo(() => {
+    return cartItems.reduce((sum, it) => sum + (Number(it.price) || 0) * (Number(it.quantity) || 0), 0)
+  }, [cartItems])
+
   const [shippingPrice, setShippingPrice] = useState(null as number | null)
   const [hasMarker, setHasMarker] = useState(false)
 
