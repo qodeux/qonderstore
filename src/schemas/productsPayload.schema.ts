@@ -61,7 +61,8 @@ const bulkDetailsForPayloadSchema = productBulkInputSchema.and(z.object({ type: 
   base_unit_price: toNumOrNull(b.base_unit_price),
   min_sale: toNumOrNull(b.min_sale),
   max_sale: toNumOrNull(b.max_sale),
-  units: b.units && typeof b.units === 'object' ? b.units : {}
+  units: b.units && typeof b.units === 'object' ? b.units : {},
+  wholesale_prices: b.wholesale_prices // Array<{min,price}> | null (ya transformado por el schema)
 }))
 
 // ---------- union (NO discriminatedUnion por ser Effects) ----------

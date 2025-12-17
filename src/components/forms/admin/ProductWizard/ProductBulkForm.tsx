@@ -1,9 +1,13 @@
-import { Checkbox, CheckboxGroup, Input, NumberInput, Select, SelectItem, Switch, type Selection } from '@heroui/react'
-import { useEffect, useRef } from 'react'
-import { Controller, useFormContext } from 'react-hook-form'
+import { Checkbox, CheckboxGroup, Input, NumberInput, Select, SelectItem, Switch, Tab, Tabs, type Selection } from '@heroui/react'
+import { useEffect, useMemo, useRef } from 'react'
+import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { NumericFormat } from 'react-number-format'
 import { bulkUnitsAvailable } from '../../../../types/products'
+import WholesaleTab from './WholesaleTab'
 
+/** ======================
+ *  Main Component
+ *  ====================== */
 const ProductBulkForm = () => {
   const {
     control,
@@ -22,7 +26,7 @@ const ProductBulkForm = () => {
   const baseUnit = watch('base_unit') as string | undefined
 
   // Objetos para el Select
-  const selectedUnits = bulkUnitsAvailable.filter((u) => selectedKeys.includes(u.key))
+  const selectedUnits = useMemo(() => bulkUnitsAvailable.filter((u) => selectedKeys.includes(u.key)), [selectedKeys])
 
   const publicPrice = watch('base_unit_price') as number | undefined
 
@@ -64,6 +68,31 @@ const ProductBulkForm = () => {
     return money(pricePerGram * gTo).toFixed(0)
   }
 
+  /** ---------------------------------------------
+   *  Tabs de mayoreo dinámicas desde RHF (NO state)
+   *  --------------------------------------------- */
+  const wholesaleFlagNames = useMemo(
+    () => selectedUnits.filter((u) => u.key !== baseUnit).map((u) => `units.${u.key}.wholeSale` as const),
+    [selectedUnits, baseUnit]
+  )
+
+  const wholesaleFlags = useWatch({
+    control,
+    name: wholesaleFlagNames
+  })
+
+  const wholesalePricesObj = useWatch({ control, name: 'wholesale_prices' }) as Record<string, any[]> | undefined
+
+  const wholesaleAvailableUnits = useMemo(() => {
+    const keys = selectedUnits.filter((u) => u.key !== baseUnit).map((u) => u.key)
+
+    return keys.filter((k, i) => {
+      const bySwitch = !!wholesaleFlags?.[i]
+      const byRows = Array.isArray(wholesalePricesObj?.[k]) && wholesalePricesObj![k].length > 0
+      return bySwitch || byRows
+    })
+  }, [selectedUnits, baseUnit, wholesaleFlags, wholesalePricesObj])
+
   // Recalcula precios cuando cambia la base o el precio base o el set de unidades
   useEffect(() => {
     if (!baseUnit || publicPrice == null) return
@@ -89,6 +118,33 @@ const ProductBulkForm = () => {
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseUnit, publicPrice, selectedKeys.join(',')])
+
+  useEffect(() => {
+    if (!selectedUnits.length) return
+
+    selectedUnits
+      .filter((u) => u.key !== baseUnit)
+      .forEach((u) => {
+        const rows = wholesalePricesObj?.[u.key]
+        const hasRows = Array.isArray(rows) && rows.length > 0
+
+        const path = `units.${u.key}.wholeSale` as const
+        const current = watch(path) as boolean | undefined
+
+        // Si hay filas y el switch está apagado → prenderlo
+        if (hasRows && !current) {
+          setValue(path, true, { shouldDirty: false, shouldTouch: false, shouldValidate: false })
+          return
+        }
+
+        // Si NO hay filas y el switch está prendido → apagarlo
+        if (!hasRows && current) {
+          setValue(path, false, { shouldDirty: false, shouldTouch: false, shouldValidate: false })
+        }
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedKeys.join(','), baseUnit, wholesalePricesObj])
+
   return (
     <form className='space-y-2'>
       <Controller
@@ -113,29 +169,24 @@ const ProductBulkForm = () => {
 
               // ---- SYNC de units con la selección ----
               const selected = new Set(next)
-              const expectedKeys = [...selected].filter((u) => u !== getValues('base_unit')) // solo no-base
               const units = getValues('units') ?? {}
 
               // 1) Quitar unidades que ya NO están seleccionadas
               const removed = prev.filter((u) => !selected.has(u))
               removed.forEach((k) => {
-                // Solo si existía en units.* (y no es la base)
+                // Limpia units.* (si existía)
                 if (units[k]) {
                   unregister(`units.${k}`)
                   clearErrors([`units.${k}`, 'units'])
-                  // Borra del objeto units para evitar basura
                   const nextUnits = { ...(getValues('units') ?? {}) }
                   delete nextUnits[k]
                   setValue('units', nextUnits, { shouldDirty: true, shouldValidate: false })
                 }
-              })
 
-              // 2) Si ahora solo queda la base seleccionada, deja units vacío
-              if (expectedKeys.length === 0) {
-                setValue('units', {}, { shouldDirty: true, shouldValidate: false })
-                clearErrors('units')
-                return
-              }
+                // Limpia también precios mayoreo por unidad
+                unregister(`wholesale_prices.${k}`)
+                clearErrors(`wholesale_prices.${k}`)
+              })
             }}
             isInvalid={!!errors.bulk_units_available}
             errorMessage={errors.bulk_units_available?.message as string}
@@ -317,9 +368,10 @@ const ProductBulkForm = () => {
           />
         </div>
       </section>
+
       <div className='grid grid-cols-2 gap-2'>
-        <p className='text-sm text-danger pt-2'>{errors.min_sale?.type === 'custom' ? <>{errors.min_sale.message}</> : null}</p>
-        <p className='text-sm text-danger pt-2'>{errors.max_sale?.type === 'custom' ? <>{errors.max_sale.message}</> : null}</p>
+        <p className='text-sm text-danger pt-2'>{errors.min_sale?.type === 'custom' ? <>{(errors.min_sale as any).message}</> : null}</p>
+        <p className='text-sm text-danger pt-2'>{errors.max_sale?.type === 'custom' ? <>{(errors.max_sale as any).message}</> : null}</p>
       </div>
 
       {selectedUnits.length > 1 && publicPrice != null && baseUnit && (
@@ -333,9 +385,6 @@ const ProductBulkForm = () => {
                 <section key={unit.key} className='flex flex-col gap-2 p-2 border rounded border-foreground-200'>
                   <header className='flex flex-row gap-2 items-baseline'>
                     <p>{unit.label}</p>
-                    {/* <p className='text-xs'>
-                      ({publicPrice && baseUnit ? `$${money(publicPrice * ratioFrom(unit.key, baseUnit))} por ${unit.key}` : null})
-                    </p> */}
                     <p className='text-xs text-foreground-500'>
                       {(() => {
                         const unitPrice = watch(`units.${unit.key}.price`) as number | undefined
@@ -348,6 +397,7 @@ const ProductBulkForm = () => {
                       })()}
                     </p>
                   </header>
+
                   <div className='flex flex-row gap-2'>
                     {/* MARGEN / AJUSTE RELATIVO AL PRECIO BASE */}
                     <Controller
@@ -467,10 +517,64 @@ const ProductBulkForm = () => {
                       )}
                     />
                   </div>
+
+                  <footer>
+                    <Controller
+                      name={`units.${unit.key}.wholeSale`}
+                      control={control}
+                      defaultValue={false}
+                      render={({ field }) => (
+                        <Switch
+                          aria-label='Habilitar Mayoreo'
+                          size='sm'
+                          isSelected={field.value}
+                          onChange={(e) => {
+                            const checked = e.target.checked
+                            field.onChange(checked)
+
+                            const pricesPath = `wholesale_prices.${unit.key}` as const
+
+                            if (checked) {
+                              // si no hay filas, crea una por default
+                              const current = getValues(pricesPath)
+                              if (!Array.isArray(current) || current.length === 0) {
+                                setValue(pricesPath, [{ min: undefined, price: undefined }], { shouldDirty: true })
+                              }
+                            } else {
+                              // limpia por completo esa unidad
+                              unregister(pricesPath, { keepDirty: false, keepTouched: false, keepError: false })
+                              clearErrors(pricesPath)
+                            }
+                          }}
+                        >
+                          Habilitar mayoreo
+                        </Switch>
+                      )}
+                    />
+                  </footer>
                 </section>
               ))}
           </section>
         </>
+      )}
+
+      {wholesaleAvailableUnits.length > 0 && (
+        <section>
+          <p className='text-medium text-foreground-500'>Precios de Mayoreo</p>
+          <Tabs
+            aria-label='Dynamic tabs'
+            items={bulkUnitsAvailable.filter((u) => wholesaleAvailableUnits.includes(u.key))}
+            color='primary'
+            classNames={{ panel: ' p-0', base: '-m-1 mt-1' }}
+            hidden={wholesaleAvailableUnits.length > 1 ? false : true}
+          >
+            {(item) => (
+              <Tab key={`wholesale-${item.key}`} title={item.label}>
+                <WholesaleTab unitKey={item.key} />
+              </Tab>
+            )}
+          </Tabs>
+        </section>
       )}
     </form>
   )
