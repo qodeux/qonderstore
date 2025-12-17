@@ -147,7 +147,7 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
               </p>
             )}
 
-            <p>Precio: {formatMoney(unitRetailPrice)}</p>
+            <p>Precio: {readOnly ? formatMoney(unitRetailPrice * item.quantity) : formatMoney(unitRetailPrice)}</p>
 
             {lineDiscount > 0 && (
               <div className='text-green-600'>

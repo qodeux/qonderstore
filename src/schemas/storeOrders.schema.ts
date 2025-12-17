@@ -33,10 +33,13 @@ export const storeOrderSchema = z.object({
   items: z
     .object({
       id: z.number(),
+      image: z.string().optional(),
       price: z.number(),
+      title: z.string(),
       discount: z.number(),
       quantity: z.number(),
       saleType: z.enum(['unit', 'bulk']),
+      base_unit: z.string().nullable().optional(),
       unitSelected: z.string()
     })
     .array(),

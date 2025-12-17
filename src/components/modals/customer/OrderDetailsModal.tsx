@@ -4,9 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ImageUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { useSelector } from 'react-redux'
 import { storeOrderService } from '../../../services/storeOrderService'
-import { selectProductsWithBestPromo } from '../../../store/selectors/productsWithPromo'
 import { useAppSelector } from '../../../store/store'
 import {
   deliveryRoutesMap,
@@ -27,7 +25,6 @@ type Props = {
   onOpenChange: () => void
 }
 const OrderDetailsModal = ({ isOpen, onOpenChange }: Props) => {
-  const products = useSelector(selectProductsWithBestPromo)
   const { selectedOrder } = useAppSelector((state) => state.storeOrders)
 
   const orderStatus = storeOrder_status.find((status) => status.key === selectedOrder?.order_status)
@@ -39,14 +36,31 @@ const OrderDetailsModal = ({ isOpen, onOpenChange }: Props) => {
   const { isOpen: isPaymentUploadOpen, onOpenChange: onPaymentUploadOpenChange, onOpen: onPaymentUploadOpen } = useDisclosure()
 
   const cartItems = selectedOrder?.items
-    ? selectedOrder.items.map((item: OrderItem) => {
-        const product = products.find((p) => p.id === item.id)
+    ? selectedOrder.items.map((it: OrderItem) => {
+        const q = Number(it.quantity ?? 1)
+
+        // en la orden: price = total final línea, discount = total descuento línea
+        const finalLineSubtotal = Number(it.price ?? 0)
+        const lineDiscount = Number(it.discount ?? 0)
+        const baseLineSubtotal = finalLineSubtotal + lineDiscount
+
+        const unitFinal = q > 0 ? finalLineSubtotal / q : 0
+        const unitBase = q > 0 ? baseLineSubtotal / q : 0
+
         return {
-          ...item,
-          price: item.price,
-          title: product?.name ?? 'Producto no encontrado',
-          image: product?.main_image,
-          product
+          id: it.id,
+          quantity: q,
+          saleType: it.saleType,
+          unitSelected: it.unitSelected ?? it.base_unit ?? undefined,
+
+          // ✅ lo que CartItemBox necesita (unitarios)
+          price: unitFinal,
+          basePrice: unitBase,
+
+          // ✅ snapshot UI guardado en la orden
+          title: it.title ?? 'Producto',
+          image: it.image ?? undefined,
+          base_unit: it.base_unit ?? undefined
         }
       })
     : []
