@@ -86,9 +86,16 @@ export type SublocalityData = {
 
 export type OrderItem = {
   id: number
-  price: number
-  discount: number
   quantity: number
   saleType: SaleType
-  unitSelected: string
+  unitSelected?: string | null
+
+  // snapshot de precios
+  price: number // subtotal final línea
+  discount: number // descuento total línea
+
+  // snapshot UI (para no depender del catálogo)
+  title: string
+  image?: string | null
+  base_unit?: string | null
 }

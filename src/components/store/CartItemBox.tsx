@@ -46,9 +46,8 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
 
   const lineSubtotal = unitFinalPrice * quantity
 
-  const discountPercent = unitRetailPrice > 0 ? Math.round((unitDiscount / unitRetailPrice) * 100) : 0
-
-  const sourceLabel = item.pricingSource === 'wholesale' ? 'Mayoreo' : item.pricingSource === 'promo' ? 'Promo' : null
+  // const discountPercent = unitRetailPrice > 0 ? Math.round((unitDiscount / unitRetailPrice) * 100) : 0
+  // const sourceLabel = item.pricingSource === 'wholesale' ? 'Mayoreo' : item.pricingSource === 'promo' ? 'Promo' : null
 
   // error local para cosas como "Cantidad máxima alcanzada"
   const [localError, setLocalError] = useState<string | null>(null)
@@ -148,7 +147,7 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
               </p>
             )}
 
-            <p>Precio: {formatMoney(unitFinalPrice)}</p>
+            <p>Precio: {formatMoney(unitRetailPrice)}</p>
 
             {lineDiscount > 0 && (
               <div className='text-green-600'>

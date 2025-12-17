@@ -15,7 +15,7 @@ import { checkoutSchema, type CheckoutFormInput } from '../../schemas/checkout.s
 import { storeOrderService } from '../../services/storeOrderService'
 import { clearCart } from '../../store/slices/cartSlice'
 import type { RootState } from '../../store/store'
-import { deliveryRoutesMap } from '../../types/storeOrders'
+import { deliveryRoutesMap, type OrderItem } from '../../types/storeOrders'
 import { formatMoney } from '../../utils/money'
 
 const Checkout = () => {
@@ -144,20 +144,46 @@ const Checkout = () => {
 
   const handleCreateOrder = handleSubmit(
     async (data) => {
-      //console.log('Datos del pedido:', data)
-
       if (!user) return
 
       try {
+        const orderItems: OrderItem[] = cartItems.map((it) => {
+          const q = Number(it.quantity ?? 1)
+
+          // precios unitarios ya resueltos en el carrito
+          const unitFinal = Number(it.price ?? 0) // unitario final
+          const unitBase = Number(it.basePrice ?? unitFinal) // unitario original (retail)
+
+          // totales por línea (snapshot económico)
+          const finalSubtotal = unitFinal * q
+          const lineDiscount = Math.max(0, (unitBase - unitFinal) * q)
+
+          return {
+            id: it.id,
+            quantity: q,
+            saleType: it.saleType,
+
+            // bulk sí ocupa unidad; unit puede ir null
+            unitSelected: it.saleType === 'bulk' ? (it.unitSelected ?? it.base_unit ?? null) : null,
+
+            // snapshot de precios
+            price: finalSubtotal, // total final línea (ya con promo/mayoreo)
+            discount: lineDiscount, // descuento total línea
+
+            // snapshot UI (para OrderDetails sin catálogo)
+            title: it.title,
+            image: it.image ?? null,
+            base_unit: it.base_unit ?? null
+          }
+        })
+
         const orderTransmission = await storeOrderService.createOrder({
           orderData: data,
-          items: cartItems,
+          items: orderItems,
           cartTotals: {
             totalPrice: cartTotal,
             totalQuantity: cartItems.length,
-            //discount: cartDiscount, // suma de descuentos por promos
-            shippingPrice: watchShippingPrice ?? 0 // envío
-            //subtotal: cartSubtotal, // total productos sin promo (o base)
+            shippingPrice: watchShippingPrice ?? 0
           },
           metadata: {
             ip: await getIP(),
@@ -167,30 +193,21 @@ const Checkout = () => {
         })
 
         if (shippingPrice === null) {
-          //Agregamos a la base el costo de envío para futuras ocasiones
           await storeOrderService.addShippingPrice(data.postal_code, Number(data.sublocality), watchShippingPrice ?? 0)
         }
 
         if (orderTransmission.id) {
           dispatch(clearCart())
-          //Guardar orden en el storage para detalles
           sessionStorage.setItem('admin_selected_store_order', JSON.stringify(orderTransmission))
         }
 
-        if (user?.role === 'customer') {
-          navigate(`/tienda/checkout/confirmacion/${orderTransmission.id}`)
-        }
-
-        if (['admin', 'staff'].includes(user.role)) {
-          navigate(`/admin/orden/${orderTransmission.id}`)
-        }
+        if (user?.role === 'customer') navigate(`/tienda/checkout/confirmacion/${orderTransmission.id}`)
+        if (['admin', 'staff'].includes(user.role)) navigate(`/admin/orden/${orderTransmission.id}`)
       } catch (error) {
         console.log(error)
       }
     },
-    (errors) => {
-      console.log('Errores en el formulario:', errors)
-    }
+    (errors) => console.log('Errores en el formulario:', errors)
   )
 
   useEffect(() => {
