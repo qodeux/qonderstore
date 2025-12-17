@@ -2,6 +2,7 @@
 import { createSelector } from '@reduxjs/toolkit'
 import type { Product } from '../../schemas/products.schema'
 import type { Promotion } from '../../schemas/promotions.schema'
+import { pickBestPromotionForLine } from '../../utils/promotions'
 import type { CartItem } from '../slices/cartSlice'
 import type { RootState } from '../store'
 
@@ -94,130 +95,6 @@ const getCandidatePromotionsForProduct = (
   return [...prodPromos, ...catPromos, ...subPromos].filter((p) => promoAppliesToProduct(p, prod))
 }
 
-// -------------------- Evaluación de promo según cantidad --------------------
-export type PromotionLineResult = {
-  promo: Promotion
-  quantity: number
-  unitPrice: number
-  subtotal: number
-  totalDiscount: number
-  finalSubtotal: number
-  timesApplied: number
-  discountPercent: number
-}
-
-/**
- * Evalúa una promo para una línea (precio unitario + cantidad).
- * Devuelve null si la promo NO aplica (no se cumple condición, etc.).
- */
-export const evaluatePromotionForLine = (
-  promo: Promotion,
-  unitPrice: number,
-  quantity: number,
-  unitKey?: string | null // nueva: unidad actual de la línea
-): PromotionLineResult | null => {
-  const subtotal = unitPrice * quantity
-
-  if (quantity <= 0 || subtotal <= 0) return null
-  if (!promo.is_active) return null // seguridad extra
-
-  // 🔹 Filtro por unidad: si la promo tiene product_unit, solo aplica si coincide
-
-  if (promo.product_unit) {
-    if (unitKey && promo.product_unit !== unitKey) {
-      return null
-    }
-  }
-
-  // 1) Condiciones
-  const isConditioned = promo.is_conditioned
-  const conditionType = promo.condition_type
-  const conditionValue = promo.condition ?? 0
-
-  let timesApplied = 1
-
-  if (isConditioned && conditionType) {
-    if (conditionType === 'min_sale') {
-      if (quantity < conditionValue) return null
-      timesApplied = 1
-    }
-
-    if (conditionType === 'quantity') {
-      if (conditionValue <= 0) return null
-
-      if (promo.mode === 'percentage') {
-        if (quantity < conditionValue) return null
-        timesApplied = 1
-      } else {
-        timesApplied = Math.floor(quantity / conditionValue)
-        if (timesApplied <= 0) return null
-      }
-    }
-  }
-
-  // 2) Monto de descuento según mode
-  let totalDiscount = 0
-  let discountPercent = 0
-
-  if (promo.mode === 'free') {
-    totalDiscount = subtotal
-    discountPercent = 100
-  } else if (promo.mode === 'percentage') {
-    discountPercent = promo.mode_value
-    const per = promo.mode_value / 100
-    totalDiscount = subtotal * per
-  } else {
-    // 'fixed'
-    const base = promo.mode_value
-    totalDiscount = base * timesApplied
-    if (totalDiscount > subtotal) totalDiscount = subtotal
-    discountPercent = subtotal > 0 ? (totalDiscount / subtotal) * 100 : 0
-  }
-
-  const finalSubtotal = Math.max(0, subtotal - totalDiscount)
-
-  return {
-    promo,
-    quantity,
-    unitPrice,
-    subtotal,
-    totalDiscount,
-    finalSubtotal,
-    timesApplied,
-    discountPercent
-  }
-}
-
-/**
- * Escoge la mejor promo para una línea (precio unitario + cantidad)
- * según el mayor descuento total; 'free' gana siempre.
- */
-export const pickBestPromotionForLine = (
-  unitPrice: number,
-  quantity: number,
-  promos: Promotion[] | undefined,
-  unitKey?: string | null // nueva
-): PromotionLineResult | null => {
-  if (!promos || promos.length === 0) return null
-
-  const evaluated = promos
-    .map((p) => evaluatePromotionForLine(p, unitPrice, quantity, unitKey))
-    .filter((r): r is PromotionLineResult => r !== null)
-
-  if (evaluated.length === 0) return null
-
-  evaluated.sort((a, b) => {
-    const aIsFree = a.discountPercent >= 100
-    const bIsFree = b.discountPercent >= 100
-    if (aIsFree && !bIsFree) return -1
-    if (!aIsFree && bIsFree) return 1
-
-    return b.totalDiscount - a.totalDiscount || Number(a.promo.id) - Number(b.promo.id)
-  })
-
-  return evaluated[0]
-}
-
 // -------------------- Índices de promos activas --------------------
 const selectActivePromotions = createSelector([selectPromotions], (all) => all.filter((p) => isPromotionActive(p)))
 
@@ -288,6 +165,8 @@ export const selectProductsWithBestPromo = createSelector(
     })
   }
 )
+
+export const selectActiveProductsWithBestPromo = createSelector([selectProductsWithBestPromo], (list) => list.filter((p) => p.is_active))
 
 // -------------------- Derivados útiles (compat con lo que ya tenías) --------------------
 export const selectDiscountedProducts = createSelector([selectProductsWithBestPromo], (list) => list.filter((p) => p.hasPromotion))

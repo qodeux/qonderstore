@@ -17,6 +17,7 @@ export type CartItem = {
   units?: BulkUnits
   base_unit?: string
   unitSelected?: string
+  pricingSource?: 'retail' | 'promo' | 'wholesale'
 }
 
 type CartState = {
@@ -74,7 +75,8 @@ const loadInitialState = (): CartState => {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) throw new Error('no cart')
     const items: CartItem[] = JSON.parse(raw).map((item: CartItem) => ({
-      ...item
+      ...item,
+      pricingSource: item.pricingSource ?? 'retail'
     }))
     return computeTotals(items)
   } catch {
@@ -105,6 +107,7 @@ const cartSlice = createSlice({
       const incoming = { ...action.payload }
       // Normaliza unidad entrante
       incoming.unitSelected = incoming.unitSelected ?? incoming.base_unit
+      incoming.pricingSource = incoming.pricingSource ?? 'retail'
       const addQty = Math.max(1, incoming.quantity ?? 1)
 
       const idx = state.items.findIndex((item) => sameLine(item, incoming))
@@ -128,6 +131,7 @@ const cartSlice = createSlice({
         if (addQty > (stock ?? 0)) return
         state.items.push({
           ...incoming,
+          pricingSource: incoming.pricingSource,
           price: ceilPrice(incoming.price),
           basePrice: incoming.basePrice ?? incoming.price,
           unitSelected: incoming.unitSelected,
@@ -189,6 +193,14 @@ const cartSlice = createSlice({
       if (idx < 0) return
 
       const item = state.items[idx]
+
+      // IMPORTANTE: si esta línea es wholesale, NO recalcules aquí
+      // porque el precio depende de tiers por cantidad y unidad.
+      if (item.pricingSource === 'wholesale') {
+        item.error = 'Este producto usa precio de mayoreo; actualiza el precio desde la ficha del producto.'
+        return
+      }
+
       const source = unitsMap ?? item.units ?? {}
       const baseUnit = item.base_unit
 
@@ -233,6 +245,43 @@ const cartSlice = createSlice({
       saveState(state.items)
     },
 
+    applyLinePricing(
+      state,
+      action: PayloadAction<{
+        id: number
+        prevUnitSelected?: string | null
+        unitSelected: string
+        quantity: number
+        price: number
+        basePrice: number
+        pricingSource: 'retail' | 'promo' | 'wholesale'
+      }>
+    ) {
+      const { id, prevUnitSelected, unitSelected, quantity, price, basePrice, pricingSource } = action.payload
+
+      const idx = state.items.findIndex(
+        (it) => it.id === id && (it.unitSelected ?? it.base_unit ?? null) === (prevUnitSelected ?? it.base_unit ?? null)
+      )
+      if (idx < 0) return
+
+      const item = state.items[idx]
+      item.unitSelected = unitSelected
+      item.quantity = Math.max(1, quantity)
+      item.price = ceilPrice(price)
+      item.basePrice = ceilPrice(basePrice)
+      item.pricingSource = pricingSource
+      item.discount = 0
+      item.error = undefined
+
+      const updated = computeTotals(state.items)
+      state.items = updated.items
+      state.totalQuantity = updated.totalQuantity
+      state.totalPrice = updated.totalPrice
+      state.subtotal = updated.subtotal
+      state.totalDiscount = updated.totalDiscount
+      saveState(state.items)
+    },
+
     clearError(state, action: PayloadAction<{ id: number }>) {
       const item = state.items.find((item) => item.id === action.payload.id)
       if (item) item.error = undefined
@@ -260,7 +309,7 @@ const cartSlice = createSlice({
   }
 })
 
-export const { addItem, removeItem, updateQuantity, updateUnit, clearCart, setCart, clearError } = cartSlice.actions
+export const { addItem, removeItem, updateQuantity, updateUnit, clearCart, setCart, clearError, applyLinePricing } = cartSlice.actions
 
 export const selectCart = (state: { cart: CartState }) => state.cart
 export const selectCartItems = (state: { cart: CartState }) => state.cart.items
