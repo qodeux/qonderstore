@@ -4,28 +4,27 @@ import '@smastrom/react-rating/style.css'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronRight, HeartMinus, HeartPlus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { useParams } from 'react-router'
-import { SwiperSlide } from 'swiper/react'
 
 import ProductLightboxGallery from '../../components/common/light-box/ProductLightbox'
-import SwipperSlider from '../../components/common/swiper/SwipperSlider'
 import ViewRatingsModal from '../../components/modals/customer/ViewRatingsModal'
-import ProductItem from '../../components/store/ProductItem'
 import QuantitySelector from '../../components/store/QuantitySelector'
+import { RelatedProducts } from '../../components/store/RelatedProducts'
 import UnitSelector from '../../components/store/UnitSelector'
-import { useBestLinePromotion } from '../../hooks/useBestLinePromotion'
 import { userService } from '../../services/userService'
 import {
   makeSelectProductWithPromoBySlug,
   makeSelectPromotionsForProduct,
-  selectProductsWithBestPromo
+  selectActiveProductsWithBestPromo
 } from '../../store/selectors/productsWithPromo'
 import { addItem } from '../../store/slices/cartSlice'
 import { setCartOpen } from '../../store/slices/uiSlice'
-import type { RootState } from '../../store/store'
+import { useAppDispatch, type RootState } from '../../store/store'
+import { repriceCartLine } from '../../store/thunks/cartThunks'
 import { bulkUnitsAvailable, saleUnitsAvailable, type BulkUnit } from '../../types/products'
 import { formatMoney } from '../../utils/money'
+import { pickWholesaleUnitPrice, resolveBestDealExclusive } from '../../utils/pricing'
 
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRecord = Record<string, any>
@@ -33,13 +32,13 @@ type AnyRecord = Record<string, any>
 const Product = () => {
   const { slug } = useParams()
   const { user, favs } = useSelector((state: RootState) => state.auth)
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
 
   const categories = useSelector((state: RootState) => state.categories.items)
   const brands = useSelector((state: RootState) => state.products.brands)
   const selectBySlug = makeSelectProductWithPromoBySlug(slug ?? '')
   const product = useSelector(selectBySlug)
-  const products = useSelector(selectProductsWithBestPromo).filter((p) => p.is_active)
+  const products = useSelector(selectActiveProductsWithBestPromo)
 
   const cartItems = useSelector((s: RootState) => s.cart.items)
 
@@ -87,24 +86,39 @@ const Product = () => {
   // promos candidatas ya las tienes:
   const { promotions } = useSelector(makeSelectPromotionsForProduct(product?.id ?? 0))
 
-  // calculamos la mejor promo PARA ESTA CANTIDAD
-  const {
-    hasPromotion,
-    finalSubtotal,
-    totalDiscount,
-    discountPercent,
-    unitFinalPrice // precio unitario con promo
-  } = useBestLinePromotion({
-    unitPrice: unitOriginalPrice,
-    quantity,
-    promotions
-  })
+  const unitKey = unitSelected ?? product?.base_unit ?? null
 
-  // precio unitario mostrado (ya con descuento si aplica)
-  const unitPrice = unitFinalPrice
+  const wholesaleRows = useMemo(() => {
+    if (!product) return null
+    const wp: any = (product as any).wholesale_prices
+    if (!wp) return null
 
-  // total mostrado
-  const total = useMemo(() => (quantity > 0 ? finalSubtotal : unitPrice * quantity), [finalSubtotal, unitPrice, quantity])
+    return product.sale_type === 'bulk' ? (wp?.[unitKey as any] ?? null) : wp
+  }, [product, unitKey])
+
+  const wholesaleUnitPrice = useMemo(() => {
+    if (!wholesaleRows) return null
+    return pickWholesaleUnitPrice(wholesaleRows, quantity)
+  }, [wholesaleRows, quantity])
+
+  const best = useMemo(() => {
+    return resolveBestDealExclusive({
+      retailUnitPrice: unitOriginalPrice,
+      wholesaleUnitPrice,
+      quantity,
+      promotions,
+      unitKey
+    })
+  }, [unitOriginalPrice, wholesaleUnitPrice, quantity, promotions, unitKey])
+
+  const unitPrice = best.unitShownPrice
+  const total = best.finalSubtotal
+
+  const hasDiscount = best.finalSubtotal < unitOriginalPrice * quantity
+  const totalDiscount = unitOriginalPrice * quantity - best.finalSubtotal
+  const discountPercent = unitOriginalPrice > 0 ? Math.round((1 - best.unitShownPrice / unitOriginalPrice) * 100) : 0
+
+  const badgeLabel = best.source === 'wholesale' ? 'Mayoreo' : best.source === 'promo' ? 'Promo' : 'Precio normal'
 
   // ---------- HELPERS INVENTARIO (BULK) ----------
   // bulkUnitsAvailable:
@@ -245,10 +259,10 @@ const Product = () => {
       return
     }
 
-    const unitKey = unitSelected ?? product.base_unit
+    const unitKey = (unitSelected ?? product.base_unit ?? '') as string
 
-    //  precio BASE de la unidad seleccionada (sin descuento)
-    const unitBasePrice = unitOriginalPrice // ya lo tienes calculado arriba
+    // precio retail (referencia) de la unidad seleccionada
+    const unitBasePrice = unitOriginalPrice
 
     dispatch(
       addItem({
@@ -258,15 +272,26 @@ const Product = () => {
         saleType: product.sale_type,
         units: product.units,
         base_unit: product.base_unit,
-        unitSelected: unitKey ?? undefined,
+        unitSelected: unitKey,
 
-        // 💡 carrito siempre en base a precio sin promo
+        // se agrega en retail “plano” y luego lo repriciamos con reglas exclusivas
         basePrice: unitBasePrice,
         price: unitBasePrice,
         discount: 0,
+        pricingSource: 'retail',
 
         quantity,
         stock: Number(product.stock ?? Number.POSITIVE_INFINITY)
+      })
+    )
+
+    // 👇 aplica regla exclusiva (promo vs mayoreo) YA EN EL CARRITO
+    dispatch(
+      repriceCartLine({
+        id: product.id,
+        prevUnitSelected: unitKey,
+        nextUnit: unitKey,
+        nextQuantity: quantity
       })
     )
 
@@ -426,22 +451,30 @@ const Product = () => {
           <section className='md:flex justify-between space-y-4'>
             <div className='flex flex-col'>
               <div className='flex items-baseline gap-3'>
-                {/* precio unitario con promo (si la hay) */}
+                {/* Precio final (promo o mayoreo o retail) */}
                 <span className='text-3xl font-bold'>{formatMoney(unitPrice)}</span>
-                {/* precio original tachado si hay promo */}
-                {hasPromotion && <span className='text-lg line-through text-neutral-500'>{formatMoney(unitOriginalPrice)}</span>}
+
+                {/* Precio original tachado si hubo descuento */}
+                {best.source !== 'retail' && (
+                  <span className='text-lg line-through text-neutral-500'>{formatMoney(unitOriginalPrice)}</span>
+                )}
               </div>
-              {hasPromotion ? (
-                <div>
-                  Precio con descuento{' '}
-                  <Chip color='success' variant='flat' size='sm' className='font-medium'>
-                    <span>{discountPercent ? `-${discountPercent.toFixed(0)}%` : `-$${totalDiscount.toFixed(2)}`}</span>
+
+              {best.source !== 'retail' ? (
+                <div className='flex items-center gap-2'>
+                  <span>Precio con descuento</span>
+
+                  <Chip color={best.source === 'wholesale' ? 'primary' : 'success'} variant='flat' size='sm' className='font-medium'>
+                    {best.source === 'wholesale' ? 'Mayoreo' : 'Promo'}
                   </Chip>
+
+                  {discountPercent > 0 && <span className='text-sm text-success-600'>-{discountPercent}%</span>}
                 </div>
               ) : (
                 <span>Precio normal</span>
               )}
             </div>
+
             {quantity > 1 && (
               <div className='flex flex-col md:items-end'>
                 <span className='text-3xl font-bold'>{formatMoney(total)}</span>
@@ -537,20 +570,7 @@ const Product = () => {
       </section>
 
       {/* === RELACIONADOS === */}
-      <section className='my-8 container mx-auto px-8 w-full  max-w-screen'>
-        <header className='mb-4'>
-          <h3 className='text-2xl font-semibold'>Productos relacionados</h3>
-        </header>
-        <SwipperSlider showProgress showNavigation showPagination autoplay={10000}>
-          {relatedProducts
-            //.filter((p) => p.featured === true)
-            .map((item) => (
-              <SwiperSlide key={`related-${item.id}`}>
-                <ProductItem key={item.id} item={item} isRelated />
-              </SwiperSlide>
-            ))}
-        </SwipperSlider>
-      </section>
+      <RelatedProducts items={relatedProducts} />
 
       <ViewRatingsModal
         isOpen={ratingsModalOpen}

@@ -1,7 +1,7 @@
 import supabase from '../lib/supabase'
 import type { CheckoutFormInput } from '../schemas/checkout.schema'
 import type { ProductRating, StoreOrderRating } from '../schemas/storeOrders.schema'
-import type { CartItem } from '../store/slices/cartSlice'
+import type { OrderItem } from '../types/storeOrders'
 
 export type Metadata = {
   ip: string
@@ -10,7 +10,7 @@ export type Metadata = {
 
 export type CreateOrderParams = {
   orderData: CheckoutFormInput
-  items: CartItem[]
+  items: OrderItem[]
   metadata: Metadata
   userId?: string
   cartTotals?: {
@@ -46,41 +46,28 @@ export const storeOrderService = {
           : toYYYYMMDD(new Date(Date.now() + 24 * 60 * 60 * 1000)) // mañana en YYYY-MM-DD
     }
 
-    const mappedItems = items.map((item) => {
-      const quantity = item.quantity ?? 1
+    const mappedItems = items.map((item) => ({
+      id: item.id,
+      quantity: Number(item.quantity ?? 1),
+      saleType: item.saleType,
+      unitSelected: item.unitSelected ?? null,
 
-      // 1) Subtotal base sin promo
-      const subtotalBase = (item.basePrice ?? item.price) * quantity
+      price: Number(item.price ?? 0), // subtotal final línea
+      discount: Number(item.discount ?? 0), // descuento total línea
 
-      // 2) Descuento total de la línea
-      const lineDiscount = (item.discount ?? 0) * quantity
+      title: item.title,
+      image: item.image ?? null,
+      base_unit: item.base_unit ?? null
+    }))
 
-      // 3) Total final de la línea (con promo)
-      const finalSubtotal = Math.max(0, subtotalBase - lineDiscount)
-
-      const common = {
-        id: item.id,
-        quantity,
-        // esto es lo que se guarda en el JSON:
-        price: finalSubtotal, // total de la línea
-        discount: lineDiscount, // descuento total de la línea
-        saleType: item.saleType
-      }
-
-      return item.saleType === 'bulk'
-        ? {
-            ...common,
-            unitSelected: item.unitSelected ?? null
-          }
-        : common
-    })
+    const itemsTotal = mappedItems.reduce((sum, it) => sum + (it.price ?? 0), 0)
 
     const mappedCartTotals = cartTotals
       ? {
-          total_price: cartTotals.totalPrice,
-          total_items: items.length,
+          total_price: itemsTotal,
+          total_items: mappedItems.length,
           shipping_price: cartTotals.shippingPrice,
-          order_total: cartTotals.totalPrice + cartTotals.shippingPrice
+          order_total: itemsTotal + cartTotals.shippingPrice
         }
       : undefined
 

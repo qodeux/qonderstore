@@ -618,6 +618,8 @@ export function DataTable<T extends Record<string, any>>(p: Props<T>) {
           isHeaderSticky
           aria-label='Data table'
           rowHeight={40}
+          isVirtualized
+          maxTableHeight={maxHeight || adjustedMaxHeight}
           selectedKeys={selectedKeys}
           selectionMode={selectionMode}
           selectionBehavior={selectionBehavior}

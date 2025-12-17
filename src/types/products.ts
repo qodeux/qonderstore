@@ -52,6 +52,7 @@ export type DbBulkDetails = {
   stock: number | null
   min_sale: number | null
   max_sale: number | null
+  wholesale_prices: Record<string, { min: number; price: number; total_price: number }[]> | null
 }
 
 export type RawUnitEntry = {

@@ -65,7 +65,8 @@ export const useGetCombinedPayload = ({ productForm, unitForm, bulkForm, uploadI
               base_unit_price: toNumOrNull(bulk.base_unit_price),
               min_sale: toNumOrNull(bulk.min_sale),
               max_sale: toNumOrNull(bulk.max_sale),
-              units: bulk.units && typeof bulk.units === 'object' ? bulk.units : null
+              units: bulk.units && typeof bulk.units === 'object' ? bulk.units : null,
+              wholesale_prices: bulk.wholesale_prices // ya viene transformado como { [unitKey]: Array<{min,price}> }
             }
           })()
 

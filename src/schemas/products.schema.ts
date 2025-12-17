@@ -5,13 +5,16 @@ const emptyToUndefined = (v: unknown) => (typeof v === 'string' && v.trim() === 
 // Filas de mayoreo
 const WholesaleRowLoose = z.object({
   min: z.number().int().min(1, 'El mínimo debe ser mayor o igual a 1').optional(),
-  price: z.number().min(0, 'El precio no puede ser negativo').optional()
+  price: z.number().min(0, 'El precio no puede ser negativo').optional(),
+  total_price: z.number().min(0, 'El precio total no puede ser negativo').optional()
 })
 
 const WholesaleRowStrict = z.object({
   min: z.number().int().min(1, 'El mínimo debe ser mayor o igual a 1'),
   price: z.number().min(0, 'El precio no puede ser negativo')
 })
+
+const WholesalePricesByUnit = z.record(z.string(), z.array(WholesaleRowLoose).default([])).default({})
 
 export const productDataInputSchema = z
   .object({
@@ -184,7 +187,15 @@ export const productBulkInputSchema = z
     maxSaleSwitch: z.preprocess((v) => v ?? false, z.coerce.boolean()).catch(false),
     max_sale: optionalPosInt,
 
-    units: unitsSchema
+    units: unitsSchema,
+    wholesale_prices: z.preprocess((v) => {
+      if (typeof v !== 'string') return v
+      try {
+        return JSON.parse(v)
+      } catch {
+        return {} // si viene roto, lo deja vacío
+      }
+    }, WholesalePricesByUnit)
   })
   .superRefine((val, ctx) => {
     if (val.minSaleSwitch && (val.min_sale == null || Number.isNaN(val.min_sale))) {
@@ -232,6 +243,8 @@ export const productBulkInputSchema = z
       }
       return
     }
+
+    // 4) Validacion cuando hay precios de mayoreo
 
     // Hay ≥ 2 unidades seleccionadas -> exigir EXACTAMENTE las no base
     for (const k of expectedKeys) {

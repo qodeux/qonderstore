@@ -78,7 +78,8 @@ const bulkDefaults: ProductBulkInput = {
   minSaleSwitch: false,
   min_sale: undefined,
   maxSaleSwitch: false,
-  max_sale: undefined
+  max_sale: undefined,
+  wholesale_prices: {}
 }
 
 // ========================
@@ -255,7 +256,8 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
       minSaleSwitch,
       min_sale: min_sale_val,
       maxSaleSwitch,
-      max_sale: max_sale_val
+      max_sale: max_sale_val,
+      wholesale_prices: db.wholesale_prices ?? {}
     }
 
     return defaults
@@ -287,7 +289,7 @@ const ProductModal = ({ isOpen, onOpenChange }: Props) => {
     if (isEditing && selectedProduct) {
       try {
         details = await productService.fetchProductDetails(selectedProduct)
-        //console.log(details)
+        console.log(details)
       } catch (e) {
         console.warn('No se pudieron obtener los detalles del producto:', e)
       }

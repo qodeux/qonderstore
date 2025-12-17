@@ -2,7 +2,7 @@ import { Button, Card, Chip, Tooltip, useDisclosure } from '@heroui/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { CircleCheckBig, CircleDollarSign, CircleOff, Printer } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { useNavigate, useParams } from 'react-router'
 import { UAParser } from 'ua-parser-js'
 import AddressMap from '../../../components/common/AddressMap'
@@ -11,7 +11,6 @@ import PaymentUploadModal from '../../../components/modals/common/PaymentUploadM
 import OnConfirmModal from '../../../components/modals/common/onConfirmModal'
 import CartItemBox from '../../../components/store/CartItemBox'
 import { storeOrderService } from '../../../services/storeOrderService'
-import { selectProductsWithBestPromo } from '../../../store/selectors/productsWithPromo'
 import type { CartItem } from '../../../store/slices/cartSlice'
 import { setSelectedOrder } from '../../../store/slices/storeOrdersSlice'
 import { useAppSelector } from '../../../store/store'
@@ -37,7 +36,6 @@ const OrderDetails = () => {
   const selectedOrder = sessionStorage.getItem('admin_selected_store_order')
     ? JSON.parse(sessionStorage.getItem('admin_selected_store_order') || '{}')
     : storeOrders.find((order) => order.id === id)
-  const products = useSelector(selectProductsWithBestPromo)
 
   const { browser, cpu, device, os } = UAParser(selectedOrder?.user_agent || '')
 
@@ -50,54 +48,32 @@ const OrderDetails = () => {
 
   console.log(selectedOrder?.items)
 
-  const cartItems = selectedOrder?.items
-    ? selectedOrder.items.map((item: OrderItem) => {
-        const product = products.find((p) => p.id === item.id)
+  const cartItems =
+    selectedOrder?.items?.map((it: OrderItem) => {
+      const quantity = Number(it.quantity ?? 1)
 
-        const quantity = item.quantity ?? 1
+      const finalLineSubtotal = Number(it.price ?? 0)
+      const lineDiscount = Number(it.discount ?? 0)
 
-        // total FINAL que se cobró por la línea (con promo)
-        const finalSubtotal = item.price
+      const baseLineSubtotal = finalLineSubtotal + lineDiscount
 
-        // descuento TOTAL de la línea (viene del JSON)
-        const lineDiscount = item.discount ?? 0
+      const unitFinalPrice = quantity > 0 ? finalLineSubtotal / quantity : 0
+      const unitBasePrice = quantity > 0 ? baseLineSubtotal / quantity : 0
 
-        // subtotal base sin promo = final + descuento
-        const subtotalBase = finalSubtotal + lineDiscount
+      return {
+        id: it.id,
+        title: it.title ?? 'Producto',
+        image: it.image ?? null,
 
-        // precio unitario base (sin promo)
-        const unitBasePrice = quantity > 0 ? subtotalBase / quantity : subtotalBase
-
-        return {
-          // === campos mínimos que CartItemBox espera ===
-          id: item.id,
-          quantity,
-          price: unitBasePrice, // mostramos unitario base
-          basePrice: unitBasePrice,
-          discount: lineDiscount, // por si CartItemBox aún usa this.discount
-          stock: product?.stock ?? undefined,
-          saleType: product?.sale_type ?? item.saleType ?? 'unit',
-          units: product?.units,
-          base_unit: product?.base_unit,
-          unitSelected: item.unitSelected ?? product?.base_unit,
-
-          // === extras para la versión nueva de CartItemBox ===
-          subtotalBase, // sin promo
-          finalSubtotal, // con promo
-          totalDiscount: lineDiscount,
-          discountPercent: subtotalBase > 0 ? (lineDiscount / subtotalBase) * 100 : 0,
-
-          // === datos de UI ===
-          title: product?.name,
-          image: product?.main_image
-        } as CartItem & {
-          subtotalBase: number
-          finalSubtotal: number
-          totalDiscount: number
-          discountPercent: number
-        }
-      })
-    : []
+        quantity,
+        saleType: it.saleType,
+        unitSelected: it.unitSelected ?? it.base_unit ?? null,
+        price: unitFinalPrice, // unitario FINAL
+        basePrice: unitBasePrice, // unitario ORIGINAL
+        // (opcional, CartItemBox no lo necesita si ya tiene basePrice/price)
+        discount: lineDiscount
+      } as any
+    }) ?? []
 
   console.log('cartItemsUpdate', cartItems)
 

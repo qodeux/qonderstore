@@ -167,7 +167,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
                     `}
                     >
                       {item.icon}
-                      <span className='flex-1'>{item.label}</span>
+                      <span className='flex-1 text-left'>{item.label}</span>
                       <motion.div animate={{ rotate: expandedItem === item.label ? 450 : 0 }} transition={{ duration: 0.2 }}>
                         <ChevronRight className='w-4 h-4' />
                       </motion.div>
