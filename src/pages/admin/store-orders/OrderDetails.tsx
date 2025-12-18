@@ -1,7 +1,7 @@
 import { Button, Card, Chip, Tooltip, useDisclosure } from '@heroui/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { CircleCheckBig, CircleDollarSign, CircleOff, Printer } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { useNavigate, useParams } from 'react-router'
 import { UAParser } from 'ua-parser-js'
@@ -25,6 +25,7 @@ import {
 } from '../../../types/storeOrders'
 import { formatDate } from '../../../utils/date'
 import { formatMoney } from '../../../utils/money'
+import { smartPesosFromCents, toCents } from '../../../utils/pricing' // ✅
 
 const OrderDetails = () => {
   const navigate = useNavigate()
@@ -33,20 +34,18 @@ const OrderDetails = () => {
   const { user } = useAppSelector((state) => state.auth)
   const { id } = useParams<{ id: string }>()
   const { items: storeOrders } = useAppSelector((state) => state.storeOrders)
+
   const selectedOrder = sessionStorage.getItem('admin_selected_store_order')
     ? JSON.parse(sessionStorage.getItem('admin_selected_store_order') || '{}')
     : storeOrders.find((order) => order.id === id)
 
   const { browser, cpu, device, os } = UAParser(selectedOrder?.user_agent || '')
-
   const deviceLabel = device.type ? `${device.vendor ?? ''} ${device.model ?? ''} (${device.type})` : 'PC/Laptop'
 
   const [ipData, setIpData] = useState<IPGeolocation | null>(null)
   const [sublocalityData, setSublocalityData] = useState<SublocalityData | null>(null)
 
   const deliveryType = delivery_types.find((type) => type.key === selectedOrder?.delivery_type)
-
-  console.log(selectedOrder?.items)
 
   const cartItems =
     selectedOrder?.items?.map((it: OrderItem) => {
@@ -68,14 +67,11 @@ const OrderDetails = () => {
         quantity,
         saleType: it.saleType,
         unitSelected: it.unitSelected ?? it.base_unit ?? null,
-        price: unitFinalPrice, // unitario FINAL
-        basePrice: unitBasePrice, // unitario ORIGINAL
-        // (opcional, CartItemBox no lo necesita si ya tiene basePrice/price)
+        price: unitFinalPrice,
+        basePrice: unitBasePrice,
         discount: lineDiscount
       } as any
     }) ?? []
-
-  console.log('cartItemsUpdate', cartItems)
 
   const { isOpen: isOpenPaymentUpload, onOpen: OnOpenPaymentUpload, onOpenChange: onOpenChangePaymentUpload } = useDisclosure()
   const { isOpen: IsOpenPaymentConfirm, onOpen: onOpenPaymentConfirm, onOpenChange: OnOpenChangePaymentConfirm } = useDisclosure()
@@ -110,20 +106,17 @@ const OrderDetails = () => {
   }
 
   useEffect(() => {
-    //Traer datos de la api de geolocalización si es necesario por ip
     const fetchGeolocationData = async () => {
       if (selectedOrder?.ip && ['127.0.0.1', 'Unknown'].includes(selectedOrder.ip) === false) {
         try {
           const response = await fetch(`http://ip-api.com/json/${selectedOrder.ip}`)
           const data = await response.json()
-          console.log('Geolocation Data:', data)
           setIpData(data)
         } catch (error) {
           console.error('Error fetching geolocation data:', error)
         }
       }
     }
-
     fetchGeolocationData()
   }, [selectedOrder?.ip])
 
@@ -131,14 +124,10 @@ const OrderDetails = () => {
     const getSublocalityData = async () => {
       if (selectedOrder?.sublocality) {
         const { data, error } = await storeOrderService.getSublocalityData(selectedOrder.sublocality)
-        if (error) {
-          console.error('Error fetching sublocality data:', error)
-        } else {
-          setSublocalityData(data)
-        }
+        if (error) console.error('Error fetching sublocality data:', error)
+        else setSublocalityData(data)
       }
     }
-
     getSublocalityData()
   }, [selectedOrder?.sublocality])
 
@@ -148,6 +137,23 @@ const OrderDetails = () => {
   if (!id || !selectedOrder) {
     navigate(-1)
   }
+
+  const productsTotalRounded = useMemo(() => {
+    return smartPesosFromCents(toCents(Number(selectedOrder?.total_price ?? 0)))
+  }, [selectedOrder?.total_price])
+
+  const shippingRounded = useMemo(() => {
+    return smartPesosFromCents(toCents(Number(selectedOrder?.shipping_price ?? 0)))
+  }, [selectedOrder?.shipping_price])
+
+  // 👇 si en tu DB ya tienes order_total, lo redondeamos; si no, lo calculamos (productos + envío) y redondeamos
+  const orderTotalRounded = useMemo(() => {
+    const explicit = Number(selectedOrder?.order_total ?? NaN)
+    if (Number.isFinite(explicit)) return smartPesosFromCents(toCents(explicit))
+
+    const computed = Number(selectedOrder?.total_price ?? 0) + Number(selectedOrder?.shipping_price ?? 0)
+    return smartPesosFromCents(toCents(computed))
+  }, [selectedOrder?.order_total, selectedOrder?.total_price, selectedOrder?.shipping_price])
 
   return (
     <div className='flex items-start gap-4  md:flex-row flex-col'>
@@ -165,7 +171,6 @@ const OrderDetails = () => {
               Realizada por: {selectedOrder?.user_name} ({selectedOrder?.full_name})
             </p>
           )}
-          {/* <p>Status del envío: {selectedOrder?.shipment_status}</p> */}
           <p>Fecha de creación: {formatDate(selectedOrder?.created_at)}</p>
           {selectedOrder?.last_update !== selectedOrder?.created_at && (
             <p>Última actualización: {formatDate(selectedOrder?.last_update)}</p>
@@ -226,7 +231,6 @@ const OrderDetails = () => {
           )}
         </div>
 
-        {/* Metadatos */}
         <h3 className='text-lg font-semibold col-span-2'>Metadatos</h3>
         <div>
           <p>
@@ -252,6 +256,7 @@ const OrderDetails = () => {
           </div>
         )}
       </Card>
+
       <section className='w-full md:w-[380px] md:sticky md:top-0 h-fit '>
         <div className='flex flex-col w-full border border-foreground-400 rounded-md  bg-white shadow-md overflow-hidden'>
           {cartItems.length !== 0 && (
@@ -297,27 +302,28 @@ const OrderDetails = () => {
             >
               <div className='flex flex-col justify-between items-center'>
                 <div className='w-full flex justify-between items-center'></div>
+
+                {/* ✅ Productos con smart round */}
                 <div className='text-xl text-right w-full'>
-                  Productos: <span className='font-bold'>{formatMoney(selectedOrder?.total_price ?? 0)}</span>
+                  Productos: <span className='font-bold'>{formatMoney(productsTotalRounded)}</span>
                 </div>
-                {selectedOrder?.shipping_price !== 0 && (
+
+                {/* Envío con smart round (solo si aplica) */}
+                {Number(selectedOrder?.shipping_price ?? 0) !== 0 && (
                   <div className='text-xl text-right w-full'>
-                    Envío: <span className='font-bold'>{formatMoney(selectedOrder?.shipping_price ?? 0)}</span>
+                    Envío: <span className='font-bold'>{formatMoney(shippingRounded)}</span>
                   </div>
                 )}
 
-                {/* {cartHasDiscount && (
-                      <div className='text-right text-2xl w-full'>
-                        Descuento: <span className='font-bold'>$0.00</span>
-                      </div>
-                    )} */}
+                {/* Total con smart round */}
                 <div className='text-xl text-right w-full'>
-                  Total: <span className='font-bold'>{formatMoney(selectedOrder?.order_total ?? 0)}</span>
+                  Total: <span className='font-bold'>{formatMoney(orderTotalRounded)}</span>
                 </div>
               </div>
             </motion.footer>
           )}
         </div>
+
         <section className='mt-4 flex gap-2'>
           <Tooltip content='Imprimir orden'>
             <Button className='flex flex-col w-16 h-16' variant='ghost' isIconOnly color='secondary' onPress={handlePrintOrder}>
@@ -349,7 +355,6 @@ const OrderDetails = () => {
       </section>
 
       <PaymentConfirmModal isOpen={IsOpenPaymentConfirm} onOpenChange={OnOpenChangePaymentConfirm} />
-
       <PaymentUploadModal isOpen={isOpenPaymentUpload} onOpenChange={onOpenChangePaymentUpload} />
 
       <OnConfirmModal
