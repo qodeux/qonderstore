@@ -1,5 +1,6 @@
 import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { FAQSchema } from '../../../schemas/config.schema'
 import { configService } from '../../../services/configService'
@@ -17,16 +18,48 @@ const AdminFAQModal = ({ isOpen, onOpenChange }: Props) => {
 
   const adminFAQForm = useForm({
     resolver: zodResolver(FAQSchema),
-    shouldUnregister: false
+    shouldUnregister: false,
+    mode: 'all',
+    reValidateMode: 'onChange',
+
+    defaultValues: {
+      question: '',
+      answer: '',
+      order: undefined,
+      type: ''
+    }
   })
 
   const {
     formState: { isDirty, errors }
   } = adminFAQForm
 
-  const handleSubmitPaymentMethod = async () => {
+  const buildFormValues = () => {
+    if (isEditing) {
+      return {
+        question: selectedFAQ?.question ?? '',
+        answer: selectedFAQ?.answer ?? '',
+        order: selectedFAQ?.order ?? undefined,
+        type: selectedFAQ?.type ?? ''
+      }
+    } else {
+      return {
+        question: '',
+        answer: '',
+        order: undefined,
+        type: ''
+      }
+    }
+  }
+
+  const handleSubmitAdminFAQ = async () => {
+    console.log('handle submit ')
+
     const isValid = await adminFAQForm.trigger()
+    console.log(adminFAQForm.formState.errors)
+    console.log(isValid)
     if (!isValid) return
+
     let formData = adminFAQForm.getValues()
     let transaction
 
@@ -34,16 +67,25 @@ const AdminFAQModal = ({ isOpen, onOpenChange }: Props) => {
     console.log(selectedFAQ?.id)
 
     if (isEditing && selectedFAQ?.id) {
+      console.log('create_update')
       formData = { ...formData, id: selectedFAQ.id }
       transaction = await configService.updateAdminFAQ(formData)
     } else {
+      console.log('create_new')
       transaction = await configService.createAdminFAQ(formData)
     }
     if (transaction) {
+      console.log('onop')
       onOpenChange()
       adminFAQForm.reset()
     }
   }
+
+  useEffect(() => {
+    if (isOpen) {
+    }
+    adminFAQForm.reset(buildFormValues())
+  }, [isOpen, selectedFAQ, adminFAQForm])
 
   return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='sm' backdrop='blur'>
@@ -61,7 +103,7 @@ const AdminFAQModal = ({ isOpen, onOpenChange }: Props) => {
                 Cerrar
               </Button>
               {(!isEditing || isDirty) && (
-                <Button color='primary' variant='light' onPress={handleSubmitPaymentMethod} isDisabled={Object.keys(errors).length > 0}>
+                <Button color='primary' variant='light' onPress={handleSubmitAdminFAQ} isDisabled={Object.keys(errors).length > 0}>
                   Aceptar
                 </Button>
               )}
