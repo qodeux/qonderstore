@@ -17,20 +17,24 @@ import { clearCart } from '../../store/slices/cartSlice'
 import type { RootState } from '../../store/store'
 import { deliveryRoutesMap, type OrderItem } from '../../types/storeOrders'
 import { formatMoney } from '../../utils/money'
+import { smartPesosFromCents, toCents } from '../../utils/pricing' // ✅ usa el helper centralizado
 
 const Checkout = () => {
   const { user } = useSelector((state: RootState) => state.auth)
 
   const cartItems = useSelector((s: RootState) => s.cart.items)
+
   const cartTotal = useMemo(() => {
     return cartItems.reduce((sum, it) => sum + (Number(it.price) || 0) * (Number(it.quantity) || 0), 0)
   }, [cartItems])
 
+  // TOTAL A COBRAR (carrito + envío) con smart round
   const [shippingPrice, setShippingPrice] = useState(null as number | null)
   const [hasMarker, setHasMarker] = useState(false)
 
   const navigate = useNavigate()
   const dispatch = useDispatch()
+
   const checkoutForm = useForm<CheckoutFormInput>({
     resolver: zodResolver(checkoutSchema),
     mode: 'all',
@@ -59,10 +63,14 @@ const Checkout = () => {
 
   const watchState = watch('state')
   const watchDeliveryType = watch('delivery_type')
-
   const watchCouponCode = watch('coupon_code')
-
   const watchShippingPrice = watch('shipping_price')
+
+  const payableTotal = useMemo(() => {
+    const itemsC = toCents(cartTotal)
+    const shipC = toCents(watchShippingPrice ?? 0)
+    return smartPesosFromCents(itemsC + shipC)
+  }, [cartTotal, watchShippingPrice])
 
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -181,7 +189,8 @@ const Checkout = () => {
           orderData: data,
           items: orderItems,
           cartTotals: {
-            totalPrice: cartTotal,
+            totalPrice: payableTotal, // subtotal items (puede traer centavos)
+            //totalPayable: payableTotal, // TOTAL A COBRAR (smart round) para consistencia
             totalQuantity: cartItems.length,
             shippingPrice: watchShippingPrice ?? 0
           },
@@ -309,9 +318,7 @@ const Checkout = () => {
                     {...field}
                     errorMessage={fieldState.error?.message}
                     isInvalid={!!fieldState.error}
-                    // className='flex-grow'
                     orientation={isMobile ? 'vertical' : 'horizontal'}
-                    //className={isMobile ? 'space-y-3' : 'space-x-6'}
                   >
                     {watchState === 'Ciudad de México' ? (
                       <>
@@ -351,9 +358,7 @@ const Checkout = () => {
                       size='sm'
                       isInvalid={!!fieldState.error}
                       errorMessage={fieldState.error?.message}
-                      onFocus={(e) => {
-                        setTimeout(() => e.currentTarget.select(), 0)
-                      }}
+                      onFocus={(e) => setTimeout(() => e.currentTarget.select(), 0)}
                       onPointerDown={(e) => {
                         const el = e.currentTarget as HTMLInputElement
                         if (document.activeElement !== el) {
@@ -555,18 +560,22 @@ const Checkout = () => {
                     )}
                   </div>
                 )}
+
                 {watchDeliveryType !== undefined && watchShippingPrice !== 0 && (
                   <div className='text-2xl text-right w-full'>
                     Envío : <span className='font-bold'>{formatMoney(watchShippingPrice ?? 0)}</span>
                   </div>
                 )}
+
                 {cartHasDiscount && (
                   <div className='text-right text-2xl w-full'>
                     Descuento: <span className='font-bold'>$0.00</span>
                   </div>
                 )}
+
+                {/* ✅ TOTAL A COBRAR con smart round */}
                 <div className='text-2xl text-right w-full'>
-                  Total : <span className='font-bold'>{formatMoney(cartTotal + (watchShippingPrice ?? 0))}</span>
+                  Total : <span className='font-bold'>{formatMoney(payableTotal)}</span>
                 </div>
               </div>
 
