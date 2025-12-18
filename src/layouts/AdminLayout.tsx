@@ -8,7 +8,6 @@ import AdminSidebar from '../components/common/AdminSidebar'
 import Header from '../components/common/Header'
 import AccountModal from '../components/modals/admin/AccountModal'
 import CartSidebar from '../components/store/CartSidebar'
-import { useConfig } from '../hooks/useConfig'
 import { useDeviceScreen } from '../hooks/useDeviceScreen'
 import { useProviders } from '../hooks/useProviders'
 import { useRequests } from '../hooks/useRequests'
@@ -22,7 +21,7 @@ const AdminLayout = () => {
   useRequests()
   useSupplyOrders()
   useStoreOrders()
-  useConfig()
+
   const dispatch = useDispatch<AppDispatch>()
   const contentRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
