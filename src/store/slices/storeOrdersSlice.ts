@@ -25,10 +25,13 @@ const storeOrdersSlice = createSlice({
     setSelectedOrder(state, action: PayloadAction<string>) {
       const order = state.items.find((o) => o.id === action.payload) || null
       state.selectedOrder = order
+    },
+    clearSelectedOrder(state) {
+      state.selectedOrder = null
     }
   }
 })
 
-export const { setStoreOrders: setStoreOrders, setSelectedOrder } = storeOrdersSlice.actions
+export const { setStoreOrders: setStoreOrders, setSelectedOrder, clearSelectedOrder } = storeOrdersSlice.actions
 
 export default storeOrdersSlice.reducer
