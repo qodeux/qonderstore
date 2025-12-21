@@ -2,6 +2,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { BulkUnits } from '../../schemas/products.schema'
 import type { SaleType } from '../../types/products'
+import { normPrice, smartPesosFromCents, toCents } from '../../utils/pricing'
 
 export type CartItem = {
   id: number
@@ -23,23 +24,12 @@ export type CartItem = {
 type CartState = {
   items: CartItem[]
   totalQuantity: number
-  totalPrice: number // total a pagar (ya con descuento)
-  subtotal: number // suma sin descuento
-  totalDiscount: number // ahorro total
+  totalPrice: number // total a pagar (ceil SOLO al final)
+  subtotal: number // ceil SOLO al final
+  totalDiscount: number // ahorro total (SIN ceil)
 }
 
 export const STORAGE_KEY = 'qonderstore_cart_v1'
-
-// ====== Utils ======
-const toCents = (n: number) => Math.round((n ?? 0) * 100)
-const fromCents = (c: number) => Number((c / 100).toFixed(2))
-const ceilPrice = (n: number) => Math.ceil(Number.isFinite(n) ? n : 0)
-
-const unitFinalCents = (item: CartItem) => {
-  const base = toCents(item.price)
-  const disc = toCents(item.discount ?? 0)
-  return Math.max(0, base - Math.max(0, disc))
-}
 
 // Calcula todos los totales a partir de items
 export const computeTotals = (items: CartItem[]): CartState => {
@@ -52,21 +42,24 @@ export const computeTotals = (items: CartItem[]): CartState => {
     const q = Math.max(0, item.quantity || 0)
     if (q === 0) continue
 
-    const base = toCents(item.price)
-    const finalUnit = unitFinalCents(item)
+    const baseUnitCents = toCents(item.price) // unitShown
+    const finalUnitCents = toCents(item.price) // si discount siempre 0, es igual
+    // si vuelves a usar discount, calcula finalUnitCents = baseUnitCents - disc
 
     qty += q
-    subtotalCents += base * q
-    totalCents += finalUnit * q
-    totalDiscountCents += Math.max(0, base - finalUnit) * q
+    subtotalCents += baseUnitCents * q
+    totalCents += finalUnitCents * q
+
+    // si discount lo usas:
+    // totalDiscountCents += Math.max(0, baseUnitCents - finalUnitCents) * q
   }
 
   return {
     items,
     totalQuantity: qty,
-    totalPrice: Math.ceil(fromCents(totalCents)),
-    subtotal: Math.ceil(fromCents(subtotalCents)),
-    totalDiscount: Math.ceil(fromCents(totalDiscountCents))
+    totalPrice: smartPesosFromCents(totalCents),
+    subtotal: smartPesosFromCents(subtotalCents),
+    totalDiscount: Math.floor(totalDiscountCents / 100) // o también smart si quieres consistencia total
   }
 }
 
@@ -76,7 +69,11 @@ const loadInitialState = (): CartState => {
     if (!raw) throw new Error('no cart')
     const items: CartItem[] = JSON.parse(raw).map((item: CartItem) => ({
       ...item,
-      pricingSource: item.pricingSource ?? 'retail'
+      pricingSource: item.pricingSource ?? 'retail',
+      // por seguridad, normaliza valores antiguos (si venían “ceileados”)
+      price: normPrice(item.price),
+      basePrice: item.basePrice == null ? item.basePrice : normPrice(item.basePrice),
+      discount: item.discount == null ? item.discount : normPrice(item.discount)
     }))
     return computeTotals(items)
   } catch {
@@ -123,8 +120,8 @@ const cartSlice = createSlice({
           item.quantity = nextQ
           item.error = undefined
           // Si quisieras refrescar promo/unit price podrías actualizar aquí
-          // item.price = ceilPrice(incoming.price)
-          // item.basePrice = incoming.basePrice ?? incoming.price
+          // item.price = normPrice(incoming.price)
+          // item.basePrice = normPrice(incoming.basePrice ?? incoming.price)
         }
       } else {
         const stock = Number.isFinite(incoming.stock) ? incoming.stock : Infinity
@@ -132,8 +129,9 @@ const cartSlice = createSlice({
         state.items.push({
           ...incoming,
           pricingSource: incoming.pricingSource,
-          price: ceilPrice(incoming.price),
-          basePrice: incoming.basePrice ?? incoming.price,
+          // NO ceil en unit price/basePrice
+          price: normPrice(incoming.price),
+          basePrice: normPrice(incoming.basePrice ?? incoming.price),
           unitSelected: incoming.unitSelected,
           quantity: addQty,
           error: undefined
@@ -232,7 +230,8 @@ const cartSlice = createSlice({
 
       if (!Number.isFinite(nextPrice)) return
 
-      item.price = ceilPrice(nextPrice as number)
+      // NO ceil: respeta decimales
+      item.price = normPrice(nextPrice as number)
       item.unitSelected = unit
       item.error = undefined
 
@@ -267,8 +266,11 @@ const cartSlice = createSlice({
       const item = state.items[idx]
       item.unitSelected = unitSelected
       item.quantity = Math.max(1, quantity)
-      item.price = ceilPrice(price)
-      item.basePrice = ceilPrice(basePrice)
+
+      // NO ceil en unit/base: respeta mayoreo/promo con centavos
+      item.price = normPrice(price)
+      item.basePrice = normPrice(basePrice)
+
       item.pricingSource = pricingSource
       item.discount = 0
       item.error = undefined
@@ -297,7 +299,13 @@ const cartSlice = createSlice({
     },
 
     setCart(state, action: PayloadAction<CartItem[]>) {
-      const items = action.payload || []
+      const items = (action.payload || []).map((it) => ({
+        ...it,
+        pricingSource: it.pricingSource ?? 'retail',
+        price: normPrice(it.price),
+        basePrice: it.basePrice == null ? it.basePrice : normPrice(it.basePrice),
+        discount: it.discount == null ? it.discount : normPrice(it.discount)
+      }))
       const updated = computeTotals(items)
       state.items = updated.items
       state.totalPrice = updated.totalPrice

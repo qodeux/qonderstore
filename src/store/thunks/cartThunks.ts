@@ -4,21 +4,25 @@ import { makeSelectPromotionsForProduct } from '../selectors/productsWithPromo'
 import { applyLinePricing } from '../slices/cartSlice'
 import type { RootState } from '../store'
 
-const ceil = (n: number) => Math.ceil(Number.isFinite(n) ? n : 0)
+// ===== helpers de dinero (sin floats raros) =====
+const toCents = (n: number) => Math.round((Number.isFinite(n) ? n : 0) * 100)
+const fromCents = (c: number) => Number((c / 100).toFixed(2))
+const normPrice = (n: number) => fromCents(toCents(n))
 
 const resolveRetailUnitPrice = (product: any, unitKey: string | null): number => {
   const base = Number(product?.price ?? 0)
-  if (!unitKey) return ceil(base)
+  if (!unitKey) return normPrice(base)
 
   const u = product?.units?.[unitKey]
-  if (!u) return ceil(base)
+  if (!u) return normPrice(base)
 
   const p = Number(u?.price)
   const f = Number(u?.factor)
 
-  if (Number.isFinite(p)) return ceil(p)
-  if (Number.isFinite(f)) return ceil(base * f)
-  return ceil(base)
+  // 👇 OJO: NO ceil. Respetar centavos.
+  if (Number.isFinite(p)) return normPrice(p)
+  if (Number.isFinite(f)) return normPrice(base * f)
+  return normPrice(base)
 }
 
 export const repriceCartLine = createAsyncThunk<
@@ -37,14 +41,17 @@ export const repriceCartLine = createAsyncThunk<
   if (!product) return
 
   const quantity = Math.max(1, nextQuantity ?? item.quantity ?? 1)
-  const unitKey = nextUnit ?? item.base_unit ?? null
+  const unitKey = (nextUnit ?? item.base_unit ?? null) as string | null
 
   const { promotions } = makeSelectPromotionsForProduct(id)(state)
 
+  // retail unit (normalizado, sin ceil)
   const retailUnitPrice = resolveRetailUnitPrice(product as any, unitKey)
 
-  const wholesaleRows = (product as any).wholesale_prices?.[unitKey] ?? null
-  const wholesaleUnitPrice = pickWholesaleUnitPrice(wholesaleRows, quantity)
+  // wholesale unit (asegura normalización también por si devuelve floats)
+  const wholesaleRows = (product as any).wholesale_prices?.[unitKey ?? ''] ?? null
+  const wholesaleUnitPriceRaw = pickWholesaleUnitPrice(wholesaleRows, quantity)
+  const wholesaleUnitPrice = wholesaleUnitPriceRaw == null ? null : normPrice(Number(wholesaleUnitPriceRaw))
 
   const best = resolveBestDealExclusive({
     retailUnitPrice,
@@ -61,9 +68,11 @@ export const repriceCartLine = createAsyncThunk<
       unitSelected: unitKey ?? item.base_unit ?? '',
       quantity,
 
-      price: best.unitShownPrice,
+      // 👇 NO ceil. Normaliza unitario final.
+      price: normPrice(Number(best.unitShownPrice)),
 
-      basePrice: retailUnitPrice,
+      // retail base (para comparar descuento) sin ceil
+      basePrice: normPrice(retailUnitPrice),
 
       pricingSource: best.source
     })

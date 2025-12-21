@@ -24,7 +24,7 @@ import { useAppDispatch, type RootState } from '../../store/store'
 import { repriceCartLine } from '../../store/thunks/cartThunks'
 import { bulkUnitsAvailable, saleUnitsAvailable, type BulkUnit } from '../../types/products'
 import { formatMoney } from '../../utils/money'
-import { pickWholesaleUnitPrice, resolveBestDealExclusive } from '../../utils/pricing'
+import { normPrice, pickWholesaleUnitPrice, resolveBestDealExclusive } from '../../utils/pricing'
 
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRecord = Record<string, any>
@@ -65,25 +65,28 @@ const Product = () => {
     setUnitSelected((prev) => prev ?? nextDefault)
   }, [product?.base_unit, product?.units])
 
-  // ---------- UNIDADES & PRECIOS ----------
   const baseOriginalPrice = Number(product?.price ?? 0)
 
+  // ✅ DROP-IN: NO usar Math.ceil aquí (es lo que te inflaba a 451)
   const resolveUnitPriceFrom = (base: number, unitKey: string | null): number => {
-    if (!unitKey || !product) return Math.ceil(base)
+    if (!unitKey || !product) return normPrice(base)
+
     const u = (product as AnyRecord).units?.[unitKey]
-    if (u == null) return Math.ceil(base)
-    if (typeof u === 'number') return Math.ceil(Number(u))
+    if (u == null) return normPrice(base)
+
+    if (typeof u === 'number') return normPrice(Number(u))
+
     const p = Number(u?.price)
     const f = Number(u?.factor)
-    if (Number.isFinite(p)) return Math.ceil(p)
-    if (Number.isFinite(f)) return Math.ceil(base * f)
-    return Math.ceil(base)
+
+    if (Number.isFinite(p)) return normPrice(p)
+    if (Number.isFinite(f)) return normPrice(base * f)
+
+    return normPrice(base)
   }
 
-  // precio unitario BASE (sin descuento) según la unidad seleccionada
   const unitOriginalPrice = useMemo(() => resolveUnitPriceFrom(baseOriginalPrice, unitSelected), [baseOriginalPrice, unitSelected])
 
-  // promos candidatas ya las tienes:
   const { promotions } = useSelector(makeSelectPromotionsForProduct(product?.id ?? 0))
 
   const unitKey = unitSelected ?? product?.base_unit ?? null
@@ -92,7 +95,6 @@ const Product = () => {
     if (!product) return null
     const wp: any = (product as any).wholesale_prices
     if (!wp) return null
-
     return product.sale_type === 'bulk' ? (wp?.[unitKey as any] ?? null) : wp
   }, [product, unitKey])
 
@@ -112,40 +114,29 @@ const Product = () => {
   }, [unitOriginalPrice, wholesaleUnitPrice, quantity, promotions, unitKey])
 
   const unitPrice = best.unitShownPrice
-  const total = best.finalSubtotal
 
+  // ✅ IMPORTANT: NO vuelvas a “redondear” el total aquí.
+  // best.finalSubtotal ya viene con tu regla smartPesos aplicada (entero).
+  const totalShown = best.finalSubtotal
   const hasDiscount = best.finalSubtotal < unitOriginalPrice * quantity
-  const totalDiscount = unitOriginalPrice * quantity - best.finalSubtotal
   const discountPercent = unitOriginalPrice > 0 ? Math.round((1 - best.unitShownPrice / unitOriginalPrice) * 100) : 0
 
-  const badgeLabel = best.source === 'wholesale' ? 'Mayoreo' : best.source === 'promo' ? 'Promo' : 'Precio normal'
-
   // ---------- HELPERS INVENTARIO (BULK) ----------
-  // bulkUnitsAvailable:
-  // { label: 'Gramo', key: 'gr', value: 1 }
-  // { label: 'Onza',  key: 'oz', value: 28.3495 }
-  // { label: 'Libra', key: 'lb', value: 453.592 }
   const getBulkUnitFactorInGrams = (unitKey: BulkUnit | null): number => {
     if (!unitKey) return 1
     const found = bulkUnitsAvailable.find((u) => u.key === unitKey)
     return found?.value ?? 1
   }
 
-  // ---------- DISPONIBILIDAD / STOCK ----------
-  // stockTotalBase:
-  // - unit  → interpretamos como unidades
-  // - bulk  → interpretamos como gramos
   const stockTotalBase = Number(product?.stock ?? 0)
 
   const reservedInCartBase = useMemo(() => {
     if (!product) return 0
 
-    // Productos por pieza: stock en unidades
     if (product.sale_type === 'unit') {
       return cartItems.filter((it) => it.id === product.id).reduce((sum, it) => sum + (it.quantity || 0), 0)
     }
 
-    // Productos a granel: stock en gramos
     return cartItems
       .filter((it) => it.id === product.id)
       .reduce((sum, it) => {
@@ -157,7 +148,6 @@ const Product = () => {
 
   const remainingNowBase = Math.max(0, stockTotalBase - reservedInCartBase)
 
-  // factor de la unidad actual (solo importa para bulk)
   const currentFactorGrams = useMemo(() => {
     if (!product || product.sale_type !== 'bulk') return 1
     const unitKey = (unitSelected ?? product.base_unit ?? null) as BulkUnit | null
@@ -168,16 +158,13 @@ const Product = () => {
     if (!product) return 0
 
     if (product.sale_type === 'unit') {
-      // stock y reservado en unidades
       return remainingNowBase
     }
 
-    // bulk → stock/ reservado en gramos → convertimos a la unidad actual
     const safeFactor = Number.isFinite(currentFactorGrams) && currentFactorGrams > 0 ? currentFactorGrams : 1
     return Math.max(0, Math.floor(remainingNowBase / safeFactor))
   }, [product, remainingNowBase, currentFactorGrams])
 
-  // Para no tocar demasiado el resto del componente
   const remainingNow = remainingNowBase
 
   useEffect(() => {
@@ -189,7 +176,6 @@ const Product = () => {
     setStockLeftPercent(percent)
   }, [product?.stock, stockTotalBase, remainingNowBase])
 
-  // Mantener quantity dentro del rango válido cuando cambian stock / unidad / carrito
   useEffect(() => {
     const safeMax = Number.isFinite(maxSelectableQty) ? maxSelectableQty : 0
     setQuantity((q) => {
@@ -201,17 +187,12 @@ const Product = () => {
     })
   }, [maxSelectableQty, product?.min_sale])
 
-  // ---------- RELACIONADOS ----------
-
   const MAX_RELATED = 8
   const MAX_FEATURED = 4
 
-  // Helper para tomar N elementos aleatorios de un array (sin mutar el original)
   const getRandomItems = <T,>(arr: T[], max: number): T[] => {
     if (arr.length <= max) return [...arr]
-
     const copy = [...arr]
-    // Fisher–Yates shuffle
     for (let i = copy.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
       ;[copy[i], copy[j]] = [copy[j], copy[i]]
@@ -221,27 +202,17 @@ const Product = () => {
 
   const relatedProducts = useMemo(() => {
     if (!product) return []
-
-    // 0) Excluir el producto actual
     const others = products.filter((p) => p.id !== product.id)
-
-    // 1) Separar por categoría
     const sameCategory = others.filter((p) => p.category === product.category)
     const sameCatFeatured = sameCategory.filter((p) => p.featured)
     const sameCatNonFeatured = sameCategory.filter((p) => !p.featured)
 
     const result: typeof products = []
-
-    // 2) Hasta 4 destacados de la misma categoría (random)
     result.push(...getRandomItems(sameCatFeatured, MAX_FEATURED))
 
-    // 3) Completar con productos de la misma categoría no destacados
     let remaining = MAX_RELATED - result.length
-    if (remaining > 0) {
-      result.push(...getRandomItems(sameCatNonFeatured, remaining))
-    }
+    if (remaining > 0) result.push(...getRandomItems(sameCatNonFeatured, remaining))
 
-    // 4) Si aún faltan, rellenar con productos de otras categorías (cualquier featured o no)
     remaining = MAX_RELATED - result.length
     if (remaining > 0) {
       const otherCategories = others.filter((p) => !result.some((r) => r.id === p.id))
@@ -251,7 +222,6 @@ const Product = () => {
     return result
   }, [products, product])
 
-  // ---------- CARRITO ----------
   const handleAddToCart = () => {
     if (!product) return
     if (quantity > maxSelectableQty || maxSelectableQty === 0) {
@@ -260,8 +230,6 @@ const Product = () => {
     }
 
     const unitKey = (unitSelected ?? product.base_unit ?? '') as string
-
-    // precio retail (referencia) de la unidad seleccionada
     const unitBasePrice = unitOriginalPrice
 
     dispatch(
@@ -273,19 +241,15 @@ const Product = () => {
         units: product.units,
         base_unit: product.base_unit,
         unitSelected: unitKey,
-
-        // se agrega en retail “plano” y luego lo repriciamos con reglas exclusivas
         basePrice: unitBasePrice,
         price: unitBasePrice,
         discount: 0,
         pricingSource: 'retail',
-
         quantity,
         stock: Number(product.stock ?? Number.POSITIVE_INFINITY)
       })
     )
 
-    // 👇 aplica regla exclusiva (promo vs mayoreo) YA EN EL CARRITO
     dispatch(
       repriceCartLine({
         id: product.id,
@@ -298,24 +262,19 @@ const Product = () => {
     dispatch(setCartOpen(true))
   }
 
-  // ---------- FAVORITOS ----------
   const handleAddtoFavs = async () => {
     if (!product) return
     try {
-      await userService.addProductFav({
-        product_id: product.id
-      })
+      await userService.addProductFav({ product_id: product.id })
     } catch (error) {
       console.error('Error adding product to favorites:', error)
     }
   }
+
   const handleRemovefromFavs = async () => {
     if (!user || !product) return
     try {
-      await userService.removeProductFav({
-        product_id: product.id,
-        user_id: user.id
-      })
+      await userService.removeProductFav({ product_id: product.id, user_id: user.id })
     } catch (error) {
       console.error('Error removing product from favorites:', error)
     }
@@ -335,20 +294,16 @@ const Product = () => {
   if (!product) return <div>Producto no encontrado</div>
 
   const canAdd = maxSelectableQty > 0 && quantity >= 1 && quantity <= maxSelectableQty
-
   const progressColor = (stockLeftPercent ?? 0) <= 10 ? 'danger' : (stockLeftPercent ?? 0) <= 50 ? 'warning' : 'success'
-
   const saleUnitsAvailableLabel = saleUnitsAvailable.find((u) => u.key === product.unit)?.label ?? ''
 
   return (
     <>
       <section className='container flex flex-col md:flex-row gap-8 mx-auto px-8 mt-8'>
-        {/* === GALERÍA === */}
         <div className='w-full md:w-1/2 rounded-xl overflow-hidden border border-neutral-300'>
           <ProductLightboxGallery mainImage={product.main_image} images={orderedImages} showThumbnails maxWidth={900} />
         </div>
 
-        {/* === DETALLES === */}
         <div className='w-full md:w-1/2 space-y-4'>
           <header>
             <div className='flex items-center gap-2'>
@@ -410,7 +365,6 @@ const Product = () => {
             )}
           </header>
 
-          {/* === STOCK Y OPINIONES  === */}
           <div className='flex items-center gap-8 justify-between'>
             {product.total_ratings > 0 && (
               <div className='flex flex-col max-w-1/2 md:max-w-1/3'>
@@ -451,10 +405,7 @@ const Product = () => {
           <section className='md:flex justify-between space-y-4'>
             <div className='flex flex-col'>
               <div className='flex items-baseline gap-3'>
-                {/* Precio final (promo o mayoreo o retail) */}
                 <span className='text-3xl font-bold'>{formatMoney(unitPrice)}</span>
-
-                {/* Precio original tachado si hubo descuento */}
                 {best.source !== 'retail' && (
                   <span className='text-lg line-through text-neutral-500'>{formatMoney(unitOriginalPrice)}</span>
                 )}
@@ -463,11 +414,9 @@ const Product = () => {
               {best.source !== 'retail' ? (
                 <div className='flex items-center gap-2'>
                   <span>Precio con descuento</span>
-
                   <Chip color={best.source === 'wholesale' ? 'primary' : 'success'} variant='flat' size='sm' className='font-medium'>
                     {best.source === 'wholesale' ? 'Mayoreo' : 'Promo'}
                   </Chip>
-
                   {discountPercent > 0 && <span className='text-sm text-success-600'>-{discountPercent}%</span>}
                 </div>
               ) : (
@@ -477,7 +426,8 @@ const Product = () => {
 
             {quantity > 1 && (
               <div className='flex flex-col md:items-end'>
-                <span className='text-3xl font-bold'>{formatMoney(total)}</span>
+                {/* ✅ DROP-IN: Total ya viene con smartPesos aplicado */}
+                <span className='text-3xl font-bold'>{formatMoney(totalShown)}</span>
                 <span className='md:text-right'>Total</span>
               </div>
             )}
@@ -547,10 +497,12 @@ const Product = () => {
                     )}
                   </AnimatePresence>
                 </div>
+
                 <Button className='bg-black text-white hover:bg-neutral-800' size='lg' onPress={handleAddToCart} isDisabled={!canAdd}>
                   Agregar
                 </Button>
               </section>
+
               <AnimatePresence>
                 {QuantityError && (
                   <motion.section
@@ -569,7 +521,6 @@ const Product = () => {
         </div>
       </section>
 
-      {/* === RELACIONADOS === */}
       <RelatedProducts items={relatedProducts} />
 
       <ViewRatingsModal

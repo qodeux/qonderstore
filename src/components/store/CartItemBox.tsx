@@ -8,13 +8,13 @@ import { repriceCartLine } from '../../store/thunks/cartThunks'
 import { bulkUnitsAvailable, type BulkUnit } from '../../types/products'
 import { all_units } from '../../types/storeOrders'
 import { formatMoney } from '../../utils/money'
+import { fromCents, smartPesosFromCents, toCents } from '../../utils/pricing'
 import PresignedImage from '../common/cloudflare-r2/PresignedImage'
 import QuantitySelector from './QuantitySelector'
 import UnitSelector from './UnitSelector'
 
 type CartItemBoxProps = {
   item: CartItem & {
-    // estos campos pueden venir del selector selectCartWithPromos
     subtotalBase?: number
     finalSubtotal?: number
     totalDiscount?: number
@@ -35,19 +35,30 @@ const getBulkUnitFactorInGrams = (unitKey: BulkUnit | null): number => {
 const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
   const dispatch = useAppDispatch()
 
-  // ========= CÁLCULOS DE PRECIO / DESCUENTO / SUBTOTAL =========
-  const quantity = item.quantity ?? 0
+  // ========= CÁLCULOS (SIN FLOATS) =========
+  const quantity = Math.max(0, item.quantity ?? 0)
 
-  const unitRetailPrice = item.basePrice ?? item.price // referencia (normal)
-  const unitFinalPrice = item.price // lo que se cobra
+  // referencia (retail) vs final (lo que se cobra)
+  const unitRetailPrice = item.basePrice ?? item.price
+  const unitFinalPrice = item.price
 
-  const unitDiscount = Math.max(0, unitRetailPrice - unitFinalPrice)
-  const lineDiscount = unitDiscount * quantity
+  // centavos unitarios
+  const retailUnitC = toCents(unitRetailPrice)
+  const finalUnitC = toCents(unitFinalPrice)
 
-  const lineSubtotal = unitFinalPrice * quantity
+  // centavos por línea
+  const retailLineC = retailUnitC * quantity
+  const finalLineC = finalUnitC * quantity
 
-  // const discountPercent = unitRetailPrice > 0 ? Math.round((unitDiscount / unitRetailPrice) * 100) : 0
-  // const sourceLabel = item.pricingSource === 'wholesale' ? 'Mayoreo' : item.pricingSource === 'promo' ? 'Promo' : null
+  // descuento en centavos (solo para mostrar)
+  const lineDiscountC = Math.max(0, retailLineC - finalLineC)
+  const lineDiscountPesos = Math.floor(lineDiscountC / 100) // regla: descuento sin centavos
+
+  // subtotal final (con regla smart)
+  const lineSubtotalPesos = smartPesosFromCents(finalLineC)
+
+  // valores “bonitos” para el caso readOnly (precio x qty)
+  const retailLine = fromCents(retailLineC)
 
   // error local para cosas como "Cantidad máxima alcanzada"
   const [localError, setLocalError] = useState<string | null>(null)
@@ -91,24 +102,16 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
     })
   }, [listRef])
 
-  // error combinado: preferimos el local si existe
   const errorMessage = localError ?? item.error ?? null
 
-  // Limpia el error 2s después de aparecer (tanto Redux como local)
   useEffect(() => {
     if (!errorMessage) return
 
-    if (isLast) {
-      scrollToBottom()
-    }
+    if (isLast) scrollToBottom()
 
     const timer = setTimeout(() => {
-      if (item.error) {
-        dispatch(clearError({ id: item.id }))
-      }
-      if (localError) {
-        setLocalError(null)
-      }
+      if (item.error) dispatch(clearError({ id: item.id }))
+      if (localError) setLocalError(null)
     }, 2000)
 
     return () => clearTimeout(timer)
@@ -119,45 +122,42 @@ const CartItemBox = ({ item, isLast, listRef, readOnly }: CartItemBoxProps) => {
   let maxQuantity: number
 
   if (item.saleType === 'bulk') {
-    // stock en gramos → convertir a la unidad del item (gr/oz/lb)
     const unitKey = (item.unitSelected ?? item.base_unit ?? null) as BulkUnit | null
     const gramsPerUnit = getBulkUnitFactorInGrams(unitKey)
     if (rawStock <= 0 || gramsPerUnit <= 0) maxQuantity = 0
     else maxQuantity = Math.floor(rawStock / gramsPerUnit)
   } else {
-    // unit: stock interpretado como número de piezas
     maxQuantity = rawStock > 0 ? rawStock : item.quantity || 1
   }
 
   return (
     <article className='flex flex-col gap-4'>
-      <div className='flex gap-4 '>
+      <div className='flex gap-4'>
         <figure className='aspect-square w-1/3 bg-gray-200 border border-gray-300 flex items-center justify-center text-gray-500 text-xs rounded-xl overflow-hidden'>
           {item.image ? <PresignedImage keyPath={item.image} expires={300} /> : 'Sin imagen'}
         </figure>
+
         <section className='flex flex-col w-2/3 justify-between'>
           <h3 className='md:text-lg font-semibold'>{item.title}</h3>
+
           <div className='text-gray-600 text-right text-sm'>
             {readOnly && (
               <p>
-                {item.quantity}{' '}
-                {item.quantity === 1
+                {quantity}{' '}
+                {quantity === 1
                   ? all_units.find((u) => u.key === item.unitSelected)?.label || ''
                   : all_units.find((u) => u.key === item.unitSelected)?.plural || ''}
               </p>
             )}
 
-            <p>Precio: {readOnly ? formatMoney(unitRetailPrice * item.quantity) : formatMoney(unitRetailPrice)}</p>
+            {/* Precio: unitario (normal), o por línea (readOnly) */}
+            <p>Precio: {readOnly ? formatMoney(retailLine) : formatMoney(unitRetailPrice)}</p>
 
-            {lineDiscount > 0 && (
-              <div className='text-green-600'>
-                Descuento: -{formatMoney(lineDiscount)}
-                {/* {discountPercent > 0 ? `(${discountPercent}%)` : ''}
-                {sourceLabel ? ` • ${sourceLabel}` : ''} */}
-              </div>
-            )}
+            {/* Descuento mostrado sin centavos */}
+            {lineDiscountPesos > 0 && <div className='text-green-600'>Descuento: -{formatMoney(lineDiscountPesos)}</div>}
 
-            <p className='text-lg'>Subtotal: {formatMoney(lineSubtotal ?? 0)}</p>
+            {/* Subtotal final con regla smart */}
+            <p className='text-lg'>Subtotal: {formatMoney(lineSubtotalPesos)}</p>
           </div>
         </section>
       </div>
