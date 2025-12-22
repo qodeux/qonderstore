@@ -13,7 +13,6 @@ import CartItemBox from '../../components/store/CartItemBox'
 import { useDeviceScreen } from '../../hooks/useDeviceScreen'
 import { checkoutSchema, type CheckoutFormInput } from '../../schemas/checkout.schema'
 import { storeOrderService } from '../../services/storeOrderService'
-import { clearCart } from '../../store/slices/cartSlice'
 import type { RootState } from '../../store/store'
 import { deliveryRoutesMap, type OrderItem } from '../../types/storeOrders'
 import { formatMoney } from '../../utils/money'
@@ -206,7 +205,6 @@ const Checkout = () => {
         }
 
         if (orderTransmission.id) {
-          dispatch(clearCart())
           sessionStorage.setItem('admin_selected_store_order', JSON.stringify(orderTransmission))
         }
 

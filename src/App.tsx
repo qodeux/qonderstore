@@ -8,6 +8,7 @@ import { useProductBrands } from './hooks/useBrands'
 import { useCartStorageSync } from './hooks/useCartStorageSync'
 import { useCatalog } from './hooks/useCatalog'
 import { useCategories } from './hooks/useCategories'
+import { useConfig } from './hooks/useConfig'
 import { useProducts } from './hooks/useProducts'
 import { usePromotions } from './hooks/usePromotions'
 import AppRoutes from './routes/routes'
@@ -20,6 +21,8 @@ function App() {
   useProductBrands()
   usePromotions()
   useCatalog('banks')
+
+  useConfig()
 
   useCartStorageSync()
 

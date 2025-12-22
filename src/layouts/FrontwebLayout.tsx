@@ -5,6 +5,7 @@ import Footer from '../components/common/Footer'
 import Header from '../components/common/Header'
 import ScrollToTopButton from '../components/common/ScrollToTopButton'
 import CartSidebar from '../components/store/CartSidebar'
+import { useCatalog } from '../hooks/useCatalog'
 import { useStoreOrders } from '../hooks/useStoreOrders'
 import { useUserFavs } from '../hooks/useUserFavs'
 import { useUserSavedAdresses } from '../hooks/useUserSavedAdresses'
@@ -16,6 +17,7 @@ const FrontwebLayout = () => {
 
   useUserFavs()
   useUserSavedAdresses()
+  useCatalog('banks')
 
   const footerRef = useRef<HTMLDivElement | null>(null)
   const spacerRef = useRef<HTMLDivElement | null>(null)
