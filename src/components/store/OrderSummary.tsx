@@ -1,8 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion'
+import { useMemo } from 'react'
 import type { CartItem } from '../../store/slices/cartSlice'
 import { useAppSelector } from '../../store/store'
 import type { OrderItem } from '../../types/storeOrders'
 import { formatMoney } from '../../utils/money'
+import { smartPesosFromCents, toCents } from '../../utils/pricing'
 import CartItemBox from './CartItemBox'
 
 type Props = {
@@ -33,12 +35,27 @@ const OrderSummary = ({ orderId }: Props) => {
         quantity,
         saleType: it.saleType,
         unitSelected: it.unitSelected ?? it.base_unit ?? null,
-        price: unitFinalPrice, // unitario FINAL
-        basePrice: unitBasePrice, // unitario ORIGINAL
-        // (opcional, CartItemBox no lo necesita si ya tiene basePrice/price)
+        price: unitFinalPrice,
+        basePrice: unitBasePrice,
         discount: lineDiscount
       } as any
     }) ?? []
+
+  const productsTotalRounded = useMemo(() => {
+    return smartPesosFromCents(toCents(Number(selectedOrder?.total_price ?? 0)))
+  }, [selectedOrder?.total_price])
+
+  const shippingRounded = useMemo(() => {
+    return smartPesosFromCents(toCents(Number(selectedOrder?.shipping_price ?? 0)))
+  }, [selectedOrder?.shipping_price])
+
+  const orderTotalRounded = useMemo(() => {
+    const explicit = Number(selectedOrder?.order_total ?? NaN)
+    if (Number.isFinite(explicit)) return smartPesosFromCents(toCents(explicit))
+
+    const computed = Number(selectedOrder?.total_price ?? 0) + Number(selectedOrder?.shipping_price ?? 0)
+    return smartPesosFromCents(toCents(computed))
+  }, [selectedOrder?.order_total, selectedOrder?.total_price, selectedOrder?.shipping_price])
 
   return (
     <section className='w-full md:w-[380px] md:sticky md:top-0 h-fit '>
@@ -85,23 +102,27 @@ const OrderSummary = ({ orderId }: Props) => {
             className='flex flex-col shrink-0 p-4 border-t border-foreground-400 bg-white gap-4 overflow-hidden z-10 sticky bottom-0 w-full'
           >
             <div className='flex flex-col justify-between items-center'>
-              <div className='w-full flex justify-between items-center'></div>
+              {/* ✅ Productos con smart round */}
               <div className='text-xl text-right w-full'>
-                Productos: <span className='font-bold'>{formatMoney(selectedOrder?.total_price ?? 0)}</span>
+                Productos: <span className='font-bold'>{formatMoney(productsTotalRounded)}</span>
               </div>
-              {selectedOrder?.shipping_price !== 0 && (
-                <div className='text-xl text-right w-full'>
-                  Envío: <span className='font-bold'>{formatMoney(selectedOrder?.shipping_price ?? 0)}</span>
-                </div>
-              )}
 
               {/* {cartHasDiscount && (
                       <div className='text-right text-2xl w-full'>
                         Descuento: <span className='font-bold'>$0.00</span>
                       </div>
                     )} */}
+
+              {/* Envío con smart round (solo si aplica) */}
+              {Number(selectedOrder?.shipping_price ?? 0) !== 0 && (
+                <div className='text-xl text-right w-full'>
+                  Envío: <span className='font-bold'>{formatMoney(shippingRounded)}</span>
+                </div>
+              )}
+
+              {/* Total con smart round */}
               <div className='text-xl text-right w-full'>
-                Total: <span className='font-bold'>{formatMoney(selectedOrder?.order_total ?? 0)}</span>
+                Total: <span className='font-bold'>{formatMoney(orderTotalRounded)}</span>
               </div>
             </div>
           </motion.footer>

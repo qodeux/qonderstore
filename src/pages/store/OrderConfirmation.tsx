@@ -15,6 +15,8 @@ const OrderConfirmation = () => {
   const { items: storeOrders } = useAppSelector((state) => state.storeOrders)
   const selectedOrder = storeOrders.find((order) => order.id === oid)
 
+  const isLoadingOrder = !selectedOrder
+
   const banks = useAppSelector((state) => state.catalogs.banks)
 
   const { isOpen: isPaymentUploadOpen, onOpenChange: onPaymentUploadOpenChange, onOpen: onPaymentUploadOpen } = useDisclosure()
@@ -30,8 +32,6 @@ const OrderConfirmation = () => {
     }
   } as const
 
-  dispatch(clearCart())
-
   const { paymentMethods } = useAppSelector((state) => state.config)
 
   if (!oid) {
@@ -41,12 +41,17 @@ const OrderConfirmation = () => {
   useEffect(() => {
     document.title = `Orden ${oid} - Confirmación`
 
+    dispatch(clearCart())
     dispatch(setSelectedOrder(oid))
 
     return () => {
       dispatch(clearSelectedOrder())
     }
   }, [oid])
+
+  if (isLoadingOrder) {
+    return <p>Cargando detalles de la orden...</p>
+  }
 
   return (
     <div className='container flex flex-col md:flex-row mx-auto p-8 gap-6  '>
@@ -94,17 +99,28 @@ const OrderConfirmation = () => {
             )
           })}
         </section>
-        <p className='text-center md:text-left'>Una vez realizado el pago sube tu comprobante de pago a nuestra plataforma.</p>
-        <div className='text-center mt-4'>
-          <Button className='bg-black text-white' size='sm' onPress={onPaymentUploadOpen}>
-            Compartir comprobante de pago <ImageUp className='p-0.5' />
-          </Button>
-        </div>
-        <p className='text-sm'>
-          Recuerda que si has elegido un horario tu pago debe ser acreditado al menos 10 minutos antes de la hora seleccionada.
-        </p>
 
-        <PaymentUploadModal isOpen={isPaymentUploadOpen} onOpenChange={onPaymentUploadOpenChange} />
+        {selectedOrder?.order_status === 'pending' && (
+          <div>
+            <p className='text-center md:text-left'>Una vez realizado el pago sube tu comprobante de pago a nuestra plataforma.</p>
+            <div className='text-center mt-4'>
+              <Button className='bg-black text-white' size='sm' onPress={onPaymentUploadOpen}>
+                Compartir comprobante de pago <ImageUp className='p-0.5' />
+              </Button>
+            </div>
+            <p className='text-sm'>
+              Recuerda que si has elegido un horario tu pago debe ser acreditado al menos 10 minutos antes de la hora seleccionada.
+            </p>
+            <PaymentUploadModal isOpen={isPaymentUploadOpen} onOpenChange={onPaymentUploadOpenChange} />
+          </div>
+        )}
+        {selectedOrder?.order_status === 'paid' && (
+          <div>
+            <p className='text-center md:text-left font-semibold'>Hemos recibido el comprobante de tu pago.</p>
+            <p className=''>Nuestro equipo validará la transacción y preparará todo para ser enviado .</p>
+            <p className='text-sm'>Te notificaremos cuando se haya enviado</p>
+          </div>
+        )}
       </div>
 
       <div className='md:order-2'>
