@@ -18,6 +18,9 @@
     "release:verify": "git tag && git status && git log --oneline -3"
   },
   "dependencies": {
+    "@amcharts/amcharts5": "^5.14.4",
+    "@amcharts/amcharts5-fonts": "^5.0.1",
+    "@amcharts/amcharts5-geodata": "^5.1.5",
     "@aws-sdk/client-s3": "^3.948.0",
     "@aws-sdk/s3-request-presigner": "^3.948.0",
     "@fortawesome/fontawesome-svg-core": "^7.1.0",
