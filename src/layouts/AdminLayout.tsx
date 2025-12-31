@@ -66,7 +66,7 @@ const AdminLayout = () => {
           {/* Sidebar en columna izquierda */}
           <div
             className={`
-              relative flex-shrink-0
+              relative shrink-0
               transition-[width] duration-300
               ${sidebarOpen ? 'w-64' : 'w-0'}
             `}
@@ -88,7 +88,7 @@ const AdminLayout = () => {
           {/* Contenido */}
           <div className='relative flex min-h-0 flex-1 flex-col overflow-hidden'>
             <div ref={contentRef} className='flex-1 overflow-auto p-5'>
-              <div key={location.pathname + location.search} className='route-fade'>
+              <div key={location.pathname + location.search} className='route-fade h-full'>
                 <Outlet />
               </div>
             </div>
