@@ -60,6 +60,11 @@ export default function VerticalBarBulletChart({ data, height = '100%', classNam
     })
     xRenderer.grid.template.set('visible', false)
 
+    // ✅ Oculta los nombres en el eje X (los verás en tooltip)
+    xRenderer.labels.template.setAll({
+      forceHidden: true
+    })
+
     const xAxis = chart.xAxes.push(
       am5xy.CategoryAxis.new(root, {
         paddingTop: 40,
@@ -80,9 +85,22 @@ export default function VerticalBarBulletChart({ data, height = '100%', classNam
     )
 
     // Series
+
+    const tooltip = am5.Tooltip.new(root, {
+      dy: -30,
+      pointerOrientation: 'vertical',
+      labelText: '[bold]{categoryX}[/]\n{valueY}'
+    })
+
+    // 👇 CENTRAR TEXTO
+    tooltip.label.setAll({
+      textAlign: 'center',
+      centerX: am5.p50
+    })
+
     const series = chart.series.push(
       am5xy.ColumnSeries.new(root, {
-        name: 'Income',
+        name: 'Pasos',
         xAxis,
         yAxis,
         valueYField: 'steps',
@@ -90,11 +108,7 @@ export default function VerticalBarBulletChart({ data, height = '100%', classNam
         sequencedInterpolation: true,
         calculateAggregates: true,
         maskBullets: false,
-        tooltip: am5.Tooltip.new(root, {
-          dy: -30,
-          pointerOrientation: 'vertical',
-          labelText: '{valueY}'
-        })
+        tooltip
       })
     )
 
@@ -111,7 +125,7 @@ export default function VerticalBarBulletChart({ data, height = '100%', classNam
     // Bullets (circle + masked image)
     const circleTemplate = am5.Template.new<am5.Circle>({})
 
-    series.bullets.push((_root, _series, dataItem) => {
+    series.bullets.push((_root, _series, _dataItem) => {
       const bulletContainer = am5.Container.new(root, {})
 
       bulletContainer.children.push(am5.Circle.new(root, { radius: 34 }, circleTemplate))

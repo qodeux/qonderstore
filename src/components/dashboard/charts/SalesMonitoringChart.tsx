@@ -333,8 +333,9 @@ export default function SalesStockLikeChart({ data, height = '95%', className, v
     apiRef.current = { shift: shiftByPages }
 
     const applyMaxFlag = () => setIsMax(isMaxSelected())
-    applyMaxFlag()
-    //dateAxis.events.on('startendchanged', applyMaxFlag)
+
+    dateAxis.on('start', applyMaxFlag)
+    dateAxis.on('end', applyMaxFlag)
 
     // Animaciones
     avgSeries.appear(800)
