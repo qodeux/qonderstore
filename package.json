@@ -18,6 +18,7 @@
     "release:verify": "git tag && git status && git log --oneline -3"
   },
   "dependencies": {
+    "@amcharts/amcharts4-geodata": "^4.1.31",
     "@amcharts/amcharts5": "^5.14.4",
     "@amcharts/amcharts5-fonts": "^5.0.1",
     "@amcharts/amcharts5-geodata": "^5.1.5",
