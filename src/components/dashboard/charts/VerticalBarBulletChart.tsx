@@ -17,7 +17,7 @@ type Props = {
   className?: string
 }
 
-export default function VerticalBarBulletChart({ data, height = 360, className }: Props) {
+export default function VerticalBarBulletChart({ data, height = '100%', className }: Props) {
   const divRef = useRef<HTMLDivElement | null>(null)
   const rootRef = useRef<am5.Root | null>(null)
 
@@ -162,12 +162,6 @@ export default function VerticalBarBulletChart({ data, height = 360, className }
     const cursor = chart.set('cursor', am5xy.XYCursor.new(root, {}))
     cursor.lineX.set('visible', false)
     cursor.lineY.set('visible', false)
-
-    cursor.events.on('cursormoved', () => {
-      const dataItem = series.get('tooltip')?.dataItem
-      if (dataItem) handleHover(dataItem as any)
-      else handleOut()
-    })
 
     // Animate on load
     series.appear()

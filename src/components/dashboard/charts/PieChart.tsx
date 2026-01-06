@@ -15,7 +15,7 @@ type PieChartProps = {
   showLegend?: boolean
 }
 
-export default function PieChart({ data, height = 320, className, showLegend = true }: PieChartProps) {
+export default function PieChart({ data, height = '100%', className, showLegend = true }: PieChartProps) {
   const divRef = useRef<HTMLDivElement | null>(null)
   const rootRef = useRef<am5.Root | null>(null)
 
