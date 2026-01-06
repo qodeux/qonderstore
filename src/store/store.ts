@@ -18,6 +18,8 @@ import { useDispatch, useSelector, type TypedUseSelectorHook } from 'react-redux
 import storeOrdersReducer from './slices/storeOrdersSlice'
 import supplyOrdersReducer from './slices/supplyOrdersSlice'
 
+import dashboardReducer from './slices/dashboardSlice'
+
 import configReducer from './slices/configSlice'
 
 const store = configureStore({
@@ -35,7 +37,8 @@ const store = configureStore({
     cart: cartReducer,
     supplyOrders: supplyOrdersReducer,
     storeOrders: storeOrdersReducer,
-    config: configReducer
+    config: configReducer,
+    dashboard: dashboardReducer
   }
 })
 

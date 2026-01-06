@@ -1,15 +1,19 @@
 import { Button, Card, Chip, cn } from '@heroui/react'
 import { MoveDownRight, MoveRight, MoveUpRight, type LucideIcon } from 'lucide-react'
+import { setSelectedModule } from '../../store/slices/dashboardSlice'
+import { useAppDispatch } from '../../store/store'
 
 export type KpiStatProps = {
   title: string
+  slug: string
   value: number
   change: string
   changeType: 'positive' | 'neutral' | 'negative'
   icon: LucideIcon
 }
 
-const KpiStat = ({ title, value, change, changeType, icon: Icon }: KpiStatProps) => {
+const KpiStat = ({ title, slug, value, change, changeType, icon: Icon }: KpiStatProps) => {
+  const dispatch = useAppDispatch()
   return (
     <Card className='dark:border-default-100 border border-transparent'>
       <div className='flex p-4 items-center  relative'>
@@ -46,7 +50,13 @@ const KpiStat = ({ title, value, change, changeType, icon: Icon }: KpiStatProps)
       </div>
 
       <div className='bg-default-100'>
-        <Button fullWidth className='text-default-500 flex justify-start text-xs data-pressed:scale-100' radius='none' variant='light'>
+        <Button
+          fullWidth
+          className='text-default-500 flex justify-start text-xs data-pressed:scale-100'
+          radius='none'
+          variant='light'
+          onPress={() => dispatch(setSelectedModule(slug))}
+        >
           Ver detalles
         </Button>
       </div>
