@@ -7,6 +7,8 @@ import LollipopByDayChart from '../../components/dashboard/charts/LolipopChart'
 import PieChart from '../../components/dashboard/charts/PieChart'
 import type { SalesDay } from '../../components/dashboard/charts/SalesMonitoringChart'
 import SalesMonitoringChart from '../../components/dashboard/charts/SalesMonitoringChart'
+import type { UsersDay } from '../../components/dashboard/charts/UsersActiveVsNewChart'
+import UsersActiveVsNewChart from '../../components/dashboard/charts/UsersActiveVsNewChart'
 import VerticalBarBulletChart from '../../components/dashboard/charts/VerticalBarBulletChart'
 import { useAppSelector } from '../../store/store'
 
@@ -106,6 +108,12 @@ const Dashboard = () => {
     { value: 1, category: 'Seven' }
   ]
 
+  const deviceData = [
+    { value: 100, category: 'PC' },
+    { value: 60, category: 'Móvil' },
+    { value: 30, category: 'Tablet' }
+  ]
+
   const mapData = [
     { title: 'Ciudad de México', latitude: 19.4271, longitude: -99.1276 },
     { title: 'Guadalajara', latitude: 20.6597, longitude: -103.3496 },
@@ -127,7 +135,7 @@ const Dashboard = () => {
     { day: '2026-01-10', count: 11 }
   ]
 
-  const dataSales: SalesDay[] = Array.from({ length: 365 }, (_, i) => {
+  const dataSales: SalesDay[] = Array.from({ length: 365 + 182 }, (_, i) => {
     const d = new Date(2026, 0, 1)
     d.setDate(d.getDate() + i)
 
@@ -156,13 +164,27 @@ const Dashboard = () => {
     return { day, totalSales, shipments, avgTicket }
   })
 
+  const usersData: UsersDay[] = [
+    { day: '2026-01-01', activeUsers: 320, newUsers: 45 },
+    { day: '2026-01-02', activeUsers: 340, newUsers: 38 },
+    { day: '2026-01-03', activeUsers: 360, newUsers: 52 },
+    { day: '2026-01-04', activeUsers: 355, newUsers: 41 },
+    { day: '2026-01-05', activeUsers: 380, newUsers: 60 },
+    { day: '2026-01-06', activeUsers: 395, newUsers: 55 },
+    { day: '2026-01-07', activeUsers: 410, newUsers: 68 }
+  ]
+
   const moduleStats = [
     {
       slug: 'products',
       tabs: ['Productos', 'Categorías'],
       charts: [<VerticalBarBulletChart data={topSellingProducts} />, <PieChart data={pieData} />]
     },
-    { slug: 'users', value: 800 },
+    {
+      slug: 'users',
+      value: 800,
+      charts: [<UsersActiveVsNewChart data={usersData} height={520} defaultRange='week' />, <PieChart data={deviceData} />]
+    },
     {
       slug: 'shipments',
       value: 1200,
